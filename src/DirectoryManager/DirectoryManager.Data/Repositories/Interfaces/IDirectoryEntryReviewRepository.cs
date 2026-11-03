@@ -29,6 +29,16 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<Dictionary<int, DateTime>> GetLatestApprovedReviewDatesByEntryAsync(CancellationToken ct = default);
         Task<List<DirectoryEntryReview>> ListLatestApprovedAsync(int count = 10, CancellationToken ct = default);
 
+        /// <summary>
+        /// Problems reported in approved reviews of one listing: review-tag name → number of reviews
+        /// carrying it, for tags at Warning level or worse (e.g. "Funds held", "KYC Issue"). Tags that
+        /// describe the review itself ("suspicious") are left out.
+        /// </summary>
+        Task<Dictionary<string, int>> GetIssueTagCountsAsync(int directoryEntryId);
+
+        /// <summary>Amount band (MinUsd/MaxUsd) of each approved review of a listing that states an amount.</summary>
+        Task<List<(decimal? Min, decimal? Max)>> GetVerifiedOrderAmountBandsAsync(int directoryEntryId, CancellationToken ct = default);
+
         Task<Dictionary<int, RatingSummaryDto>> GetRatingSummariesAsync(IReadOnlyCollection<int> directoryEntryIds);
         public Task<DirectoryEntryReview?> GetWithTagsByIdAsync(int id, CancellationToken ct = default);
         Task<int> CountApprovedForEntryAsync(int directoryEntryId, CancellationToken ct);

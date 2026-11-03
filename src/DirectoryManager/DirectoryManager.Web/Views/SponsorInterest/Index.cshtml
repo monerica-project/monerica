@@ -1,0 +1,132 @@
+@model DirectoryManager.Web.Models.SponsorInterestReportViewModel
+@{
+    PageMeta.Title = "Sponsor Interest";
+    Layout = "_CenteredLayout";
+    var df = DirectoryManager.Common.Constants.StringConstants.DateFormat;
+    Func<DateTime, string> when = d => d.ToString("yyyy-MM-dd HH:mm") + " UTC";
+    var maxWeek = Model.Weeks.Count == 0 ? 1 : Math.Max(1, Model.Weeks.Max(w => w.Looks));
+}
+
+@section PageContent {
+    <h1>@PageMeta.Title</h1>
+    @await Html.PartialAsync("_AdminMenu")
+
+    <p>
+        Who is looking at sponsoring their listing: the sponsor options page, the prices (duration) page,
+        the confirm page, and starting a payment. Each step counts once per listing and placement per 30 minutes.
+        No IPs or visitor details are stored, and signed-in admins and bots are not counted.
+    </p>
+
+    <p>
+        Quick range:
+        <a href="?start=@DateTime.UtcNow.AddDays(-7).ToString(df)">7 days</a> |
+        <a href="?start=@DateTime.UtcNow.AddDays(-30).ToString(df)">30 days</a> |
+        <a href="?start=@DateTime.UtcNow.AddDays(-90).ToString(df)">90 days</a> |
+        <a href="?start=@DateTime.UtcNow.AddDays(-365).ToString(df)">1 year</a>
+    </p>
+
+    <form method="get" class="form-row align-items-end mb-4">
+        <div class="form-group col-md-3">
+            <label for="start">Start date (UTC)</label>
+            <input id="start" name="start" type="date" class="form-control" value="@Model.StartDate.ToString(df)" />
+        </div>
+        <div class="form-group col-md-3">
+            <label for="end">End date (UTC)</label>
+            <input id="end" name="end" type="date" class="form-control" value="@Model.EndDate.ToString(df)" />
+        </div>
+        <div class="form-group col-md-2">
+            <button type="submit" class="btn btn-primary">Run</button>
+        </div>
+    </form>
+
+    <p>
+        <b>@Model.ListingCount</b> listing@(Model.ListingCount == 1 ? "" : "s") showed interest ·
+        <b>@Model.TotalLooks</b> look@(Model.TotalLooks == 1 ? "" : "s") ·
+        <b>@Model.StartedPaymentListings</b> started a payment ·
+        <b>@Model.PaidListings</b> paid
+        (@Model.StartDate.ToString(df) to @Model.EndDate.ToString(df))
+    </p>
+
+    @if (Model.TotalLooks == 0)
+    {
+        <p><i>Nothing logged in this range yet. Logging started on 2026-11-03.</i></p>
+    }
+    else
+    {
+        <h2>By listing</h2>
+        <div class="u-overflow-x-auto">
+            <table class="table table-striped table-sm">
+                <thead>
+                    <tr>
+                        <th>Listing</th>
+                        <th>Placements looked at</th>
+                        <th>Furthest step</th>
+                        <th>Looks</th>
+                        <th>Days</th>
+                        <th>First seen</th>
+                        <th>Last seen</th>
+                        <th>Paid</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model.Listings)
+                    {
+                        <tr>
+                            <td>
+                                @if (r.ProfilePath != null)
+                                {
+                                    <a href="@r.ProfilePath">@r.Name</a>
+                                }
+                                else
+                                {
+                                    @r.Name
+                                }
+                                <br /><small><a href="/sponsorship/options/@r.DirectoryEntryId">options</a> · <a href="/directoryentry/edit/@r.DirectoryEntryId">edit</a></small>
+                            </td>
+                            <td>@(r.Placements.Count == 0 ? "—" : string.Join(", ", r.Placements))</td>
+                            <td>@(r.FurthestStepValue >= 4 ? Html.Raw("<b>" + r.FurthestStep + "</b>") : Html.Raw(r.FurthestStep))</td>
+                            <td>@r.Looks</td>
+                            <td>@r.Days</td>
+                            <td>@r.FirstSeen.ToString(df)</td>
+                            <td>@when(r.LastSeen)</td>
+                            <td>@(r.PaidDate.HasValue ? "✓ " + r.PaidDate.Value.ToString(df) : "")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <h2>By week</h2>
+        <table class="table table-sm">
+            <thead><tr><th>Week of</th><th>Looks</th><th></th><th>Listings</th><th>Started payment</th></tr></thead>
+            <tbody>
+                @foreach (var w in Model.Weeks)
+                {
+                    <tr>
+                        <td>@w.WeekStart.ToString(df)</td>
+                        <td>@w.Looks</td>
+                        <td style="width:40%;"><div style="height:10px;border-radius:3px;background:#f26822;width:@((w.Looks * 100 / maxWeek).ToString(System.Globalization.CultureInfo.InvariantCulture))%;"></div></td>
+                        <td>@w.Listings</td>
+                        <td>@w.StartedPayment</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <h2>Latest activity</h2>
+        <table class="table table-striped table-sm">
+            <thead><tr><th>When</th><th>Listing</th><th>Placement</th><th>Step</th></tr></thead>
+            <tbody>
+                @foreach (var e in Model.Recent)
+                {
+                    <tr>
+                        <td>@when(e.When)</td>
+                        <td>@e.Name</td>
+                        <td>@e.Placement</td>
+                        <td>@e.Step</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}

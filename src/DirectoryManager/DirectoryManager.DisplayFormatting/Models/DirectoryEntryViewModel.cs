@@ -40,6 +40,8 @@ namespace DirectoryManager.DisplayFormatting.Models
 
         public Liquidity Liquidity { get; set; }
 
+        public RateType RateType { get; set; }
+
         public List<DirectoryManager.Data.Models.GuaranteeItem> Guarantees { get; set; } = new ();
 
         public DirectoryBadge DirectoryBadge { get; set; } = DirectoryBadge.Unknown;
@@ -90,6 +92,12 @@ namespace DirectoryManager.DisplayFormatting.Models
         /// its affiliate link (rel="sponsored" only when that link is an affiliate one).
         /// </summary>
         public bool IsFeatured { get; set; }
+
+        /// <summary>
+        /// Set by the category/subcategory page when this line is THAT list's featured pick; the line
+        /// then shows a small "Featured" chip (only in the regular list, never on the featured box).
+        /// </summary>
+        public bool IsFeaturedInThisList { get; set; }
 
         /// <summary>Leave out the extra links block under the name.</summary>
         public bool SkipLinksBlock { get; set; }
@@ -142,6 +150,9 @@ namespace DirectoryManager.DisplayFormatting.Models
         /// Count of Approved reviews that have a rating value.
         /// </summary>
         public int? ReviewCount { get; set; }
+
+        /// <summary>Approved reviews tagged "Valid Order" (order checked by hand). 0 = none.</summary>
+        public int VerifiedOrderCount { get; set; }
 
         public List<string> AdditionalLinks { get; set; } = new ();
     }

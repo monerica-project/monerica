@@ -11,11 +11,17 @@ namespace DirectoryManager.Data.Models.TransferModels
 
         public List<Liquidity>? Liquidities { get; set; }
 
+        /// <summary>Rate types to match (Fixed / Float); an exchange offering both matches either.</summary>
+        public List<RateType>? RateTypes { get; set; }
+
         public string? Country { get; set; } // ISO2, or null/empty = all
 
         public bool HasVideo { get; set; }
         public bool HasTor { get; set; }
         public bool HasI2p { get; set; }
+
+        /// <summary>Only listings with at least one approved review tagged "Valid Order".</summary>
+        public bool VerifiedOrders { get; set; }
 
         public int? CategoryId { get; set; }
         public int? SubCategoryId { get; set; }

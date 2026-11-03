@@ -191,6 +191,7 @@ public class SearchController : Controller
                 {
                     vm.AverageRating = rs.AvgRating;
                     vm.ReviewCount = rs.ReviewCount;
+                    vm.VerifiedOrderCount = rs.VerifiedOrderCount;
                 }
                 else
                 {

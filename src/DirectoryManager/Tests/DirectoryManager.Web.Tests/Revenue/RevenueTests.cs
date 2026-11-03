@@ -177,6 +177,61 @@ namespace DirectoryManager.Web.Tests.Revenue
         }
 
         [Fact]
+        public void Forecast_EachStreamOnItsOwn_AddsUpToTheTotal()
+        {
+            var asOf = new DateTime(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc);
+            var inv = Invoice(start: asOf, days: 365, amount: 3650m, created: asOf);
+            var oneTime = new List<RevenueItem>();
+            // 8 months of history: enough to trust the streams' pace fully.
+            for (int k = 1; k <= 8; k++)
+            {
+                oneTime.Add(new RevenueItem { Source = RevenueSource.VideoSponsorships, PaidUtc = asOf.AddMonths(-k).AddDays(3), AmountUsd = 500m });
+                oneTime.Add(new RevenueItem { Source = RevenueSource.AffiliateCommissions, PaidUtc = asOf.AddMonths(-k).AddDays(5), AmountUsd = 100m });
+            }
+
+            var r = SponsorshipForecastModel.Run(new[] { inv }, oneTime, Options(asOf, 6), asOf);
+
+            foreach (var m in r.Months)
+            {
+                // Every stream has its own forecast...
+                Assert.Equal(new[] { RevenueSource.VideoSponsorships, RevenueSource.AffiliateCommissions }.OrderBy(x => x), m.Sources.Select(x => x.Source).OrderBy(x => x));
+                Assert.Equal(500m, m.Sources.Single(x => x.Source == RevenueSource.VideoSponsorships).Expected);
+                Assert.Equal(100m, m.Sources.Single(x => x.Source == RevenueSource.AffiliateCommissions).Expected);
+
+                // ...and the streams add up to the total.
+                Assert.Equal(m.Expected, m.SponsorExpected + m.SponsorSoFar + m.Sources.Sum(x => x.Expected), 0);
+            }
+
+            Assert.Equal(500m, r.SourceMonthlyAverage[RevenueSource.VideoSponsorships]);
+            Assert.Equal(600m, r.OtherMonthlyAverage);
+        }
+
+        [Theory]
+        [InlineData(0.7, 0.0)]
+        [InlineData(1.9, 0.0)]
+        [InlineData(3.0, 0.5)]
+        [InlineData(6.0, 1.0)]
+        [InlineData(20.0, 1.0)]
+        public void Forecast_NewStreams_AreNotProjectedFromAFewWeeks(double monthsOfData, double expectedWeight)
+            => Assert.Equal(expectedWeight, SponsorshipForecastModel.TrustWeight(monthsOfData), 3);
+
+        [Fact]
+        public void Forecast_TooNewStream_IsNotProjected()
+        {
+            var asOf = new DateTime(2026, 11, 1, 0, 0, 0, DateTimeKind.Utc);
+            var oneTime = new List<RevenueItem>
+            {
+                new () { Source = RevenueSource.VideoSponsorships, PaidUtc = asOf.AddDays(-20), AmountUsd = 1000m },
+                new () { Source = RevenueSource.VideoSponsorships, PaidUtc = asOf.AddDays(-10), AmountUsd = 1000m },
+            };
+
+            var r = SponsorshipForecastModel.Run(new List<SponsoredListingInvoice>(), oneTime, Options(asOf, 6), asOf);
+
+            Assert.Equal(0d, r.SourceStatuses[RevenueSource.VideoSponsorships].Weight);
+            Assert.All(r.Months.Skip(1), m => Assert.Equal(0m, m.Sources.Single(x => x.Source == RevenueSource.VideoSponsorships).Expected));
+        }
+
+        [Fact]
         public void Forecast_RenewalRate_DrivesExpectedValue()
         {
             // A long history of 30-day subcategory campaigns that ALWAYS renew, at $300 each.

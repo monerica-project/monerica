@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using DirectoryManager.Data.Constants;
 using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Helpers;
@@ -500,6 +501,37 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return await q.AverageAsync(ct);
         }
 
+        public async Task<Dictionary<string, int>> GetIssueTagCountsAsync(int directoryEntryId)
+        {
+            var rows = await this.context.DirectoryEntryReviewTags.AsNoTracking()
+                .Where(t => t.DirectoryEntryReview.DirectoryEntryId == directoryEntryId
+                         && t.DirectoryEntryReview.ModerationStatus == ReviewModerationStatus.Approved
+                         && t.ReviewTag.Level >= ReviewTagLevel.Warning
+                         && t.ReviewTag.Slug != ReviewTagSlugs.Suspicious)
+                .GroupBy(t => t.ReviewTag.Name)
+                .Select(g => new { Name = g.Key, Count = g.Select(x => x.DirectoryEntryReviewId).Distinct().Count() })
+                .ToListAsync()
+                .ConfigureAwait(false);
+
+            return rows.ToDictionary(x => x.Name, x => x.Count);
+        }
+
+        public async Task<List<(decimal? Min, decimal? Max)>> GetVerifiedOrderAmountBandsAsync(int directoryEntryId, CancellationToken ct = default)
+        {
+            var rows = await this.context.DirectoryEntryReviewTags.AsNoTracking()
+                .Where(t => t.DirectoryEntryReview.DirectoryEntryId == directoryEntryId
+                         && t.DirectoryEntryReview.ModerationStatus == ReviewModerationStatus.Approved
+                         && (t.ReviewTag.MinUsd != null || t.ReviewTag.MaxUsd != null))
+                .Select(t => new { t.DirectoryEntryReviewId, t.ReviewTag.MinUsd, t.ReviewTag.MaxUsd })
+                .ToListAsync(ct)
+                .ConfigureAwait(false);
+
+            // One band per review (a review should only carry one).
+            return rows.GroupBy(r => r.DirectoryEntryReviewId)
+                .Select(g => (g.First().MinUsd, g.First().MaxUsd))
+                .ToList();
+        }
+
         public async Task<Dictionary<int, RatingSummaryDto>> GetRatingSummariesAsync(IReadOnlyCollection<int> directoryEntryIds)
         {
             if (directoryEntryIds == null || directoryEntryIds.Count == 0)
@@ -521,7 +553,30 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ToListAsync()
                 .ConfigureAwait(false);
 
-            return rows.ToDictionary(x => x.DirectoryEntryId, x => x);
+            var result = rows.ToDictionary(x => x.DirectoryEntryId, x => x);
+
+            // Verified orders: approved reviews carrying the "Valid Order" tag.
+            var verified = await this.Set.AsNoTracking()
+                .Where(r => directoryEntryIds.Contains(r.DirectoryEntryId)
+                         && r.ModerationStatus == ReviewModerationStatus.Approved
+                         && r.ReviewTags.Any(t => t.ReviewTag.Slug == ReviewTagSlugs.ValidOrder))
+                .GroupBy(r => r.DirectoryEntryId)
+                .Select(g => new { Id = g.Key, Count = g.Count() })
+                .ToListAsync()
+                .ConfigureAwait(false);
+
+            foreach (var v in verified)
+            {
+                if (!result.TryGetValue(v.Id, out var dto))
+                {
+                    dto = new RatingSummaryDto { DirectoryEntryId = v.Id };
+                    result[v.Id] = dto;
+                }
+
+                dto.VerifiedOrderCount = v.Count;
+            }
+
+            return result;
         }
 
         // NOTE:

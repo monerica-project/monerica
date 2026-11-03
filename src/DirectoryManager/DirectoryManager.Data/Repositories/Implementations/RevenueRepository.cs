@@ -33,13 +33,16 @@ namespace DirectoryManager.Data.Repositories.Implementations
             }));
 
             var affiliate = await this.context.AffiliateCommissionsEarned.AsNoTracking()
-                .Select(a => new { a.CommissionDate, a.UsdValue })
+                .Select(a => new { a.CommissionDate, a.UsdValue, a.PaymentCurrency, Amount = a.PaymentCurrencyAmount })
                 .ToListAsync(ct);
             items.AddRange(affiliate.Select(a => new RevenueItem
             {
                 Source = RevenueSource.AffiliateCommissions,
                 PaidUtc = a.CommissionDate,
                 AmountUsd = a.UsdValue,
+
+                // Commissions received in XMR count at the XMR actually received in the XMR view.
+                AmountXmr = a.PaymentCurrency == Currency.XMR && a.Amount > 0 ? a.Amount : null,
             }));
 
             var submissions = await this.context.Submissions.AsNoTracking()

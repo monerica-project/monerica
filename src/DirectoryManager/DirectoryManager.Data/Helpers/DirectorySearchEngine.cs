@@ -133,22 +133,40 @@ namespace DirectoryManager.Data.Helpers
                 }
             }
 
-            var ranked = RankDocs(docs, q, relaxShortWords: false);
+            var ranked = RankDocs(docs, q, relaxShortWords: false, useSynonyms: false);
 
             // A short word that matched nothing as a whole word ("bit") is probably the start of
             // a name: retry letting it match the beginning of listing names (Bitania, BitcoinVN).
             if (ranked.Count == 0 && q.Words.Any(w => w.Length <= ShortWordMaxLength))
             {
-                ranked = RankDocs(docs, q, relaxShortWords: true);
+                ranked = RankDocs(docs, q, relaxShortWords: true, useSynonyms: false);
+            }
+
+            // Then listings that only match through a synonym ("sim" → eSIM), always after every
+            // direct match so the word people typed still wins.
+            if (q.Words.Any(w => Synonyms.ContainsKey(w)))
+            {
+                var seen = new HashSet<DirectoryEntry>(ranked);
+                var extra = RankDocs(docs, q, relaxShortWords: false, useSynonyms: true).Where(seen.Add).ToList();
+
+                // Keep sunk listings (scams) at the very end: insert before the trailing sunk run.
+                int insertAt = ranked.Count;
+                while (insertAt > 0 && SinkTier(ranked[insertAt - 1].DirectoryStatus) > 0)
+                {
+                    insertAt--;
+                }
+
+                ranked.InsertRange(insertAt, extra.Where(e => SinkTier(e.DirectoryStatus) == 0));
+                ranked.AddRange(extra.Where(e => SinkTier(e.DirectoryStatus) > 0));
             }
 
             return ranked;
         }
 
-        private static List<DirectoryEntry> RankDocs(List<Doc> docs, ParsedQuery q, bool relaxShortWords)
+        private static List<DirectoryEntry> RankDocs(List<Doc> docs, ParsedQuery q, bool relaxShortWords, bool useSynonyms)
         {
             var scored = docs
-                .Select(d => (Doc: d, Result: ScoreWords(d, q, relaxShortWords)))
+                .Select(d => (Doc: d, Result: ScoreWords(d, q, relaxShortWords, useSynonyms)))
                 .ToList();
 
             List<(Doc Doc, double Score)> hits;
@@ -478,13 +496,45 @@ namespace DirectoryManager.Data.Helpers
             return d[a.Length, b.Length];
         }
 
-        private static (int Matched, double Score) ScoreWords(Doc d, ParsedQuery q, bool relaxShortWords)
+        // Different words people use for the same thing (from the site's most common searches,
+        // Nov 2026). A synonym match counts a little less than the word itself, so exact matches
+        // still rank first.
+        private const double SynonymWeight = 0.3;
+
+        private static readonly Dictionary<string, string[]> Synonyms = new (StringComparer.Ordinal)
+        {
+            ["sim"] = new[] { "esim", "phone" },
+            ["esim"] = new[] { "sim" },
+            ["phone"] = new[] { "sms", "sim" },
+            ["sms"] = new[] { "phone", "verification" },
+            ["mail"] = new[] { "email" },
+            ["email"] = new[] { "mail" },
+            ["rdp"] = new[] { "vps" },
+            ["vps"] = new[] { "server" },
+            ["hosting"] = new[] { "server", "vps" },
+            ["dex"] = new[] { "decentralized" },
+            ["casino"] = new[] { "gambling" },
+            ["gambling"] = new[] { "casino", "betting" },
+            ["betting"] = new[] { "gambling" },
+            ["ai"] = new[] { "llm", "gpt" },
+            ["gift"] = new[] { "giftcard" },
+        };
+
+        private static (int Matched, double Score) ScoreWords(Doc d, ParsedQuery q, bool relaxShortWords, bool useSynonyms)
         {
             int matched = 0;
             double total = 0;
             foreach (var word in q.Words)
             {
                 double s = d.ScoreWord(word, relaxShortWords);
+                if (useSynonyms && s <= 0 && Synonyms.TryGetValue(word, out var alternatives))
+                {
+                    foreach (var alt in alternatives)
+                    {
+                        s = Math.Max(s, d.ScoreWord(alt, relaxShortWords) * SynonymWeight);
+                    }
+                }
+
                 if (s > 0)
                 {
                     matched++;

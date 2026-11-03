@@ -97,6 +97,8 @@ namespace DirectoryManager.Web.Extensions
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>()
                     .AddScoped<IUrlResolutionService, UrlResolutionService>();
             services.AddScoped<ICacheService, CacheService>();
+            services.AddScoped<DirectoryManager.Web.Services.Implementations.RevenueOpportunityService>();
+            services.AddScoped<DirectoryManager.Web.Services.Implementations.WaitlistEligibilityService>();
             services.AddScoped<IFeaturedListingBuilder, DirectoryManager.Web.Services.Implementations.FeaturedListingBuilder>();
             services.AddScoped<ISponsorableScopeService, DirectoryManager.Web.Services.Implementations.SponsorableScopeService>();
 

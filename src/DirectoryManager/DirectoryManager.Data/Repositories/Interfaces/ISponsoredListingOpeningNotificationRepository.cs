@@ -27,6 +27,12 @@ namespace DirectoryManager.Data.Repositories.Interfaces
 
         Task<int> GetWaitlistCountAsync(SponsorshipType type, int? typeId);
 
+        /// <summary>
+        /// Newest time any waitlist signup was added or changed (joined, left, or notified), or null
+        /// when there are none. The sitemap uses it so a waitlist change refreshes the static site.
+        /// </summary>
+        Task<DateTime?> GetLastWaitlistChangeUtcAsync();
+
         Task<List<WaitlistItemDto>> GetWaitlistPreviewAsync(SponsorshipType type, int? typeId, int take);
 
         Task<(List<WaitlistItemDto> Items, int TotalCount)> GetWaitlistPagedAsync(

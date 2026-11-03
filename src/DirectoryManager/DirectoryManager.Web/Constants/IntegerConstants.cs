@@ -24,7 +24,9 @@
         public const int MaxGuarantees = 4;
         public const int ReviewsPageSize = 10;
         public const int ReviewCountToShowOnHomepage = 25;
-        public const int CommentCountToShowOnHomepage = 10;
+        // Same as reviews: the homepage merges both and shows the newest 25 items of either kind,
+        // so fetching fewer replies than that silently dropped recent replies (e.g. to official reviews).
+        public const int CommentCountToShowOnHomepage = 25;
         public const int SessinExpiresMinutes = 20;
 
         // Verification-request and problem-report flows: long enough to write a careful message.

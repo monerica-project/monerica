@@ -200,6 +200,16 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .Select(s => s.PaidUtc)
                 .FirstOrDefaultAsync(ct);
 
+        public async Task<(DateTime? PaidUtc, decimal? Usd, decimal? Xmr, int Id)> GetLastPaymentAsync(CancellationToken ct = default)
+        {
+            var last = await this.context.Submissions.AsNoTracking()
+                .Where(s => s.PaidUtc != null)
+                .OrderByDescending(s => s.PaidUtc)
+                .Select(s => new { s.PaidUtc, s.PaidUsd, s.PaidXmr, s.SubmissionId })
+                .FirstOrDefaultAsync(ct);
+            return (last?.PaidUtc, last?.PaidUsd, last?.PaidXmr, last?.SubmissionId ?? 0);
+        }
+
         public Task<List<string>> GetPaidInvoiceIdsMissingXmrAsync(CancellationToken ct = default) =>
             this.context.Submissions.AsNoTracking()
                 .Where(x => x.BtcPayInvoiceId != null && x.BtcPayInvoiceId != string.Empty && x.PaidUtc != null && x.PaidXmr == null)

@@ -29,5 +29,11 @@ namespace DirectoryManager.Web.Models
 
         // Page-size selector values offered to the visitor (e.g. 12 / 24 / 48 / 96).
         public List<int> PageSizeOptions { get; set; } = new ();
+
+        /// <summary>One-click shortcuts to what people search for most (label, category, optional subcategory).</summary>
+        public List<(string Label, int CategoryId, int? SubCategoryId)> PopularPicks { get; set; } = new ();
+
+        /// <summary>True when the selected category is an exchange category (shows liquidity / rate filters).</summary>
+        public bool IsExchangeContext { get; set; }
     }
 }

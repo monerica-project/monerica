@@ -40,9 +40,39 @@
 
     @EntryReviewHtmlHelper.RenderReviewTags(o)
 
-    <div class="mt-2@(o.IsStruckThrough ? " review-struck" : string.Empty)" itemprop="reviewBody">
-        @Html.Raw(StringHelpers.RenderBodyWithLinksHtml(o.Body, cssClass: "multi-line-text", ugcContent: false, maskEmails: false))
-    </div>
+    @{
+        // Reviews written as "Label: value" lines show as a compact facts table + comment;
+        // anything else shows exactly as written.
+        var facts = OfficialReviewFacts.Parse(o.Body);
+    }
+    @if (facts.IsStructured)
+    {
+        <div class="mt-2@(o.IsStruckThrough ? " review-struck" : string.Empty)">
+            <meta itemprop="reviewBody" content="@o.Body" />
+            <dl class="official-facts">
+                @foreach (var f in facts.Facts)
+                {
+                    <div class="official-fact">
+                        <dt>@f.Key</dt>
+                        <dd>@Html.Raw(StringHelpers.RenderBodyWithLinksHtml(f.Value, cssClass: "official-fact-value", ugcContent: false, maskEmails: false))</dd>
+                    </div>
+                }
+            </dl>
+            @if (!string.IsNullOrWhiteSpace(facts.Comments))
+            {
+                <div class="official-comment">
+                    <div class="official-comment-label">Notes</div>
+                    @Html.Raw(StringHelpers.RenderBodyWithLinksHtml(facts.Comments, cssClass: "multi-line-text", ugcContent: false, maskEmails: false))
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="mt-2@(o.IsStruckThrough ? " review-struck" : string.Empty)" itemprop="reviewBody">
+            @Html.Raw(StringHelpers.RenderBodyWithLinksHtml(o.Body, cssClass: "multi-line-text", ugcContent: false, maskEmails: false))
+        </div>
+    }
 
     @if (!string.IsNullOrWhiteSpace(o.OrderUrl)
          || !string.IsNullOrWhiteSpace(o.SendingTxUrl)
@@ -50,7 +80,7 @@
          || !string.IsNullOrWhiteSpace(o.ImageUrl)
          || !string.IsNullOrWhiteSpace(o.AmlScreenshotUrl))
     {
-        <ul class="official-links mt-3 list-unstyled">
+        <ul class="official-links official-proof mt-3 list-unstyled" aria-label="Proof">
             @if (!string.IsNullOrWhiteSpace(o.OrderUrl))
             {
                 <li>

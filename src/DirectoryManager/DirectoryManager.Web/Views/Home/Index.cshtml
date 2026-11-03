@@ -315,6 +315,7 @@
                                     {
                                         vm.AverageRating = rs.AvgRating;
                                         vm.ReviewCount = rs.ReviewCount;
+                                        vm.VerifiedOrderCount = rs.VerifiedOrderCount;
                                     }
 
                                     vm.ShowProfileLink = true;
@@ -416,6 +417,7 @@
                                     {
                                         vm.AverageRating = rs.AvgRating;
                                         vm.ReviewCount = rs.ReviewCount;
+                                        vm.VerifiedOrderCount = rs.VerifiedOrderCount;
                                     }
 
                                     vm.ShowProfileLink = true;
@@ -446,6 +448,22 @@
                 .ToList();
 
             var reviewsPageSize = IntegerConstants.ReviewsPageSize;
+
+            // Official reviews written as "Label: value" lines are quoted by their Notes (the
+            // "Comments:" text), not by "Exchange: ... Rate Type: ..." run together.
+            string SnippetSource(string? body, bool isOfficial)
+            {
+                if (isOfficial)
+                {
+                    var facts = DirectoryManager.Web.Helpers.OfficialReviewFacts.Parse(body);
+                    if (facts.IsStructured && !string.IsNullOrWhiteSpace(facts.Comments))
+                    {
+                        return facts.Comments;
+                    }
+                }
+
+                return body ?? string.Empty;
+            }
 
             var reviewPageMap = reviewIdsToMap.Count == 0
                 ? new Dictionary<int, int>()
@@ -510,7 +528,7 @@
 
                         var reviewSnippet = StringHelpers.TruncateAtWord(
                                                 StringHelpers.AnonymizeEmailsInText(
-                                                    (parent?.Body ?? string.Empty).ReplaceLineEndings(" ")),
+                                                    SnippetSource(parent?.Body, parent?.IsOfficial == true).ReplaceLineEndings(" ")),
                                                 100);
 
                         var replySnippet = StringHelpers.TruncateAtWord(
@@ -524,21 +542,23 @@
                             ? DisplayMarkUpHelper.BuildCountryFlagImgTag(e.CountryCode)
                             : DisplayMarkUpHelper.BuildCountryFlagImgTag(e.CountryCode, root);
 
-<li>
+@* A reply row leads with the REPLY (its date, "Reply on <listing>", its text); the review it
+   answers is a quoted line underneath with the review's OWN date, so a reply can't be mistaken
+   for another review. *@
+<li class="latest-reply">
     <i>@itemDate</i>
+    <a class="latest-reply-label" href="@replyAnchorUrl">↩ Reply</a> on
     @Html.Raw(statusIcon)<a href="@listingUrl">@listingName</a>&nbsp;@Html.Raw(flagTag)
-    @if (parent?.IsOfficial == true)
-    {
-        <span class="badge bg-orange official-flag u-color-1a1a1a" title="Official @(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName)) review">Official</span>
-    }
-    @RenderReviewTags(parent)
-    @if (parent?.Rating.HasValue == true && parent.Rating.Value > 0)
-    {
-        @: — @RenderInlineRatingStars_NoCount_LinkToReview(parent.Rating.Value, reviewAnchorUrl)
-    }
-    — <span class="@(parent?.IsStruckThrough == true ? "review-struck" : null)">@reviewSnippet</span>
-    <br />
-    &nbsp;&nbsp;<a href="@replyAnchorUrl">↩ <em>Reply:</em></a> @replySnippet
+    — @replySnippet
+    <div class="latest-reply-parent">
+        ↳ <em>to @(parent?.IsOfficial == true ? "the official review" : "a review") from <a href="@reviewAnchorUrl">@((parent?.CreateDate ?? item.date).ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat))</a>:</em>
+        @RenderReviewTags(parent)
+        @if (parent?.Rating.HasValue == true && parent.Rating.Value > 0)
+        {
+            @RenderInlineRatingStars_NoCount_LinkToReview(parent.Rating.Value, reviewAnchorUrl)
+        }
+        — <span class="@(parent?.IsStruckThrough == true ? "review-struck" : null)">@reviewSnippet</span>
+    </div>
 </li>
                     }
                     else
@@ -558,7 +578,7 @@
 
                         var reviewSnippet = StringHelpers.TruncateAtWord(
                                                 StringHelpers.AnonymizeEmailsInText(
-                                                    (r.Body ?? string.Empty).ReplaceLineEndings(" ")),
+                                                    SnippetSource(r.Body, r.IsOfficial).ReplaceLineEndings(" ")),
                                                 100);
 
                         var itemDate = item.date.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat);

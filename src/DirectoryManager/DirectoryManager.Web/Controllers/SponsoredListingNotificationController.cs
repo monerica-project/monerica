@@ -121,37 +121,9 @@ namespace DirectoryManager.Web.Controllers
                 }
             }
 
-            var subcategories = (await this.subcategoryRepository.GetAllAsync()).ToDictionary(s => s.SubCategoryId);
-            var activeSponsors = await this.sponsoredListingRepository.GetActivelySponsoredDirectoryEntryIdsAsync();
-            var eligibility = new Dictionary<int, (bool Eligible, string? Reason)>();
-            var now = DateTime.UtcNow;
-
-            foreach (var n in items)
-            {
-                if (n.DirectoryEntryId is not int eid || !entries.TryGetValue(eid, out var e))
-                {
-                    eligibility[n.SponsoredListingOpeningNotificationId] = (false, "No listing linked");
-                    continue;
-                }
-
-                subcategories.TryGetValue(e.SubCategoryId, out var mainSub);
-                var alts = (await this.additionalSubcategoryRepository.GetByDirectoryEntryIdAsync(eid))
-                    .Select(a => (a.SubCategoryId, subcategories.TryGetValue(a.SubCategoryId, out var s) && s.SponsorshipDisabled))
-                    .ToList();
-
-                eligibility[n.SponsoredListingOpeningNotificationId] = SponsorshipEligibilityHelper.ForPlacement(
-                    n.SponsorshipType,
-                    n.TypeId,
-                    e.DirectoryStatus,
-                    e.CreateDate,
-                    e.SubCategoryId,
-                    mainSub?.CategoryId,
-                    mainSub?.SponsorshipDisabled == true,
-                    alts,
-                    activeSponsors.Contains(eid),
-                    DirectoryManager.Common.Constants.IntegerConstants.MinimumDaysListedBeforeSponsoring,
-                    now);
-            }
+            var eligibility = await this.HttpContext.RequestServices
+                .GetRequiredService<DirectoryManager.Web.Services.Implementations.WaitlistEligibilityService>()
+                .ForRowsAsync(items.Select(n => (n.SponsoredListingOpeningNotificationId, n.SponsorshipType, n.TypeId, n.DirectoryEntryId)));
 
             this.ViewBag.ListingNames = listingNames;
             this.ViewBag.Eligibility = eligibility;

@@ -562,12 +562,24 @@ namespace DirectoryManager.Web.Controllers
                 this.ViewBag.PaidUsd = fiatAmt;
             }
 
-            if (submission.PaidUtc is not null && !string.IsNullOrWhiteSpace(submission.BtcPayInvoiceId))
+            // Use the amounts stored on the submission when the payment was recorded; only ask BTCPay
+            // (a slow outside call, which made this page take seconds) when they're missing.
+            if (submission.PaidXmr is decimal storedXmr && storedXmr > 0)
+            {
+                this.ViewBag.PaidXmr = storedXmr;
+                if (this.ViewBag.PaidUsd is null && submission.PaidUsd is decimal storedUsd && storedUsd > 0)
+                {
+                    this.ViewBag.PaidUsd = storedUsd;
+                }
+            }
+            else if (submission.PaidUtc is not null && !string.IsNullOrWhiteSpace(submission.BtcPayInvoiceId))
             {
                 try
                 {
-                    var xmr = await this.btcPay.GetXmrPaymentMethodOnStoreAsync(
-                        this.btcPay.ReviewDonationsStoreId, submission.BtcPayInvoiceId!);
+                    using var btcPayTimeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                    btcPayTimeout.CancelAfter(TimeSpan.FromSeconds(3));
+                    var xmr = await DirectoryManager.Web.Helpers.BtcPayRetry.RunAsync(() => this.btcPay.GetXmrPaymentMethodOnStoreAsync(
+                        this.btcPay.ReviewDonationsStoreId, submission.BtcPayInvoiceId!).WaitAsync(btcPayTimeout.Token), "submission GetXmrPaymentMethodOnStoreAsync");
                     if (xmr is not null && decimal.TryParse(xmr.TotalPaid, out var xmrPaid) && xmrPaid > 0)
                     {
                         this.ViewBag.PaidXmr = xmrPaid;
@@ -667,6 +679,8 @@ namespace DirectoryManager.Web.Controllers
                     var entryGuarantees = existingGuaranteeRows
                         .Select(g => new GuaranteeItem { Link = g.Link, Amount = g.Amount, Currency = g.Currency })
                         .ToList();
+
+                    this.ViewBag.SensitiveChanges = SubmissionProtectedFields.SensitiveChanges(existing, submission);
 
                     this.ViewBag.Differences = ModelComparisonHelpers.CompareEntries(
                         existing,
@@ -775,6 +789,22 @@ namespace DirectoryManager.Web.Controllers
             // was producing an empty-message ModelState error). Validate the raw rows (catches a
             // link without an amount, etc.), then set them on the model for save + re-render.
             GuaranteeValidation.ValidateGuarantees(guaranteeItems, this.ModelState);
+
+            // The listing's own limits (same as the public form), so a submission can never get
+            // stuck at approval. Line breaks are already normalized to one character by the model.
+            if ((model.Description?.Length ?? 0) > DirectoryManager.Data.Helpers.ListingText.DescriptionMaxLength)
+            {
+                this.ModelState.AddModelError(
+                    nameof(model.Description),
+                    $"The description is {model.Description!.Length} characters; listings allow {DirectoryManager.Data.Helpers.ListingText.DescriptionMaxLength}. Please shorten it.");
+            }
+
+            if ((model.Note?.Length ?? 0) > DirectoryManager.Data.Helpers.ListingText.NoteMaxLength)
+            {
+                this.ModelState.AddModelError(
+                    nameof(model.Note),
+                    $"The note is {model.Note!.Length} characters; listings allow {DirectoryManager.Data.Helpers.ListingText.NoteMaxLength}. Please shorten it.");
+            }
             model.Guarantees = guaranteeItems ?? new List<GuaranteeItem>();
 
             var normalizedRelated = NormalizeRelatedLinks(relatedLinks, max: 3);
@@ -847,6 +877,7 @@ namespace DirectoryManager.Web.Controllers
                 submission.CountryCode = model.CountryCode;
                 submission.KycPolicy = model.KycPolicy;
                 submission.Liquidity = model.Liquidity;
+                submission.RateType = model.RateType;
                 submission.Guarantees = model.Guarantees;
 
                 await this.submissionRepository.UpdateAsync(submission);
@@ -924,7 +955,7 @@ namespace DirectoryManager.Web.Controllers
             {
                 try
                 {
-                    var existing = await this.btcPay.GetInvoiceOnStoreAsync(storeId, submission.BtcPayInvoiceId!);
+                    var existing = await DirectoryManager.Web.Helpers.BtcPayRetry.RunAsync(() => this.btcPay.GetInvoiceOnStoreAsync(storeId, submission.BtcPayInvoiceId!), "submission GetInvoiceOnStoreAsync");
                     if (!existing.IsExpired)
                     {
                         return this.RedirectToAction(nameof(this.PayInvoice), new { token });
@@ -959,7 +990,7 @@ namespace DirectoryManager.Web.Controllers
 
             try
             {
-                var invoice = await this.btcPay.CreateInvoiceOnStoreAsync(storeId, invoiceRequest);
+                var invoice = await DirectoryManager.Web.Helpers.BtcPayRetry.RunAsync(() => this.btcPay.CreateInvoiceOnStoreAsync(storeId, invoiceRequest), "submission CreateInvoiceOnStoreAsync");
                 await this.submissionRepository.SetInvoiceIdAsync(submission.SubmissionId, invoice.Id);
                 return this.RedirectToAction(nameof(this.PayInvoice), new { token });
             }
@@ -993,8 +1024,8 @@ namespace DirectoryManager.Web.Controllers
 
             try
             {
-                var xmr = await this.btcPay.GetXmrPaymentMethodOnStoreAsync(
-                    this.btcPay.ReviewDonationsStoreId, submission.BtcPayInvoiceId!);
+                var xmr = await DirectoryManager.Web.Helpers.BtcPayRetry.RunAsync(() => this.btcPay.GetXmrPaymentMethodOnStoreAsync(
+                    this.btcPay.ReviewDonationsStoreId, submission.BtcPayInvoiceId!), "submission GetXmrPaymentMethodOnStoreAsync");
                 if (xmr is not null && !string.IsNullOrWhiteSpace(xmr.Destination))
                 {
                     vm.Address = xmr.Destination;
@@ -1532,6 +1563,7 @@ namespace DirectoryManager.Web.Controllers
                 DirectoryStatus = directoryEntry.DirectoryStatus,
                 KycPolicy = directoryEntry.KycPolicy,
                 Liquidity = directoryEntry.Liquidity,
+                RateType = directoryEntry.RateType,
                 CountryCode = directoryEntry.CountryCode,
                 PgpKey = directoryEntry.PgpKey,
                 RelatedLink1 = null,
@@ -1572,6 +1604,7 @@ namespace DirectoryManager.Web.Controllers
                 CountryCode = submission.CountryCode,
                 KycPolicy = submission.KycPolicy,
                 Liquidity = submission.Liquidity,
+                RateType = submission.RateType,
                 Guarantees = submission.Guarantees,
                 PgpKey = submission.PgpKey,
                 RelatedLink1 = related.ElementAtOrDefault(0),
@@ -1681,6 +1714,7 @@ namespace DirectoryManager.Web.Controllers
                     CountryCode = submission.CountryCode,
                     KycPolicy = submission.KycPolicy,
                     Liquidity = submission.Liquidity,
+                    RateType = submission.RateType,
                     Guarantees = submission.Guarantees,
                     FoundedDate = submission.FoundedDate,
                 },
@@ -1745,6 +1779,7 @@ namespace DirectoryManager.Web.Controllers
 
                 submissionModel.DirectoryEntryId = existingDirectoryEntryId;
                 await this.KeepCurrentStatusIfUnsetAsync(submissionModel);
+                await this.ProtectListingFieldsAsync(submissionModel);
                 var createdSub = await this.submissionRepository.CreateAsync(submissionModel);
                 submissionId = createdSub.SubmissionId;
                 this.RememberDraft(createdSub.SubmissionId);
@@ -1772,6 +1807,7 @@ namespace DirectoryManager.Web.Controllers
 
                 submissionModel.DirectoryEntryId ??= existingSubmission.DirectoryEntryId;
                 await this.KeepCurrentStatusIfUnsetAsync(submissionModel);
+                await this.ProtectListingFieldsAsync(submissionModel);
                 await this.UpdateSubmission(submissionModel, existingSubmission);
             }
 
@@ -2086,6 +2122,25 @@ namespace DirectoryManager.Web.Controllers
         // A submitter who leaves "Keep current status" selected posts no status. For an edit of an
         // existing listing that must mean "unchanged", so a Verified listing is never downgraded
         // to Admitted unless the submitter explicitly picks Admitted.
+        /// <summary>
+        /// A public edit of an existing listing keeps the listing's status and PGP key: those are
+        /// admin decisions / the owner's identity (see <see cref="SubmissionProtectedFields"/>).
+        /// Signed-in admins are not restricted.
+        /// </summary>
+        private async Task ProtectListingFieldsAsync(Submission submissionModel)
+        {
+            if (this.User?.Identity?.IsAuthenticated == true || submissionModel.DirectoryEntryId is not int entryId)
+            {
+                return;
+            }
+
+            var entry = await this.directoryEntryRepository.GetByIdAsync(entryId);
+            if (entry != null)
+            {
+                SubmissionProtectedFields.KeepProtected(submissionModel, entry);
+            }
+        }
+
         private async Task KeepCurrentStatusIfUnsetAsync(Submission submissionModel)
         {
             if (submissionModel.DirectoryEntryId is not int entryId ||
@@ -2111,6 +2166,7 @@ namespace DirectoryManager.Web.Controllers
                 submissionModel.DirectoryStatus = existingDirectoryEntry.DirectoryStatus;
                 submissionModel.KycPolicy = existingDirectoryEntry.KycPolicy;
                 submissionModel.Liquidity = existingDirectoryEntry.Liquidity;
+                submissionModel.RateType = existingDirectoryEntry.RateType;
 
                 var existingGuarantees = await this.guaranteeRepo.GetByDirectoryEntryIdAsync(existingDirectoryEntry.DirectoryEntryId);
                 submissionModel.Guarantees = existingGuarantees
@@ -2155,6 +2211,7 @@ namespace DirectoryManager.Web.Controllers
                 CountryCode = model.CountryCode,
                 KycPolicy = model.KycPolicy,
                 Liquidity = model.Liquidity,
+                RateType = model.RateType,
                 PgpKey = model.PgpKey?.Trim(),
                 ProofLink = model.ProofLink?.Trim(),
                 VideoLink = model.VideoLink?.Trim(),
@@ -2195,6 +2252,7 @@ namespace DirectoryManager.Web.Controllers
             existing.CountryCode = model.CountryCode;
             existing.KycPolicy = model.KycPolicy;
             existing.Liquidity = model.Liquidity;
+            existing.RateType = model.RateType;
             existing.PgpKey = model.PgpKey?.Trim();
             existing.ProofLink = model.ProofLink?.Trim();
             existing.SourceCodeLink = model.SourceCodeLink?.Trim();
@@ -2254,6 +2312,7 @@ namespace DirectoryManager.Web.Controllers
                 CountryCode = model.CountryCode,
                 KycPolicy = model.KycPolicy,
                 Liquidity = model.Liquidity,
+                RateType = model.RateType,
                 Guarantees = model.Guarantees,
                 PgpKey = (model.PgpKey ?? string.Empty).Trim(),
                 SelectedTagIdsCsv = model.SelectedTagIdsCsv,
@@ -2336,6 +2395,7 @@ namespace DirectoryManager.Web.Controllers
             existingSubmission.CountryCode = submissionModel.CountryCode;
             existingSubmission.KycPolicy = submissionModel.KycPolicy;
             existingSubmission.Liquidity = submissionModel.Liquidity;
+            existingSubmission.RateType = submissionModel.RateType;
             existingSubmission.Guarantees = submissionModel.Guarantees;
             existingSubmission.PgpKey = submissionModel.PgpKey;
             existingSubmission.ProofLink = submissionModel.ProofLink;
@@ -2537,6 +2597,11 @@ namespace DirectoryManager.Web.Controllers
             }
 
             if (existingEntry.Liquidity != model.Liquidity)
+            {
+                return true;
+            }
+
+            if (existingEntry.RateType != model.RateType)
             {
                 return true;
             }

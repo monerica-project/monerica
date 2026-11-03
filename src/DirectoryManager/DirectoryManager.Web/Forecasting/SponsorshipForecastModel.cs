@@ -21,8 +21,6 @@ namespace DirectoryManager.Web.Forecasting
     // scores it against what actually happened.
     public static class SponsorshipForecastModel
     {
-        private const int RenewalLookbackDays = 540;
-        private const int ArrivalLookbackDays = 365;
         private const int RenewEarlyToleranceDays = 10;
         private const int RenewLateWindowDays = 45;
         private const int RecentPricesPerBucket = 6;
@@ -60,6 +58,16 @@ namespace DirectoryManager.Web.Forecasting
 
             public bool RunBacktests { get; init; } = true;
 
+            /// <summary>
+            /// How far back the model learns from: new-sponsor arrivals over this many days, renewal
+            /// rates over 1.5x this, and every other stream's months over this period. Default 1 year.
+            /// </summary>
+            public int LookbackDays { get; init; } = 365;
+
+            public int RenewalLookbackDays => (int)Math.Round(this.LookbackDays * 1.5);
+
+            public int LookbackMonths => Math.Max(1, (int)Math.Round(this.LookbackDays / 30.4375));
+
             // Price change assumed per year for renewals and new sponsors (0.10 = +10%/yr).
             // 0 = today's prices hold.
             public double PriceGrowthPerYear { get; init; }
@@ -90,12 +98,53 @@ namespace DirectoryManager.Web.Forecasting
 
             public decimal OtherExpected { get; init; }
 
+            /// <summary>Site sponsors' range for the month (same confidence as the total).</summary>
+            public decimal SponsorLow { get; init; }
+
+            /// <summary>Site-sponsor income already earned this month (current month only).</summary>
+            public decimal SponsorSoFar { get; init; }
+
+            public decimal SponsorHigh { get; init; }
+
+            /// <summary>Each other income stream on its own (expected and range).</summary>
+            public List<SourceForecast> Sources { get; init; } = new ();
+
             // Money expected to arrive (renewal and new-sponsor payments are paid up front).
             public decimal CashExpected { get; init; }
 
             public decimal CashLow { get; init; }
 
             public decimal CashHigh { get; init; }
+        }
+
+        /// <summary>How much history a stream has, and how much of its recent pace the forecast trusts.</summary>
+        public sealed class SourceStatus
+        {
+            public RevenueSource Source { get; init; }
+
+            public DateTime FirstPaidUtc { get; init; }
+
+            public double MonthsOfData { get; init; }
+
+            /// <summary>0 = too new to forecast, 1 = full trust; in between for a few months of data.</summary>
+            public double Weight { get; init; }
+
+            public decimal ReceivedSoFar { get; init; }
+        }
+
+        /// <summary>One income stream's forecast for one month.</summary>
+        public sealed class SourceForecast
+        {
+            public RevenueSource Source { get; init; }
+
+            /// <summary>Already received this month (current month only).</summary>
+            public decimal ActualSoFar { get; init; }
+
+            public decimal Expected { get; init; }
+
+            public decimal Low { get; init; }
+
+            public decimal High { get; init; }
         }
 
         public sealed class Tier
@@ -173,11 +222,41 @@ namespace DirectoryManager.Web.Forecasting
 
             public decimal OtherMonthlyAverage { get; init; }
 
+            /// <summary>History and trust level of each non-sponsor stream.</summary>
+            public Dictionary<RevenueSource, SourceStatus> SourceStatuses { get; init; } = new ();
+
+            /// <summary>Monthly average of each other income stream (months since it started, last 12).</summary>
+            public Dictionary<RevenueSource, decimal> SourceMonthlyAverage { get; init; } = new ();
+
             public decimal ContractedRemaining { get; init; }
 
             public decimal ExpectedTotal => this.Months.Sum(m => m.Expected);
 
             public List<Backtest> Backtests { get; init; } = new ();
+        }
+
+        /// <summary>Under this many months of data a stream isn't projected at all.</summary>
+        public const double MinMonthsToForecast = 2;
+
+        /// <summary>From this many months of data a stream's recent pace is trusted fully.</summary>
+        public const double FullTrustMonths = 6;
+
+        /// <summary>How much of a stream's recent pace to project, from how long it has existed.</summary>
+        /// <returns>0 to 1.</returns>
+        public static double TrustWeight(double monthsOfData) =>
+            monthsOfData < MinMonthsToForecast ? 0d : Math.Min(1d, monthsOfData / FullTrustMonths);
+
+        /// <summary>A stream's numbers for one forecast month (site sponsors include what's already earned this month).</summary>
+        /// <returns>Expected, low and high.</returns>
+        public static (decimal Expected, decimal Low, decimal High) StreamMonth(Month m, RevenueSource s)
+        {
+            if (s == RevenueSource.SiteSponsors)
+            {
+                return (m.SponsorExpected + m.SponsorSoFar, m.SponsorLow + m.SponsorSoFar, m.SponsorHigh + m.SponsorSoFar);
+            }
+
+            var f = m.Sources.FirstOrDefault(x => x.Source == s);
+            return f == null ? (0m, 0m, 0m) : (f.Expected, f.Low, f.High);
         }
 
         public static Result Run(
@@ -224,30 +303,49 @@ namespace DirectoryManager.Web.Forecasting
                 }
             }
 
-            // ---- other income history: last 12 complete months ----
-            var otherHistory = new List<double>();
-            for (int k = 12; k >= 1; k--)
+            // ---- other income history, per stream: the look-back period's complete months ----
+            // Each stream (video sponsorships, affiliates, the review payments) is forecast on its
+            // own from its own months, starting from its first paid month, then added up.
+            var otherSources = otherKnown.Select(i => i.Source).Distinct().OrderBy(x => x).ToList();
+            var sourceHistory = new Dictionary<RevenueSource, List<double>>();
+            foreach (var src in otherSources)
             {
-                var mFrom = firstMonth.AddMonths(-k);
-                var mTo = mFrom.AddMonths(1);
-                otherHistory.Add((double)otherKnown.Where(i => i.PaidUtc >= mFrom && i.PaidUtc < mTo).Sum(i => i.AmountUsd));
+                var h = new List<double>();
+                for (int k = o.LookbackMonths; k >= 1; k--)
+                {
+                    var mFrom = firstMonth.AddMonths(-k);
+                    var mTo = mFrom.AddMonths(1);
+                    h.Add((double)otherKnown.Where(i => i.Source == src && i.PaidUtc >= mFrom && i.PaidUtc < mTo).Sum(i => i.AmountUsd));
+                }
+
+                // Drop leading months from before this stream existed.
+                int first = h.FindIndex(v => v > 0);
+                sourceHistory[src] = first < 0 ? new List<double> { 0d } : h.Skip(first).ToList();
             }
 
-            // Drop leading months from before other income existed at all.
-            int firstOther = otherHistory.FindIndex(v => v > 0);
-            if (firstOther > 0)
+            // A stream that only started recently isn't projected from a few weeks of sales: under
+            // MinMonthsToForecast months it isn't projected at all, then trust grows to full at FullTrustMonths.
+            var sourceStatus = otherSources.ToDictionary(src => src, src =>
             {
-                otherHistory = otherHistory.Skip(firstOther).ToList();
-            }
-
-            if (otherHistory.Count == 0 || firstOther < 0)
-            {
-                otherHistory = new List<double> { 0d };
-            }
+                var firstPaid = otherKnown.Where(i => i.Source == src).Min(i => i.PaidUtc);
+                var monthsOfData = Math.Max(0d, (asOf - firstPaid).TotalDays / 30.4375);
+                return new SourceStatus
+                {
+                    Source = src,
+                    FirstPaidUtc = firstPaid,
+                    MonthsOfData = Math.Round(monthsOfData, 1),
+                    Weight = TrustWeight(monthsOfData),
+                    ReceivedSoFar = Money((double)otherKnown.Where(i => i.Source == src).Sum(i => i.AmountUsd)),
+                };
+            });
 
             // ---- already earned this (partial) month before asOf ----
             var actualSoFar = (double)known.Sum(i => SponsorAccrual.EarnedBetween(i, firstMonth, asOf, asOf.AddDays(-1)))
                               + (double)otherKnown.Where(i => i.PaidUtc >= firstMonth && i.PaidUtc < asOf).Sum(i => i.AmountUsd);
+            var sponsorSoFar = (double)known.Sum(i => SponsorAccrual.EarnedBetween(i, firstMonth, asOf, asOf.AddDays(-1)));
+            var sourceSoFar = otherSources.ToDictionary(
+                src => src,
+                src => (double)otherKnown.Where(i => i.Source == src && i.PaidUtc >= firstMonth && i.PaidUtc < asOf).Sum(i => i.AmountUsd));
 
             // ---- simulate ----
             int months = o.HorizonMonths;
@@ -256,8 +354,14 @@ namespace DirectoryManager.Web.Forecasting
             var cashSims = new double[months][];
             var sponsorSims = new double[months][];
             var otherSims = new double[months][];
+            var sourceSims = otherSources.ToDictionary(src => src, _ => new double[months][]);
             for (int m = 0; m < months; m++)
             {
+                foreach (var src in otherSources)
+                {
+                    sourceSims[src][m] = new double[sims];
+                }
+
                 earnedSims[m] = new double[sims];
                 cashSims[m] = new double[sims];
                 sponsorSims[m] = new double[sims];
@@ -291,11 +395,21 @@ namespace DirectoryManager.Web.Forecasting
                 {
                     // Other income: a whole month for future months, the remaining fraction for the
                     // current one.
-                    var other = otherHistory[rng.Next(otherHistory.Count)];
+                    // Each stream draws one of its own past months independently.
+                    double remainingShare = 1d;
                     if (m == 0)
                     {
                         var monthDays = DateTime.DaysInMonth(firstMonth.Year, firstMonth.Month);
-                        other *= (double)(monthDays - (asOf - firstMonth).TotalDays) / monthDays;
+                        remainingShare = (double)(monthDays - (asOf - firstMonth).TotalDays) / monthDays;
+                    }
+
+                    double other = 0d;
+                    foreach (var src in otherSources)
+                    {
+                        var h = sourceHistory[src];
+                        var v = h[rng.Next(h.Count)] * remainingShare * sourceStatus[src].Weight;
+                        sourceSims[src][m][s] = v + (m == 0 ? sourceSoFar[src] : 0d);
+                        other += v;
                     }
 
                     var sponsor = contractedByMonth[m] + sponsorMonth[m];
@@ -314,6 +428,21 @@ namespace DirectoryManager.Web.Forecasting
             {
                 Array.Sort(earnedSims[m]);
                 Array.Sort(cashSims[m]);
+                Array.Sort(sponsorSims[m]);
+                int mm = m;
+                var sources = otherSources.Select(src =>
+                {
+                    var arr = sourceSims[src][mm];
+                    Array.Sort(arr);
+                    return new SourceForecast
+                    {
+                        Source = src,
+                        ActualSoFar = mm == 0 ? Money(sourceSoFar[src]) : 0m,
+                        Expected = Money(arr.Average()),
+                        Low = Money(Quantile(arr, lowQ)),
+                        High = Money(Quantile(arr, highQ)),
+                    };
+                }).ToList();
                 monthsOut.Add(new Month
                 {
                     MonthStart = monthStarts[m],
@@ -324,6 +453,10 @@ namespace DirectoryManager.Web.Forecasting
                     High = Money(Quantile(earnedSims[m], highQ)),
                     SponsorExpected = Money(sponsorSims[m].Average()),
                     OtherExpected = Money(otherSims[m].Average()),
+                    SponsorLow = Money(Quantile(sponsorSims[m], lowQ)),
+                    SponsorSoFar = m == 0 ? Money(sponsorSoFar) : 0m,
+                    SponsorHigh = Money(Quantile(sponsorSims[m], highQ)),
+                    Sources = sources,
                     CashExpected = Money(cashSims[m].Average()),
                     CashLow = Money(Quantile(cashSims[m], lowQ)),
                     CashHigh = Money(Quantile(cashSims[m], highQ)),
@@ -370,7 +503,9 @@ namespace DirectoryManager.Web.Forecasting
                 Confidence = o.Confidence,
                 Months = monthsOut,
                 Tiers = tiers,
-                OtherMonthlyAverage = Money(otherHistory.Average()),
+                OtherMonthlyAverage = Money(sourceHistory.Values.Sum(h => h.Average())),
+                SourceMonthlyAverage = sourceHistory.ToDictionary(kv => kv.Key, kv => Money(kv.Value.Average())),
+                SourceStatuses = sourceStatus,
                 ContractedRemaining = Money(contractedDaily.Sum()),
                 Backtests = backtests,
             };
@@ -616,7 +751,7 @@ namespace DirectoryManager.Web.Forecasting
                 for (int k = 0; k < inv.Count; k++)
                 {
                     var end = inv[k].CampaignEndDate.Date;
-                    if (end < asOf.AddDays(-RenewalLookbackDays) || end > asOf.AddDays(-RenewLateWindowDays))
+                    if (end < asOf.AddDays(-o.RenewalLookbackDays) || end > asOf.AddDays(-RenewLateWindowDays))
                     {
                         continue;
                     }
@@ -641,12 +776,12 @@ namespace DirectoryManager.Web.Forecasting
             // i.e. a first-ever purchase OR an advertiser coming back after a gap. (Counting only
             // first-ever purchases misses returning sponsors, which are neither renewals nor new.)
             var firsts = tierChains.SelectMany(c => c.Invoices.Where((inv, k) => k == 0 || !IsRenewalOf(inv, c.Invoices[k - 1]))).ToList();
-            var recentFirsts = firsts.Where(f => f.CreateDate >= asOf.AddDays(-ArrivalLookbackDays)).ToList();
+            var recentFirsts = firsts.Where(f => f.CreateDate >= asOf.AddDays(-o.LookbackDays)).ToList();
 
             // Recent arrivals count more (half-life ~6 months), so a rising arrival rate isn't
             // diluted by a slow start to the year: rate = sum(weights) / integral of the weight.
             double weighted = recentFirsts.Sum(f => Math.Exp(-(asOf - f.CreateDate).TotalDays / ArrivalDecayDays));
-            double weightIntegral = ArrivalDecayDays * (1 - Math.Exp(-ArrivalLookbackDays / ArrivalDecayDays));
+            double weightIntegral = ArrivalDecayDays * (1 - Math.Exp(-o.LookbackDays / ArrivalDecayDays));
 
             // Demand per FREE slot-day. A tier that is always full (Main) only ever shows a sale when
             // a slot opens, so measuring sales over all days badly understates how fast an open slot
@@ -657,7 +792,7 @@ namespace DirectoryManager.Web.Forecasting
             if (capacity != int.MaxValue)
             {
                 double freeSlotDays = 0;
-                for (int back = 1; back <= ArrivalLookbackDays; back++)
+                for (int back = 1; back <= o.LookbackDays; back++)
                 {
                     var day = asOf.AddDays(-back);
                     int occupied = tierChains.Count(c => c.Invoices.Any(i => i.CampaignStartDate.Date <= day && i.CampaignEndDate.Date > day));
@@ -671,7 +806,7 @@ namespace DirectoryManager.Web.Forecasting
                 // Always full with sales anyway: treat it as ~2 free slot-days per sale (fills fast).
                 perFreeSlotDay = weighted <= 0 ? 0 : weighted / Math.Max(freeSlotDays, weighted * 2);
             }
-            var durationPool = firsts.Where(f => f.CreateDate >= asOf.AddDays(-2 * ArrivalLookbackDays)).ToList();
+            var durationPool = firsts.Where(f => f.CreateDate >= asOf.AddDays(-2 * o.LookbackDays)).ToList();
             if (durationPool.Count == 0)
             {
                 durationPool = firsts;

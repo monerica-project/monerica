@@ -34,7 +34,9 @@ namespace DirectoryManager.Web.Tests.Sponsorship
         public void NotVerified_IsNot_UnlessActiveSponsor()
         {
             Assert.Equal("Admitted", Check(SponsorshipType.MainSponsor, null, DirectoryStatus.Admitted).Reason);
-            Assert.Equal("Scam · 60 days to go", Check(SponsorshipType.MainSponsor, null, DirectoryStatus.Scam, Now.AddDays(-30)).Reason);
+            // Questionable / Scam: the status alone is the reason (time listed is irrelevant).
+            Assert.Equal("Scam", Check(SponsorshipType.MainSponsor, null, DirectoryStatus.Scam, Now.AddDays(-30)).Reason);
+            Assert.Equal("Questionable", Check(SponsorshipType.MainSponsor, null, DirectoryStatus.Questionable, Now.AddDays(-30)).Reason);
             Assert.True(Check(SponsorshipType.MainSponsor, null, DirectoryStatus.Admitted, active: true).Eligible);
         }
 

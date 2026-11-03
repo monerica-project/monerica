@@ -62,6 +62,12 @@ namespace DirectoryManager.Web.Helpers
             if (!CanBuy(status, createDateUtc, isActiveSponsor, minimumDaysListed, nowUtc))
             {
                 // Short: the status when it isn't Verified, and how many days until it's old enough.
+                // Questionable / Scam / Removed: that status is the whole reason, time listed doesn't matter.
+                if (status is DirectoryStatus.Questionable or DirectoryStatus.Scam or DirectoryStatus.Removed)
+                {
+                    return (false, status.ToString());
+                }
+
                 var parts = new List<string>();
                 if (status != DirectoryStatus.Verified)
                 {

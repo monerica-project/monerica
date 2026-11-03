@@ -1,0 +1,39 @@
+@model List<DirectoryManager.Web.Models.Revenue.RenewalRow>
+@{
+    var df = DirectoryManager.Common.Constants.StringConstants.DateFormat;
+}
+@if (Model.Count == 0)
+{
+    <p><i>None.</i></p>
+}
+else
+{
+    <div class="u-overflow-x-auto">
+        <table class="table table-striped table-sm">
+            <thead>
+                <tr><th>Listing</th><th>Spot</th><th>Ends</th><th>Bought (6 mo)</th><th>Paid (USD)</th><th>Email</th><th>Waiting</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var r in Model)
+                {
+                    <tr>
+                        <td>
+                            @if (r.ProfilePath != null) { <a href="@r.ProfilePath">@r.Name</a> } else { @r.Name }
+                            <br /><small><a href="/sponsorship/options/@r.DirectoryEntryId">options</a></small>
+                            @if (r.HasOtherActiveSponsorship) { <small>· also sponsoring elsewhere</small> }
+                        </td>
+                        <td>@r.Placement</td>
+                        <td style="white-space:nowrap;">
+                            @r.EndsUtc.ToString(df)
+                            <br /><small>@(r.DaysLeft > 0 ? $"in {r.DaysLeft} day{(r.DaysLeft == 1 ? "" : "s")}" : $"{-r.DaysLeft} day{(r.DaysLeft == -1 ? "" : "s")} ago")</small>
+                        </td>
+                        <td>@r.TimesBought×</td>
+                        <td>@(r.TotalPaidUsd > 0 ? "$" + r.TotalPaidUsd.ToString("N0") : "")</td>
+                        <td>@if (!string.IsNullOrWhiteSpace(r.Email)) { <a href="mailto:@r.Email">@r.Email</a> } else { <i>none</i> }</td>
+                        <td>@(r.WaitlistCount > 0 ? r.WaitlistCount.ToString() : "")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

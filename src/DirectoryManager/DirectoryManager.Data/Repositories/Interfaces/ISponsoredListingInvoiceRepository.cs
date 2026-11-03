@@ -55,6 +55,9 @@ namespace DirectoryManager.Data.Repositories.Interfaces
 
         DateTime? GetLastPaidInvoiceCreateDate();
 
+        /// <summary>Most recent paid sponsorship invoice: when, how much and in which currency.</summary>
+        (DateTime? PaidUtc, decimal? Amount, DirectoryManager.Data.Enums.Currency Currency, decimal? Xmr, int Id) GetLastPaidInvoice();
+
         DateTime? GetLastPendingInvoiceCreateDate();
 
         /// <summary>

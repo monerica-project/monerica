@@ -60,38 +60,6 @@
         </div>
     }
 
-    @if (Model.OfficialReviews != null && Model.OfficialReviews.Any())
-    {
-        @* Newest official review is shown in full. Any earlier ones stack underneath as
-           dated, collapsed entries (newest first) that expand to the full review. *@
-        var officials = Model.OfficialReviews;
-        <div class="official-reviews mb-4">
-            @await Html.PartialAsync("_OfficialReviewCard", (officials[0], Model))
-
-            @if (officials.Count > 1)
-            {
-                <div class="official-history">
-                    <div class="official-history-title">Earlier official reviews (@(officials.Count - 1))</div>
-                    @foreach (var older in officials.Skip(1))
-                    {
-                        var when = older.TestedAt ?? older.CreateDate;
-                        <details class="official-history-item">
-                            <summary>
-                                <time datetime="@when.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)">@when.ToString(DirectoryManager.Common.Constants.StringConstants.FriendlyDateFormat, CultureInfo.InvariantCulture)</time>
-                                @if (older.Rating.HasValue)
-                                {
-                                    <span class="official-history-rating">@EntryReviewHtmlHelper.RenderSingleReviewStars(older.Rating)</span>
-                                }
-                                <span class="official-history-label">Official review</span>
-                            </summary>
-                            @await Html.PartialAsync("_OfficialReviewCard", (older, Model))
-                        </details>
-                    }
-                </div>
-            }
-        </div>
-    }
-
     @if (Model.ReviewCount > 0)
     {
         @* aggregateRating is metadata-only (invisible); keep it OUTSIDE .rating-summary so it
@@ -157,16 +125,66 @@
         </div>
     }
 
-    @if (!reviewsDisabled)
+    @{
+        var showAvgOrder = Model.VerifiedOrderAverageUsd.HasValue
+            && Model.VerifiedOrderAmountCount >= DirectoryManager.Data.Helpers.VerifiedOrderAmounts.MinOrdersToShow;
+    }
+    @if (!reviewsDisabled || showAvgOrder)
     {
-        <div class="leave-review-cta mb-4">
-            <form action="@Urls.ResolveToApp("/directory-entry-reviews/begin")"
-                  method="post"
-                  class="d-inline"
-                  rel="nofollow">
-                <input type="hidden" name="directoryEntryId" value="@Model.DirectoryEntryId" />
-                <button class="btn review-btn" type="submit">Leave a review</button>
-            </form>
+        @* One row: the review button, then the average verified order as a chip (wraps under it on phones). *@
+        <div class="reviews-actions">
+            @if (!reviewsDisabled)
+            {
+                <div class="leave-review-cta">
+                    <form action="@Urls.ResolveToApp("/directory-entry-reviews/begin")"
+                          method="post"
+                          class="d-inline"
+                          rel="nofollow">
+                        <input type="hidden" name="directoryEntryId" value="@Model.DirectoryEntryId" />
+                        <button class="btn review-btn" type="submit">Leave a review</button>
+                    </form>
+                </div>
+            }
+            @if (showAvgOrder)
+            {
+                @* Orders only carry an amount bucket ($1K-5K, ...), so this names the bucket the average lands in. *@
+                <span class="review-stat" title="Average of the amounts stated in @Model.VerifiedOrderAmountCount approved reviews, each counted at the middle of its amount range">
+                    Avg. @(Model.IsExchange ? "swap" : "order"): <b>@DirectoryManager.Data.Helpers.VerifiedOrderAmounts.Bucket(Model.VerifiedOrderAverageUsd!.Value)</b>
+                    <span class="review-stat-dim">&middot; @Model.VerifiedOrderAmountCount reviews</span>
+                </span>
+            }
+        </div>
+    }
+
+    @if (Model.OfficialReviews != null && Model.OfficialReviews.Any())
+    {
+        @* Newest official review is shown in full. Any earlier ones stack underneath as
+           dated, collapsed entries (newest first) that expand to the full review. *@
+        var officials = Model.OfficialReviews;
+        <div class="official-reviews mb-4">
+            @await Html.PartialAsync("_OfficialReviewCard", (officials[0], Model))
+
+            @if (officials.Count > 1)
+            {
+                <div class="official-history">
+                    <div class="official-history-title">Earlier official reviews (@(officials.Count - 1))</div>
+                    @foreach (var older in officials.Skip(1))
+                    {
+                        var when = older.TestedAt ?? older.CreateDate;
+                        <details class="official-history-item">
+                            <summary>
+                                <time datetime="@when.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)">@when.ToString(DirectoryManager.Common.Constants.StringConstants.FriendlyDateFormat, CultureInfo.InvariantCulture)</time>
+                                @if (older.Rating.HasValue)
+                                {
+                                    <span class="official-history-rating">@EntryReviewHtmlHelper.RenderSingleReviewStars(older.Rating)</span>
+                                }
+                                <span class="official-history-label">Official review</span>
+                            </summary>
+                            @await Html.PartialAsync("_OfficialReviewCard", (older, Model))
+                        </details>
+                    }
+                </div>
+            }
         </div>
     }
 
@@ -213,7 +231,14 @@
                         <span itemprop="author" itemscope itemtype="https://schema.org/Person">
                             <meta itemprop="name" content="@(string.IsNullOrWhiteSpace(r.DisplayName) ? r.AuthorFingerprint : r.DisplayName)" />
                             <small class="text-muted multi-line-text">
-                                Author: @(string.IsNullOrWhiteSpace(r.DisplayName) ? r.AuthorFingerprint : r.DisplayName)
+                                Author: @if (string.IsNullOrWhiteSpace(r.DisplayName))
+                                {
+                                    <span class="review-fp" title="@r.AuthorFingerprint">@AuthorDisplay.ShortFingerprint(r.AuthorFingerprint)</span>
+                                }
+                                else
+                                {
+                                    @r.DisplayName
+                                }
                                 <span class="ms-1">(posts: @PostsFor(r.AuthorFingerprint))</span>
                             </small>
                         </span>

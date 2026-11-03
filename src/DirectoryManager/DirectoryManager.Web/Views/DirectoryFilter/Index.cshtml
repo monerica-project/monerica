@@ -7,6 +7,13 @@
 @using DirectoryManager.Web.Services.Interfaces
 @inject IUrlResolutionService urlService
 @inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryReviewRepository reviewRepo
+@functions {
+    // Most-used tags in the filter logs (Nov 2026); always shown, the rest sit behind "Show all tags".
+    private static readonly HashSet<string> PrimaryTagNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Account Not Required", "Email Not Required", "Open Source", "No JavaScript", "Sells Dedicated Servers",
+    };
+}
 @model DirectoryFilterViewModel
 
 @{
@@ -25,6 +32,9 @@
     var selectedLiquidity = Model.Query.Liquidities is { Count: > 0 }
         ? new HashSet<Liquidity>(Model.Query.Liquidities)
         : new HashSet<Liquidity>();
+    var selectedRates = Model.Query.RateTypes is { Count: > 0 }
+        ? new HashSet<RateType>(Model.Query.RateTypes)
+        : new HashSet<RateType>();
     var orderedStatuses = new[]
     {
         DirectoryStatus.Verified,
@@ -34,6 +44,10 @@
     };
 
     var selectedTagIds = new HashSet<int>(Model.Query.TagIds ?? new List<int>());
+    var defaultStatuses = new HashSet<DirectoryStatus> { DirectoryStatus.Verified, DirectoryStatus.Admitted };
+    var moreOpen = Model.Query.HasTor || Model.Query.HasI2p || Model.Query.VerifiedOrders
+        || !string.IsNullOrWhiteSpace(Model.Query.Country)
+        || (selectedStatuses.Count > 0 && !selectedStatuses.SetEquals(defaultStatuses));
     var hasCategoryForTags = Model.Query.CategoryId.HasValue && Model.Query.CategoryId.Value > 0;
 
     var sortLabels = new (DirectoryFilterSort Value, string Label)[]
@@ -146,7 +160,8 @@
                 continue;
             }
 
-            if (string.Equals(kv.Key, "Liquidities", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(kv.Key, "Liquidities", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(kv.Key, "RateTypes", StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
@@ -191,6 +206,14 @@
                 foreach (var lq in Model.Query.Liquidities)
                 {
                     built = QueryHelpers.AddQueryString(built, "Liquidities", lq.ToString());
+                }
+            }
+
+            if (Model.Query.RateTypes != null && Model.Query.RateTypes.Count > 0)
+            {
+                foreach (var rt in Model.Query.RateTypes)
+                {
+                    built = QueryHelpers.AddQueryString(built, "RateTypes", rt.ToString());
                 }
             }
 
@@ -264,7 +287,7 @@
             }
             else
             {
-                sb.Append("<a class=\"page-link\" href=\"")
+                sb.Append("<a class=\"page-link\" rel=\"nofollow\" href=\"")
                   .Append(System.Net.WebUtility.HtmlEncode(cell.Url))
                   .Append("\">")
                   .Append(System.Net.WebUtility.HtmlEncode(cell.Text))
@@ -318,91 +341,6 @@
                            autocomplete="off" />
                 </fieldset>
 
-                <!-- Sort -->
-                <fieldset class="ui-fieldset">
-                    <legend class="ui-legend">Sort</legend>
-                    <div class="ui-select-wrap">
-                        <select name="Sort" class="form-control select-fit ui-select">
-                            @foreach (var opt in sortLabels)
-                            {
-                                <option value="@opt.Value" selected="@(Model.Query.Sort == opt.Value ? "selected" : null)">@opt.Label</option>
-                            }
-                        </select>
-                    </div>
-                </fieldset>
-
-                <!-- Status -->
-                <fieldset class="ui-fieldset">
-                    <legend class="ui-legend">Status</legend>
-                    <div class="ui-checks ui-checks-stack">
-                        @foreach (var st in orderedStatuses)
-                        {
-                            <label class="ui-check">
-                                <input type="checkbox" name="Statuses" value="@st" checked="@(selectedStatuses.Contains(st) ? "checked" : null)" />
-                                <span>@st</span>
-                            </label>
-                        }
-                    </div>
-                </fieldset>
-
-                <!-- KYC Policy -->
-                <fieldset class="ui-fieldset">
-                    <legend class="ui-legend">KYC Policy</legend>
-                    <div class="ui-checks ui-checks-stack">
-                        @foreach (var kp in Model.AllKycPolicies)
-                        {
-                            <label class="ui-check">
-                                <input type="checkbox" name="KycPolicies" value="@kp" checked="@(selectedKyc.Contains(kp) ? "checked" : null)" />
-                                <span>@EnumHelper.GetDescription(kp)</span>
-                            </label>
-                        }
-                    </div>
-                </fieldset>
-
-                <!-- Liquidity -->
-                <fieldset class="ui-fieldset">
-                    <legend class="ui-legend">Liquidity</legend>
-                    <div class="ui-checks ui-checks-stack">
-                        @foreach (var lq in Model.AllLiquidities)
-                        {
-                            <label class="ui-check">
-                                <input type="checkbox" name="Liquidities" value="@lq" checked="@(selectedLiquidity.Contains(lq) ? "checked" : null)" />
-                                <span>@EnumHelper.GetDescription(lq)</span>
-                            </label>
-                        }
-                    </div>
-                </fieldset>
-
-                <!-- Networks / Links -->
-                <fieldset class="ui-fieldset">
-                    <legend class="ui-legend">Networks</legend>
-                    <div class="ui-checks ui-checks-stack">
-                        <label class="ui-check">
-                            <input type="checkbox" name="HasTor" value="true" checked="@(Model.Query.HasTor ? "checked" : null)" />
-                            <span>Has Tor (.onion)</span>
-                        </label>
-                        <label class="ui-check">
-                            <input type="checkbox" name="HasI2p" value="true" checked="@(Model.Query.HasI2p ? "checked" : null)" />
-                            <span>Has I2P (.i2p)</span>
-                        </label>
-                    </div>
-                </fieldset>
-
-                <!-- Country -->
-                <fieldset class="ui-fieldset">
-                    <legend class="ui-legend">Country</legend>
-                    <div class="ui-select-wrap">
-                        <select name="Country" class="form-control select-fit ui-select">
-                            <option value="" selected="@(string.IsNullOrWhiteSpace(Model.Query.Country) ? "selected" : null)">All countries</option>
-                            @foreach (var c in Model.CountryOptions)
-                            {
-                                var isSelectedCountry = string.Equals(Model.Query.Country, c.Code, StringComparison.OrdinalIgnoreCase);
-                                <option value="@c.Code" selected="@(isSelectedCountry ? "selected" : null)">@c.Name (@c.Code)</option>
-                            }
-                        </select>
-                    </div>
-                </fieldset>
-
                 <!-- Categorization -->
                 <fieldset class="ui-fieldset">
                     <legend class="ui-legend">Category</legend>
@@ -431,6 +369,67 @@
                     }
                 </fieldset>
 
+                <!-- Sort -->
+                <fieldset class="ui-fieldset">
+                    <legend class="ui-legend">Sort</legend>
+                    <div class="ui-select-wrap">
+                        <select name="Sort" class="form-control select-fit ui-select">
+                            @foreach (var opt in sortLabels)
+                            {
+                                <option value="@opt.Value" selected="@(Model.Query.Sort == opt.Value ? "selected" : null)">@opt.Label</option>
+                            }
+                        </select>
+                    </div>
+                </fieldset>
+
+                <!-- KYC Policy -->
+                <fieldset class="ui-fieldset">
+                    <legend class="ui-legend">KYC Policy</legend>
+                    <div class="ui-checks ui-checks-stack">
+                        @foreach (var kp in Model.AllKycPolicies)
+                        {
+                            <label class="ui-check has-tip" title="@DirectoryManager.Web.Helpers.FilterOptionTooltips.For(kp)">
+                                <input type="checkbox" name="KycPolicies" value="@kp" checked="@(selectedKyc.Contains(kp) ? "checked" : null)" />
+                                <span>@EnumHelper.GetDescription(kp)</span>
+                            </label>
+                        }
+                    </div>
+                </fieldset>
+
+                @* Liquidity and rate type only apply to exchanges: shown when an exchange category
+                   is selected (or when one of them is already in use, so it can be cleared). *@
+                @if (Model.IsExchangeContext || selectedLiquidity.Count > 0 || selectedRates.Count > 0)
+                {
+                <!-- Liquidity -->
+                <fieldset class="ui-fieldset">
+                    <legend class="ui-legend">Liquidity</legend>
+                    <div class="ui-checks ui-checks-stack">
+                        @foreach (var lq in Model.AllLiquidities)
+                        {
+                            <label class="ui-check has-tip" title="@DirectoryManager.Web.Helpers.FilterOptionTooltips.For(lq)">
+                                <input type="checkbox" name="Liquidities" value="@lq" checked="@(selectedLiquidity.Contains(lq) ? "checked" : null)" />
+                                <span>@EnumHelper.GetDescription(lq)</span>
+                            </label>
+                        }
+                    </div>
+                </fieldset>
+
+                <!-- Rate type (exchanges) -->
+                <fieldset class="ui-fieldset">
+                    <legend class="ui-legend">Rates</legend>
+                    <div class="ui-checks ui-checks-stack">
+                        <label class="ui-check has-tip" title="The rate is locked when you start the swap (includes exchanges offering both)">
+                            <input type="checkbox" name="RateTypes" value="@RateType.Fixed" checked="@(selectedRates.Contains(RateType.Fixed) ? "checked" : null)" />
+                            <span>Fixed rate</span>
+                        </label>
+                        <label class="ui-check has-tip" title="The rate follows the market until your deposit arrives (includes exchanges offering both)">
+                            <input type="checkbox" name="RateTypes" value="@RateType.Float" checked="@(selectedRates.Contains(RateType.Float) ? "checked" : null)" />
+                            <span>Float rate</span>
+                        </label>
+                    </div>
+                </fieldset>
+                }
+
                 <!-- Tags -->
                 <fieldset class="ui-fieldset">
                     <legend class="ui-legend">@(hasCategoryForTags ? "Tags (in category)" : "Tags")</legend>
@@ -445,8 +444,23 @@
                         // expanded only when some tags are already selected (so active filters show).
                         <input type="checkbox" id="show-all-tags" class="dir-tags-toggle" hidden checked="@(selectedTagIds.Count > 0 ? "checked" : null)" />
 
+                        // The most-used tags (filter logs, Nov 2026) are always visible.
+                        var primaryTags = Model.CategoryTagOptions.Where(t => PrimaryTagNames.Contains(t.Name)).ToList();
+                        if (primaryTags.Count > 0)
+                        {
+                            <div class="ui-checks ui-checks-stack">
+                                @foreach (var t in primaryTags)
+                                {
+                                    <label class="ui-check">
+                                        <input type="checkbox" name="TagIds" value="@t.Id" checked="@(selectedTagIds.Contains(t.Id) ? "checked" : null)" />
+                                        <span>@t.Name</span>
+                                    </label>
+                                }
+                            </div>
+                        }
+
                         <div class="ui-checks ui-checks-stack dir-tags">
-                            @foreach (var t in Model.CategoryTagOptions)
+                            @foreach (var t in Model.CategoryTagOptions.Where(t => !PrimaryTagNames.Contains(t.Name)))
                             {
                                 <label class="ui-check">
                                     <input type="checkbox" name="TagIds" value="@t.Id" checked="@(selectedTagIds.Contains(t.Id) ? "checked" : null)" />
@@ -458,6 +472,66 @@
                         <label class="dir-tags-more" for="show-all-tags"></label>
                     }
                 </fieldset>
+
+                @* Rarely used filters (each under 1% of uses, Nov 2026) live in "More filters";
+                   it opens by itself when one of them is in use. *@
+                <details class="filter-more"@(moreOpen ? " open" : "")>
+                    <summary class="ui-legend filter-more-summary">More filters</summary>
+                <!-- Status -->
+                <fieldset class="ui-fieldset">
+                    <legend class="ui-legend">Status</legend>
+                    <div class="ui-checks ui-checks-stack">
+                        @foreach (var st in orderedStatuses)
+                        {
+                            <label class="ui-check has-tip" title="@DirectoryManager.Web.Helpers.FilterOptionTooltips.For(st)">
+                                <input type="checkbox" name="Statuses" value="@st" checked="@(selectedStatuses.Contains(st) ? "checked" : null)" />
+                                <span>@st</span>
+                            </label>
+                        }
+                    </div>
+                </fieldset>
+
+                <!-- Networks / Links -->
+                <fieldset class="ui-fieldset">
+                    <legend class="ui-legend">Networks</legend>
+                    <div class="ui-checks ui-checks-stack">
+                        <label class="ui-check">
+                            <input type="checkbox" name="HasTor" value="true" checked="@(Model.Query.HasTor ? "checked" : null)" />
+                            <span>Has Tor (.onion)</span>
+                        </label>
+                        <label class="ui-check">
+                            <input type="checkbox" name="HasI2p" value="true" checked="@(Model.Query.HasI2p ? "checked" : null)" />
+                            <span>Has I2P (.i2p)</span>
+                        </label>
+                    </div>
+                </fieldset>
+
+                <!-- Verified orders -->
+                <fieldset class="ui-fieldset">
+                    <legend class="ui-legend">Reviews</legend>
+                    <div class="ui-checks ui-checks-stack">
+                        <label class="ui-check has-tip" title="Only show listings with at least one review from someone whose order was checked by hand.">
+                            <input type="checkbox" name="VerifiedOrders" value="true" checked="@(Model.Query.VerifiedOrders ? "checked" : null)" />
+                            <span>&#10003; Has verified orders</span>
+                        </label>
+                    </div>
+                </fieldset>
+
+                <!-- Country -->
+                <fieldset class="ui-fieldset">
+                    <legend class="ui-legend">Country</legend>
+                    <div class="ui-select-wrap">
+                        <select name="Country" class="form-control select-fit ui-select">
+                            <option value="" selected="@(string.IsNullOrWhiteSpace(Model.Query.Country) ? "selected" : null)">All countries</option>
+                            @foreach (var c in Model.CountryOptions)
+                            {
+                                var isSelectedCountry = string.Equals(Model.Query.Country, c.Code, StringComparison.OrdinalIgnoreCase);
+                                <option value="@c.Code" selected="@(isSelectedCountry ? "selected" : null)">@c.Name (@c.Code)</option>
+                            }
+                        </select>
+                    </div>
+                </fieldset>
+                </details>
 
                 @* Page size has no UI; it defaults to a sensible value in the controller.
                    Kept as a hidden field so a URL-supplied PageSize still round-trips. *@
@@ -480,6 +554,20 @@
             else if (Model?.CategorySponsorModel != null)
             {
                 @await Html.PartialAsync("_SponsoredListingCategoryPartial", Model.CategorySponsorModel)
+            }
+
+            @if (Model.PopularPicks.Count > 0)
+            {
+                @* One-click shortcuts to what people search for most. *@
+                <nav class="filter-popular" aria-label="Popular">
+                    <span class="filter-popular-label">Popular:</span>
+                    @foreach (var pick in Model.PopularPicks)
+                    {
+                        var pickUrl = pick.SubCategoryId is int psid ? $"/filter?CategoryId={pick.CategoryId}&SubCategoryId={psid}" : $"/filter?CategoryId={pick.CategoryId}";
+                        var active = Model.Query.CategoryId == pick.CategoryId && Model.Query.SubCategoryId == pick.SubCategoryId;
+                        <a class="filter-popular-chip no-app-link@(active ? " active" : null)" href="@pickUrl" rel="nofollow">@pick.Label</a>
+                    }
+                </nav>
             }
 
             <div class="results-bar">
@@ -660,6 +748,10 @@
                                         <span class="rating-count">(@e.ReviewCount)</span>
                                     </span>
                                 </a>
+                            }
+                            @if (e.VerifiedOrderCount > 0)
+                            {
+                                <a class="verified-orders" href="@reviewsUrl" title="@e.VerifiedOrderCount review@(e.VerifiedOrderCount == 1 ? " is" : "s are") from people whose order was checked by hand">@e.VerifiedOrderCount verified order@(e.VerifiedOrderCount == 1 ? "" : "s")</a>
                             }
 
                             @if (hasBreadcrumb)

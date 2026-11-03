@@ -26,6 +26,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly ITagRepository tagRepository;
         private readonly IDirectoryEntryReviewRepository directoryEntryReviewRepository;
         private readonly IDirectoryEntryReviewCommentRepository directoryEntryReviewCommentRepository;
+        private readonly ISponsoredListingOpeningNotificationRepository waitlistRepository;
 
         public SiteMapController(
             ICacheService cacheService,
@@ -38,7 +39,8 @@ namespace DirectoryManager.Web.Controllers
             IDirectoryEntrySelectionRepository directoryEntrySelectionRepository,
             ITagRepository tagRepository,
             IDirectoryEntryReviewRepository directoryEntryReviewRepository,
-            IDirectoryEntryReviewCommentRepository directoryEntryReviewCommentRepository)
+            IDirectoryEntryReviewCommentRepository directoryEntryReviewCommentRepository,
+            ISponsoredListingOpeningNotificationRepository waitlistRepository)
         {
             this.cacheService = cacheService;
             this.directoryEntryRepository = directoryEntryRepository;
@@ -51,6 +53,7 @@ namespace DirectoryManager.Web.Controllers
             this.tagRepository = tagRepository;
             this.directoryEntryReviewRepository = directoryEntryReviewRepository;
             this.directoryEntryReviewCommentRepository = directoryEntryReviewCommentRepository;
+            this.waitlistRepository = waitlistRepository;
         }
 
         [Route("sitemap_index.xml")]
@@ -99,6 +102,15 @@ namespace DirectoryManager.Web.Controllers
             if (lastSponsoredListingChange.HasValue && lastSponsoredListingChange.Value > mostRecentUpdateDate)
             {
                 mostRecentUpdateDate = lastSponsoredListingChange.Value;
+            }
+
+            // The Main Sponsors box ("Join Waitlist (N waiting)") is on the homepage and every listing
+            // page, so a waitlist join/leave counts as a site-wide change: it moves the newest
+            // <lastmod>, which tells the static-site syncer to re-copy the pages.
+            var lastWaitlistChange = await this.waitlistRepository.GetLastWaitlistChangeUtcAsync();
+            if (lastWaitlistChange.HasValue && lastWaitlistChange.Value > mostRecentUpdateDate && lastWaitlistChange.Value <= DateTime.UtcNow)
+            {
+                mostRecentUpdateDate = lastWaitlistChange.Value;
             }
 
             // -------------------------------------------------------

@@ -257,4 +257,13 @@
              src="@Url.Action("PricingTrendsChart", "SponsoredListingCheckout", new { sponsorshipType = ViewBag.SponsorshipType, placementId = ViewBag.PlacementId, v = DateTime.UtcNow.ToString(DirectoryManager.Common.Constants.StringConstants.CompactDateFormat) })"
              alt="Today's price for this spot as a dashed line, with purchases from the last 180 days as dots" />
     </div>
+
+    @if (ViewBag.WaitlistCount is int waiting && waiting > 0)
+    {
+        @* Others waiting for this exact spot: a nudge, with the full list one click away. *@
+        <p class="u-mt-10px">
+            <b>@waiting @(waiting == 1 ? "listing is" : "listings are") waiting for this spot.</b>
+            <a href="@ViewBag.WaitlistUrl">See everyone on the waitlist &rarr;</a>
+        </p>
+    }
 }

@@ -13,10 +13,10 @@
     </div>
     <hr />
 
+    @* The listing name gets its own big line so submitters see at a glance which listing was received. *@
     <div class="alert alert-success">
-        <b>&#10003; We've got your submission for @Model.Name.</b> It's in our review queue &mdash;
-        <b>there's nothing else you need to do, and no payment is required</b> for it to be reviewed.
-        The optional donation below only helps cover our review/testing costs.
+        &#10003; We've received your submission for:
+        <div class="u-heading-sm u-mt-4px"><strong>@Model.Name</strong></div>
     </div>
 
     @if (this.TempData["PayError"] is string payError)
@@ -26,35 +26,23 @@
 
     @if (Model.AlreadyPaid)
     {
-        <p><b>Thank you — a donation for this submission has already been received.</b></p>
-        <p>Your submission is in the review queue. There's nothing more you need to do.</p>
+        <p><b>Thank you — your payment has been received.</b> There's nothing more you need to do.</p>
         @await Html.PartialAsync("_BackToHome")
         return;
     }
 
     <p>
-        <b>Submitting is free — you don't need to pay anything to be reviewed.</b>
-        Your submission for <b>@Model.Name</b> has already been received either way.
+        <b>Paying is not required.</b> Because of the volume of submissions, paying for our review
+        time moves your listing up in the review queue. You choose the amount, paid in Monero.
     </p>
-
-    <div class="u-callout">
-        <p>
-            But due to the volume of submissions, an optional donation helps us
-            <b>review and test your listing without a cost to us</b> — including any fees we'd incur
-            while testing it. It is <b>not required</b>, but it does help us <b>speed up the review process</b>
-            for your submission.
-        </p>
-        <p>Proceeding creates a <b>unique payment address tied to this submission</b>, and you choose the amount.</p>
-        <p><b>Payment does not guarantee approval.</b> It only helps cover our review costs and prioritize the queue &mdash; the outcome depends entirely on our review.</p>
-    </div>
 
     <form method="post" action="~/submission/pay/@Model.Token" class="u-m-0">
         @Html.AntiForgeryToken()
-        <button type="submit" class="btn btn-primary btn-cta">Proceed to pay →</button>
+        <button type="submit" class="btn btn-primary btn-cta">Pay to prioritize my review →</button>
     </form>
 
     <p class="u-note-sm u-mt-10px">
-        You'll be taken to a secure Monero checkout. Paying is entirely optional — your submission stays in the queue regardless.
+        Your submission stays in the queue either way. Payment does not guarantee approval.
     </p>
 
     @await Html.PartialAsync("_BackToHome")

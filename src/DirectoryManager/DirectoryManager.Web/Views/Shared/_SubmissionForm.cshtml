@@ -12,33 +12,13 @@
 
 <h3>Required Information</h3>
 
-@if (Model.DirectoryEntryId != null)
+@if (Model.DirectoryEntryId != null && Model.CurrentDirectoryStatus != null)
 {
+    @* A listing's status is set by the admins only; problems go through "Report a problem". *@
+    <input type="hidden" name="CurrentDirectoryStatus" value="@((int)Model.CurrentDirectoryStatus.Value)" />
     <div class="form-group">
-        @{
-            var currentStatus = Model.CurrentDirectoryStatus;
-            var keepCurrent = currentStatus != null &&
-                (Model.DirectoryStatus == null || Model.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Unknown || Model.DirectoryStatus == currentStatus);
-        }
-        <label for="DirectoryStatus">Directory Status</label>
-        @if (currentStatus != null)
-        {
-            <input type="hidden" name="CurrentDirectoryStatus" value="@((int)currentStatus.Value)" />
-        }
-        <select id="DirectoryStatus" name="DirectoryStatus" class="form-control select-fit">
-            @if (currentStatus != null)
-            {
-                <option value="" selected="@keepCurrent">Keep current status (@currentStatus)</option>
-            }
-            @foreach (var status in Enum.GetValues<DirectoryManager.Data.Enums.DirectoryStatus>())
-            {
-                if (status == DirectoryManager.Data.Enums.DirectoryStatus.Unknown || (keepCurrent && status == currentStatus))
-                {
-                    continue;
-                }
-                <option value="@((int)status)" selected="@(!keepCurrent && Model.DirectoryStatus == status)">@status.ToString()</option>
-            }
-        </select>
+        <label>Directory Status</label>
+        <p class="u-m-0">@Model.CurrentDirectoryStatus <small>(set by the admins; to report a problem with this listing, use "Report a problem" on its page)</small></p>
     </div>
 }
 
@@ -189,6 +169,19 @@
     </select>
 </div>
 
+@* Exchange rate type — optional, collapsed unless already set (no JS needed). *@
+<details class="form-group"@(Model.RateType != DirectoryManager.Data.Enums.RateType.Unknown ? " open" : "")>
+    <summary><b>Exchange rates</b> <span class="text-muted">(optional, for exchanges)</span></summary>
+    <p class="text-muted"><i>Does the exchange offer fixed rates (locked when you start), float rates (follow the market), or both?</i></p>
+    <label for="RateType" class="control-label">Rate type</label>
+    <select class="form-control select-fit" id="RateType" name="RateType">
+        @foreach (var rt in System.Enum.GetValues<DirectoryManager.Data.Enums.RateType>())
+            {
+                <option value="@((int)rt)" selected="@(Model.RateType == rt)">@DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(rt)</option>
+            }
+    </select>
+</details>
+
 @* Deposit guarantees — up to @DirectoryManager.Web.Constants.IntegerConstants.MaxGuarantees (link + USD amount).
    Optional; each row needs both a link and an amount to count. Collapsed by default (no JS needed). *@
 <details class="form-group">
@@ -255,7 +248,16 @@
 
 <div class="form-group">
     <label asp-for="PgpKey">PGP Key</label>
-    <textarea class="input-width" asp-for="PgpKey"></textarea>
+    @if (Model.DirectoryEntryId != null && !string.IsNullOrWhiteSpace(Model.PgpKey))
+    {
+        @* The key is the owner's identity: a public edit can't replace it. *@
+        <textarea class="input-width" asp-for="PgpKey" readonly></textarea>
+        <small>This listing's PGP key can't be changed with an edit. To change it, contact us with a message signed by the current key.</small>
+    }
+    else
+    {
+        <textarea class="input-width" asp-for="PgpKey"></textarea>
+    }
 </div>
 
 @{

@@ -24,6 +24,11 @@ namespace DirectoryManager.Web.Helpers
                     continue; // empty row — guarantees are optional
                 }
 
+                if (hasLink && g.Link!.Length > DirectoryManager.Data.Helpers.ListingText.LinkMaxLength)
+                {
+                    modelState.AddModelError($"Guarantees[{i}].Link", $"Guarantee {i + 1}: the proof link is longer than {DirectoryManager.Data.Helpers.ListingText.LinkMaxLength} characters.");
+                }
+
                 if (hasLink && !UrlHelper.IsValidUrl(g.Link!))
                 {
                     modelState.AddModelError($"Guarantees[{i}].Link", $"Guarantee {i + 1}: the proof link is not a valid URL.");

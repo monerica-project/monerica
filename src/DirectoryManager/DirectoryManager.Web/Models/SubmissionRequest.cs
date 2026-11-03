@@ -9,6 +9,9 @@ namespace DirectoryManager.Web.Models
 {
     public class SubmissionRequest : IValidatableObject
     {
+        private string description = string.Empty;
+        private string? note;
+
         public int? SubmissionId { get; set; }
 
         // URL — validated by UrlHelper in the controller; do NOT Unicode-clean.
@@ -28,7 +31,7 @@ namespace DirectoryManager.Web.Models
         /// compact; the DB column allows more, but 175 is the intended editorial limit and is
         /// enforced identically on the admin edit form (see DirectoryEntryEditViewModel).
         /// </summary>
-        public const int DescriptionMaxLength = 175;
+        public const int DescriptionMaxLength = DirectoryManager.Data.Helpers.ListingText.DescriptionMaxLength;
 
         // No [MaxLength] here on purpose: a hard HTML maxlength silently truncates a pasted
         // description (and blocks editing existing longer listings). The length is enforced in
@@ -37,7 +40,7 @@ namespace DirectoryManager.Web.Models
         [Required(ErrorMessage = "Please add a short description of your listing.")]
         [Display(Name = "Description", Prompt = "Describe your listing")]
         [CleanMultiLine]
-        public string Description { get; set; } = string.Empty;
+        public string Description { get => this.description; set => this.description = DirectoryManager.Data.Helpers.ListingText.NormalizeLineBreaks(value) ?? string.Empty; }
 
         // URL
         [MaxLength(500)]
@@ -111,14 +114,14 @@ namespace DirectoryManager.Web.Models
         /// limit, well under the DB column) so notes stay concise; enforced identically on the
         /// admin edit form (see DirectoryEntryEditViewModel).
         /// </summary>
-        public const int NoteMaxLength = 250;
+        public const int NoteMaxLength = DirectoryManager.Data.Helpers.ListingText.NoteMaxLength;
 
         // No [MaxLength] here on purpose: that renders a hard HTML maxlength that silently
         // truncates a pasted note. The length is enforced in the controller with a clear
         // over-length error instead (see SubmissionController), so nothing is cut off silently.
         [Display(Name = "Note", Prompt = "Coupon/discount codes, fees, or special ordering steps shown on your listing — e.g. 'Use code XMR10 for 10% off', 'Pay by email', or 'Minimum order $50'")]
         [CleanMultiLine]
-        public string? Note { get; set; }
+        public string? Note { get => this.note; set => this.note = DirectoryManager.Data.Helpers.ListingText.NormalizeLineBreaks(value); }
 
         /// <summary>Max length of the private note the submitter sends to the reviewer/admin.</summary>
         public const int NoteToAdminMaxLength = 500;
@@ -154,6 +157,10 @@ namespace DirectoryManager.Web.Models
         // .Currency) and validated in the controller (a link and an amount are required together).
         [Display(Name = "Liquidity")]
         public Liquidity Liquidity { get; set; } = Liquidity.NotApplicable;
+
+        /// <summary>Fixed and/or float rates (exchanges only; optional).</summary>
+        [Display(Name = "Rate type")]
+        public RateType RateType { get; set; } = RateType.Unknown;
 
         public List<DirectoryManager.Data.Models.GuaranteeItem> Guarantees { get; set; } = new ();
 

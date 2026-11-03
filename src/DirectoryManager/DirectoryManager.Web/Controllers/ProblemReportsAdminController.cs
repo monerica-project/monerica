@@ -64,12 +64,18 @@ namespace DirectoryManager.Web.Controllers
 
 
             // If paid, surface the actual XMR amount received (USD is stored on the report).
-            if (request.PaidUtc is not null && !string.IsNullOrWhiteSpace(request.BtcPayInvoiceId))
+            // Stored amount first; BTCPay (a slow outside call) only when it's missing, time-limited.
+            if (request.PaidXmr is decimal storedXmr && storedXmr > 0)
+            {
+                this.ViewBag.PaidXmr = storedXmr;
+            }
+            else if (request.PaidUtc is not null && !string.IsNullOrWhiteSpace(request.BtcPayInvoiceId))
             {
                 try
                 {
+                    using var btcPayTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(3));
                     var xmr = await this.btcPay.GetXmrPaymentMethodOnStoreAsync(
-                        this.btcPay.ReviewDonationsStoreId, request.BtcPayInvoiceId!);
+                        this.btcPay.ReviewDonationsStoreId, request.BtcPayInvoiceId!).WaitAsync(btcPayTimeout.Token);
                     if (xmr is not null && decimal.TryParse(xmr.TotalPaid, out var xmrPaid) && xmrPaid > 0)
                     {
                         this.ViewBag.PaidXmr = xmrPaid;

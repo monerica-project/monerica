@@ -11,6 +11,7 @@
         if (!rel.StartsWith("/")) rel = "/" + rel;
         return rel;
     }
+
 }
 
 @if (Model != null && Model.Count > 0)
@@ -31,20 +32,29 @@
                             @for (var i = 0; i < Model.Count; i++)
                             {
                                 var s = Model[i];
+                                var newGroup = i == 0 || Model[i - 1].Tier != s.Tier;
+
+                                // A divider between tier groups (main / category / subcategory) so it's clear who is who.
+                                if (newGroup && i > 0)
+                                {
+                                    <span class="sponsor-ticker__divider" aria-hidden="true"></span>
+                                }
+
                                 <a rel="sponsored" target="_blank" href="@s.Link" tabindex="@(set > 0 ? "-1" : null)">@s.Name</a>
 
                                 var isLastItem = (i == Model.Count - 1);
                                 var isLastSet = (set == 4 - 1);
+                                var groupEnds = !isLastItem && Model[i + 1].Tier != s.Tier;
 
-                                // • between sponsors inside a set
-                                if (!isLastItem)
+                                // • between sponsors inside a tier group
+                                if (!isLastItem && !groupEnds)
                                 {
                                     <span class="sponsor-ticker__sep">•</span>
                                 }
-                                // | at the end of the set (between sets)
-                                else if (!isLastSet)
+                                // Divider at the end of the set (before the next loop's MAIN label)
+                                else if (isLastItem && !isLastSet)
                                 {
-                                    <span class="sponsor-ticker__sep">&nbsp;&nbsp;&nbsp;|</span>
+                                    <span class="sponsor-ticker__divider" aria-hidden="true"></span>
                                 }
                             }
                         </div>

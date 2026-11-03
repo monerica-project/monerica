@@ -100,6 +100,18 @@
     </select>
 </div>
 
+@* Exchange rate type — optional, collapsed unless already set (no JS needed). *@
+<details class="form-group"@(Model.RateType != DirectoryManager.Data.Enums.RateType.Unknown ? " open" : "")>
+    <summary><b>Exchange rates</b> <span class="text-muted">(optional, for exchanges)</span></summary>
+    <label for="RateType" class="control-label">Rate type</label>
+    <select class="form-control select-fit" id="RateType" name="RateType">
+        @foreach (var rt in System.Enum.GetValues<DirectoryManager.Data.Enums.RateType>())
+            {
+                <option value="@((int)rt)" selected="@(Model.RateType == rt)">@DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(rt)</option>
+            }
+    </select>
+</details>
+
 @* Deposit guarantees — up to @DirectoryManager.Web.Constants.IntegerConstants.MaxGuarantees (link + USD amount). *@
 <div class="form-group">
     <label class="control-label">Deposit Guarantees</label>
@@ -222,7 +234,7 @@
     <ul>
         @foreach (var l in Model.AdditionalLinks.Where(x => !string.IsNullOrWhiteSpace(x)))
         {
-            <li><a target="_blank" href="@l">@l</a></li>
+            <li><a target="_blank" href="@l">@DirectoryManager.Web.Helpers.UrlHelper.ToDisplayUrl(l)</a></li>
         }
     </ul>
 }
@@ -236,7 +248,7 @@
                class="form-control input-width"
                type="text"
                name="AdditionalLinks[@i]"
-               value="@additional[i]" />
+               value="@DirectoryManager.Web.Helpers.UrlHelper.ToDisplayUrl(additional[i])" />
     </div>
 }
 

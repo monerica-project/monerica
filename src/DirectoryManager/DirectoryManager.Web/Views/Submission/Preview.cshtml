@@ -33,6 +33,10 @@
     <p><b>KYC Policy:</b> @DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(Model.DirectoryEntryViewModel.KycPolicy.Value)</p>
 }
 
+@if (Model.DirectoryEntryViewModel.RateType != DirectoryManager.Data.Enums.RateType.Unknown)
+{
+    <p><b>Rate type:</b> @DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(Model.DirectoryEntryViewModel.RateType)</p>
+}
 @if (DirectoryManager.Data.Enums.LiquidityExtensions.IsPubliclyShown(Model.DirectoryEntryViewModel.Liquidity))
 {
     <p><b>Liquidity:</b> @DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(Model.DirectoryEntryViewModel.Liquidity)</p>

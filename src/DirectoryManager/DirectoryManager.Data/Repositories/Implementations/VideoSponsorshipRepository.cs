@@ -175,6 +175,17 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     && (x.PaymentStatus == PaymentStatus.Paid || x.PaymentStatus == PaymentStatus.OverPayment))
                 .MaxAsync(x => x.PaidUtc, ct);
 
+        public async Task<(DateTime? PaidUtc, decimal? Usd, decimal? Xmr, int Id)> GetLastPaymentAsync(CancellationToken ct = default)
+        {
+            var last = await this.context.VideoSponsorOrders.AsNoTracking()
+                .Where(x => x.PaidUtc != null
+                    && (x.PaymentStatus == PaymentStatus.Paid || x.PaymentStatus == PaymentStatus.OverPayment))
+                .OrderByDescending(x => x.PaidUtc)
+                .Select(x => new { x.PaidUtc, x.Amount, x.PaidAmount, x.PaidInCurrency, x.VideoSponsorOrderId })
+                .FirstOrDefaultAsync(ct);
+            return (last?.PaidUtc, last?.Amount, last?.PaidInCurrency == Enums.Currency.XMR && last.PaidAmount > 0 ? last.PaidAmount : null, last?.VideoSponsorOrderId ?? 0);
+        }
+
         public async Task<(int Pending, int UnderPaid, int OverPaid30d, DateTime? NewestUtc)> GetPaymentAttentionAsync(CancellationToken ct = default)
         {
             var since = DateTime.UtcNow.AddDays(-30);
@@ -223,18 +234,30 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     continue;
                 }
 
-                // Dedicated video: give it its own entry in the queue.
-                var idea = new VideoIdea
+                // Dedicated video: give it its own entry in the queue. Payment confirmation can run
+                // more than once for the same order (webhook + return-page sync), so first reuse a
+                // dedicated video already created for this order that no other line item has taken;
+                // only create a new one if there isn't one (GhostSwap order 9 got two before this).
+                var takenIds = items.Where(x => x.VideoIdeaId != null).Select(x => x.VideoIdeaId!.Value).ToList();
+                var idea = await this.context.VideoIdeas
+                    .Where(x => x.IsDedicated && x.SponsoredByOrderId == orderId && !takenIds.Contains(x.VideoIdeaId))
+                    .OrderBy(x => x.VideoIdeaId)
+                    .FirstOrDefaultAsync(ct);
+
+                if (idea is null)
                 {
-                    Title = dedicatedTitle,
-                    Status = VideoIdeaStatus.Queued,
-                    IsDedicated = true,
-                    SponsoredByOrderId = orderId,
-                    SortOrder = 0,
-                    CreateDate = DateTime.UtcNow,
-                };
-                this.context.VideoIdeas.Add(idea);
-                await this.context.SaveChangesAsync(ct);
+                    idea = new VideoIdea
+                    {
+                        Title = dedicatedTitle,
+                        Status = VideoIdeaStatus.Queued,
+                        IsDedicated = true,
+                        SponsoredByOrderId = orderId,
+                        SortOrder = 0,
+                        CreateDate = DateTime.UtcNow,
+                    };
+                    this.context.VideoIdeas.Add(idea);
+                    await this.context.SaveChangesAsync(ct);
+                }
 
                 item.VideoIdeaId = idea.VideoIdeaId;
                 item.Title = dedicatedTitle;

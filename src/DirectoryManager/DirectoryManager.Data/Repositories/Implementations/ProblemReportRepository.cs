@@ -104,6 +104,16 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .Select(x => x.PaidUtc)
                 .FirstOrDefaultAsync(ct);
 
+        public async Task<(DateTime? PaidUtc, decimal? Usd, decimal? Xmr, int Id)> GetLastPaymentAsync(CancellationToken ct = default)
+        {
+            var last = await this.Set.AsNoTracking()
+                .Where(x => x.PaidUtc != null)
+                .OrderByDescending(x => x.PaidUtc)
+                .Select(x => new { x.PaidUtc, x.PaidUsd, x.PaidXmr, x.ProblemReportId })
+                .FirstOrDefaultAsync(ct);
+            return (last?.PaidUtc, last?.PaidUsd, last?.PaidXmr, last?.ProblemReportId ?? 0);
+        }
+
         public async Task SetStatusAsync(int id, ProblemReportStatus status, CancellationToken ct = default)
         {
             var existing = await this.Set.FindAsync(new object[] { id }, ct);

@@ -75,6 +75,20 @@ else
         <p><b>Listing ID: @Model.DirectoryEntryId</b>
         &middot; <a href="~/directoryentry/edit/@Model.DirectoryEntryId">Edit listing #@Model.DirectoryEntryId &rarr;</a>
         </p>
+        var sensitive = ViewBag.SensitiveChanges as List<string>;
+        if (sensitive != null && sensitive.Count > 0)
+        {
+            <div class="u-m-12px-0-p-10px-border-1px-solid-c00" role="alert">
+                <b>&#9888; Check before approving: this changes protected fields of an existing listing</b>
+                <ul>
+                    @foreach (var change in sensitive)
+                    {
+                        <li>@change</li>
+                    }
+                </ul>
+                <small>A PGP key swap hands over the owner's identity (signed owner replies publish automatically). Only approve if the change is confirmed by the listing owner, e.g. a message signed with the CURRENT key.</small>
+            </div>
+        }
         <p><i>Differences:</i></p>
         @Html.Raw(ViewBag.Differences)
     }
@@ -210,6 +224,16 @@ else
             @foreach (var lq in LiquidityExtensions.Selectable)
             {
                 <option value="@((int)lq)" selected="@(Model.Liquidity == lq)">@EnumHelper.GetDescription(lq)</option>
+            }
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label for="RateType">Rate type:</label>
+        <select id="RateType" name="RateType" class="form-control select-fit">
+            @foreach (var rt in System.Enum.GetValues<DirectoryManager.Data.Enums.RateType>())
+            {
+                <option value="@((int)rt)" selected="@(Model.RateType == rt)">@EnumHelper.GetDescription(rt)</option>
             }
         </select>
     </div>

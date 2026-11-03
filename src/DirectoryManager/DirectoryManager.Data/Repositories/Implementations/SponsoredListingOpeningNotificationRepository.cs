@@ -130,6 +130,16 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return q.CountAsync();
         }
 
+        public async Task<DateTime?> GetLastWaitlistChangeUtcAsync()
+        {
+            var rows = this.context.SponsoredListingOpeningNotifications.AsNoTracking();
+            var created = await rows.MaxAsync(n => (DateTime?)n.CreateDate);
+            var updated = await rows.MaxAsync(n => n.UpdateDate);
+            var notified = await rows.MaxAsync(n => n.ReminderSentDateUtc);
+            var subscribed = await rows.MaxAsync(n => (DateTime?)n.SubscribedDate);
+            return new[] { created, updated, notified, subscribed }.Max();
+        }
+
         public async Task<List<WaitlistItemDto>> GetWaitlistPreviewAsync(SponsorshipType type, int? typeId, int take)
         {
             if (take < 1)

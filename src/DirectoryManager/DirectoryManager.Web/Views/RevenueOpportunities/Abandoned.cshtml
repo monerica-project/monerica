@@ -1,0 +1,69 @@
+@model DirectoryManager.Web.Models.Revenue.RevenueOpportunitiesViewModel
+@{
+    PageMeta.Title = "Abandoned Checkouts";
+    Layout = "_CenteredLayout";
+    var df = DirectoryManager.Common.Constants.StringConstants.DateFormat;
+    var here = Context.Request.Path + Context.Request.QueryString;
+}
+
+@section PageContent {
+    <h1>@PageMeta.Title</h1>
+    @await Html.PartialAsync("_AdminMenu")
+    @await Html.PartialAsync("_Nav")
+
+    <p>
+        Sponsorship checkouts that were started (an invoice was made) but never paid, and not bought later.
+        These are your warmest leads: follow up by email.
+        Last <b>@Model.Days</b> days ·
+        <a href="?days=30">30</a> · <a href="?days=60">60</a> · <a href="?days=180">180</a> · <a href="?days=365">365</a>
+    </p>
+    <p><small>
+        Your own tests are left out: checkouts made while signed in are marked as tests automatically, and so is
+        any email you've marked as a test before. Use <b>Test</b> on a row to hide one; <b>Test (email)</b> also
+        hides every checkout with that email, now and in future.
+    </small></p>
+
+    @if (Model.Abandoned.Count == 0)
+    {
+        <p><i>No abandoned checkouts in this period.</i></p>
+    }
+    else
+    {
+        <div class="u-overflow-x-auto">
+            <table class="table table-striped table-sm">
+                <thead>
+                    <tr><th>Listing</th><th>Spot</th><th>Price</th><th>Email</th><th>Tries</th><th>Last try</th><th>Status</th><th>Waiting</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model.Abandoned)
+                    {
+                        <tr>
+                            <td>
+                                @if (r.ProfilePath != null) { <a href="@r.ProfilePath">@r.Name</a> } else { @r.Name }
+                                <br /><small><a href="/sponsoredlistinginvoice/details?id=@r.LatestInvoiceId">invoice</a></small>
+                            </td>
+                            <td>@r.Placement</td>
+                            <td>@r.Amount.ToString("N2") @r.Currency</td>
+                            <td>@if (!string.IsNullOrWhiteSpace(r.Email)) { <a href="mailto:@r.Email">@r.Email</a> } else { <i>none</i> }</td>
+                            <td>@r.Attempts</td>
+                            <td>@r.LastAttempt.ToString(df)</td>
+                            <td>@r.Status</td>
+                            <td>@(r.WaitlistCount > 0 ? r.WaitlistCount.ToString() : "")</td>
+                            <td style="white-space:nowrap;">
+                                <form method="post" asp-action="SetTest" asp-route-invoiceId="@r.LatestInvoiceId" class="u-inline">
+                                    <input type="hidden" name="isTest" value="true" />
+                                    <input type="hidden" name="returnUrl" value="@here" />
+                                    <button type="submit" class="btn btn-sm btn-secondary" title="Hide this one: it was my test">Test</button>
+                                    @if (!string.IsNullOrWhiteSpace(r.Email))
+                                    {
+                                        <button type="submit" name="allWithEmail" value="true" class="btn btn-sm btn-secondary" title="Hide every checkout with @r.Email, now and in future">Test (email)</button>
+                                    }
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}

@@ -45,7 +45,7 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [HttpGet("")]
-        public async Task<IActionResult> Index(string? period, DateTime? from, DateTime? to, RevenueBasis basis = RevenueBasis.Earned, string? currency = null, CancellationToken ct = default)
+        public async Task<IActionResult> Index(string? period, DateTime? from, DateTime? to, RevenueBasis basis = RevenueBasis.Cash, string? currency = null, CancellationToken ct = default)
         {
             var now = DateTime.UtcNow;
             var range = RevenuePeriods.Resolve(period, from, to, now);
@@ -88,7 +88,7 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [HttpGet("pie.png")]
-        public async Task<IActionResult> Pie(string? period, DateTime? from, DateTime? to, RevenueBasis basis = RevenueBasis.Earned, string? currency = null, CancellationToken ct = default)
+        public async Task<IActionResult> Pie(string? period, DateTime? from, DateTime? to, RevenueBasis basis = RevenueBasis.Cash, string? currency = null, CancellationToken ct = default)
         {
             var now = DateTime.UtcNow;
             var range = RevenuePeriods.Resolve(period, from, to, now);
@@ -100,7 +100,7 @@ namespace DirectoryManager.Web.Controllers
 
         // Monthly chart: the selected period when it spans 3+ months, otherwise the last 24 months.
         [HttpGet("monthly.png")]
-        public async Task<IActionResult> Monthly(string? period, DateTime? from, DateTime? to, RevenueBasis basis = RevenueBasis.Earned, string? currency = null, CancellationToken ct = default)
+        public async Task<IActionResult> Monthly(string? period, DateTime? from, DateTime? to, RevenueBasis basis = RevenueBasis.Cash, string? currency = null, CancellationToken ct = default)
         {
             var now = DateTime.UtcNow;
             var range = RevenuePeriods.Resolve(period, from, to, now);
@@ -132,10 +132,12 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [HttpGet("forecast")]
-        public async Task<IActionResult> Forecast(int? horizonMonths, int? confidence, decimal? priceGrowth, CancellationToken ct = default)
+        public async Task<IActionResult> Forecast(int? horizonMonths, int? confidence, decimal? priceGrowth, string? stream, int? lookbackYears, CancellationToken ct = default)
         {
             var (horizon, conf, growth) = Normalize(horizonMonths, confidence, priceGrowth);
-            var f = await this.GetForecastAsync(horizon, conf, growth, ct);
+            var (firstPayment, maxYears) = await this.HistorySpanAsync(ct);
+            var years = Math.Clamp(lookbackYears ?? 1, 1, maxYears);
+            var f = await this.GetForecastAsync(horizon, conf, growth, years, ct);
 
             return this.View(new RevenueForecastViewModel
             {
@@ -145,22 +147,47 @@ namespace DirectoryManager.Web.Controllers
                 Result = f.Result,
                 History = f.History,
                 Advice = f.Advice,
+                Stream = ParseStream(stream),
+                LookbackYears = years,
+                MaxLookbackYears = maxYears,
+                FirstPaymentUtc = firstPayment,
             });
         }
 
+        // "all" (or nothing) = every stream; otherwise one RevenueSource by name.
+        private static RevenueSource? ParseStream(string? stream) =>
+            Enum.TryParse<RevenueSource>(stream, true, out var s) && Enum.IsDefined(s) ? s : null;
+
+        // First payment of any kind, and how many whole years (rounded up) of payments there are.
+        private async Task<(DateTime? First, int Years)> HistorySpanAsync(CancellationToken ct)
+        {
+            var (invoices, oneTime) = await this.LoadAsync(ct);
+            var dates = invoices.Select(i => i.CreateDate).Concat(oneTime.Select(i => i.PaidUtc)).ToList();
+            if (dates.Count == 0)
+            {
+                return (null, 1);
+            }
+
+            var first = dates.Min();
+            var years = (int)Math.Ceiling((DateTime.UtcNow - first).TotalDays / 365.25);
+            return (first, Math.Max(1, years));
+        }
+
         [HttpGet("forecast.png")]
-        public async Task<IActionResult> ForecastChart(int? horizonMonths, int? confidence, decimal? priceGrowth, CancellationToken ct = default)
+        public async Task<IActionResult> ForecastChart(int? horizonMonths, int? confidence, decimal? priceGrowth, string? stream, int? lookbackYears, CancellationToken ct = default)
         {
             var (horizon, conf, growth) = Normalize(horizonMonths, confidence, priceGrowth);
-            var f = await this.GetForecastAsync(horizon, conf, growth, ct);
-            return this.Png(RevenuePlotting.Forecast(f.History, f.Result));
+            var (_, maxYears) = await this.HistorySpanAsync(ct);
+            var f = await this.GetForecastAsync(horizon, conf, growth, Math.Clamp(lookbackYears ?? 1, 1, maxYears), ct);
+            return this.Png(RevenuePlotting.ForecastByStream(f.History, f.Result, ParseStream(stream)));
         }
 
         [HttpGet("backtest/{monthsBack:int}.png")]
-        public async Task<IActionResult> BacktestChart(int monthsBack, int? horizonMonths, int? confidence, decimal? priceGrowth, CancellationToken ct = default)
+        public async Task<IActionResult> BacktestChart(int monthsBack, int? horizonMonths, int? confidence, decimal? priceGrowth, int? lookbackYears, CancellationToken ct = default)
         {
             var (horizon, conf, growth) = Normalize(horizonMonths, confidence, priceGrowth);
-            var result = (await this.GetForecastAsync(horizon, conf, growth, ct)).Result;
+            var (_, maxYears) = await this.HistorySpanAsync(ct);
+            var result = (await this.GetForecastAsync(horizon, conf, growth, Math.Clamp(lookbackYears ?? 1, 1, maxYears), ct)).Result;
             var bt = result.Backtests.FirstOrDefault(b =>
                 ((DateTime.UtcNow.Year - b.AsOfUtc.Year) * 12) + DateTime.UtcNow.Month - b.AsOfUtc.Month == monthsBack);
             return bt is null ? this.NotFound() : this.Png(RevenuePlotting.Backtest(bt, result.Confidence));
@@ -169,10 +196,10 @@ namespace DirectoryManager.Web.Controllers
         private static (int Horizon, int Confidence, decimal PriceGrowth) Normalize(int? horizonMonths, int? confidence, decimal? priceGrowth) =>
             (Math.Clamp(horizonMonths ?? 12, 1, 24), Math.Clamp(confidence ?? 80, 50, 95), Math.Clamp(priceGrowth ?? 0m, -50m, 200m));
 
-        private async Task<ForecastBundle> GetForecastAsync(int horizon, int confidencePct, decimal priceGrowthPct, CancellationToken ct)
+        private async Task<ForecastBundle> GetForecastAsync(int horizon, int confidencePct, decimal priceGrowthPct, int lookbackYears, CancellationToken ct)
         {
             var now = DateTime.UtcNow;
-            var key = $"{ForecastCacheKeyPrefix}{horizon}:{confidencePct}:{priceGrowthPct.ToString(CultureInfo.InvariantCulture)}:{now.ToString(DirectoryManager.Common.Constants.StringConstants.CompactDateHourFormat)}";
+            var key = $"{ForecastCacheKeyPrefix}{horizon}:{confidencePct}:{priceGrowthPct.ToString(CultureInfo.InvariantCulture)}:{lookbackYears}:{now.ToString(DirectoryManager.Common.Constants.StringConstants.CompactDateHourFormat)}";
             if (this.cache.TryGetValue(key, out ForecastBundle? cached) && cached != null)
             {
                 return cached;
@@ -191,6 +218,7 @@ namespace DirectoryManager.Web.Controllers
                     HorizonMonths = horizon,
                     Confidence = confidencePct / 100.0,
                     PriceGrowthPerYear = (double)priceGrowthPct / 100.0,
+                    LookbackDays = lookbackYears * 365,
                     MainSlots = DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsoredListings,
                     CategorySlots = categories.Count() * DirectoryManager.Common.Constants.IntegerConstants.MaxCategorySponsoredListings,
                     SubcategorySlots = subcategories.Count(s => !s.SponsorshipDisabled)
@@ -200,7 +228,7 @@ namespace DirectoryManager.Web.Controllers
 
             var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
             var history = RevenueReportBuilder.BuildMonths(
-                invoices, oneTime, monthStart.AddMonths(-18), monthStart, RevenueBasis.Earned, now);
+                invoices, oneTime, monthStart.AddMonths(-Math.Max(18, lookbackYears * 12)), monthStart, RevenueBasis.Earned, now);
 
             var analysis = SponsorshipIncomeAnalyzer.Analyze(invoices, Currency.USD, now);
             var value = new ForecastBundle(result, history, RevenueAdvice.Build(result, analysis));

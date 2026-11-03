@@ -16,5 +16,17 @@ namespace DirectoryManager.Web.Models.Reports
         public decimal PriceGrowthPercent { get; init; }
 
         public List<ForecastAdvice> Advice { get; init; } = new ();
+
+        /// <summary>The stream shown (null = all revenue).</summary>
+        public DirectoryManager.Data.Enums.RevenueSource? Stream { get; init; }
+
+        /// <summary>Years of history the model learns from.</summary>
+        public int LookbackYears { get; init; } = 1;
+
+        /// <summary>Years of payment history there are (the most the look-back can be).</summary>
+        public int MaxLookbackYears { get; init; } = 1;
+
+        /// <summary>Date of the first payment of any kind.</summary>
+        public DateTime? FirstPaymentUtc { get; init; }
     }
 }

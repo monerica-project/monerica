@@ -1,0 +1,20 @@
+@model DirectoryManager.Web.Models.Revenue.RevenueOpportunitiesViewModel
+@{
+    PageMeta.Title = "Renewals & Win-backs";
+    Layout = "_CenteredLayout";
+    var df = DirectoryManager.Common.Constants.StringConstants.DateFormat;
+}
+
+@section PageContent {
+    <h1>@PageMeta.Title</h1>
+    @await Html.PartialAsync("_AdminMenu")
+    @await Html.PartialAsync("_Nav")
+
+    <h2>Ending in the next @DirectoryManager.Web.Services.Implementations.RevenueOpportunityService.ExpiringWithinDays days (@Model.Expiring.Count)</h2>
+    <p><small>Sponsors whose time runs out soon and haven't renewed yet. "Waiting" = others on the waitlist for that spot, a good reason to renew now.</small></p>
+    @await Html.PartialAsync("_RenewalTable", Model.Expiring)
+
+    <h2>Lapsed in the last @DirectoryManager.Web.Services.Implementations.RevenueOpportunityService.LapsedWithinDays days (@Model.Lapsed.Count)</h2>
+    <p><small>Past sponsors with no sponsorship running anywhere now: win-back candidates.</small></p>
+    @await Html.PartialAsync("_RenewalTable", Model.Lapsed)
+}

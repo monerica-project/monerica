@@ -106,6 +106,13 @@ namespace DirectoryManager.Data.Models.SponsoredListings
 
         public bool IsReminderSent { get; set; }
 
+        /// <summary>
+        /// The owner's own test checkout: hidden from the abandoned-checkout report and the
+        /// "pending" warnings. Separate from <see cref="PaymentStatus"/>, which the payment
+        /// processor keeps updating.
+        /// </summary>
+        public bool IsTest { get; set; }
+
         public virtual DirectoryEntry? DirectoryEntry { get; set; }
 
         public virtual SponsoredListing? SponsoredListing { get; set; }

@@ -122,8 +122,56 @@ public class DirectoryFilterController : Controller
             categorySponsorModel,
             subcategorySponsorModel);
 
+        vm.PopularPicks = await this.GetPopularPicksAsync();
+        vm.IsExchangeContext = await this.IsExchangeCategoryAsync(q.CategoryId);
+
         this.PageMeta().Title = "Directory Filter";
         return this.View(vm);
+    }
+
+    // What people search for most (site search + filter logs, Nov 2026), as one-click shortcuts.
+    // Resolved by subcategory key so a fork without one of these simply skips that chip.
+    private static readonly (string Label, string SubKey, bool CategoryOnly)[] PopularPickKeys =
+    {
+        ("VPS & hosting", "vps-and-dedicated-server-providers", false),
+        ("SMS & phone numbers", "sms-verification-and-virtual-numbers", false),
+        ("eSIMs", "esims-and-sim-cards", false),
+        ("Domains", "domain-registration-and-dns-services", false),
+        ("VPNs & proxies", "outside-14-eyes", true),
+        ("Email", "email-providers-forwarders", false),
+        ("AI services", "ai-services", false),
+        ("Instant swaps", "instant-swaps", false),
+        ("Gift cards", "gift-cards", false),
+        ("Gambling", "gambling", false),
+    };
+
+    private async Task<List<(string Label, int CategoryId, int? SubCategoryId)>> GetPopularPicksAsync()
+    {
+        var subs = (await this.subcategoryRepo.GetAllDtoAsync()).Where(s => s.IsEnabled).ToList();
+        var picks = new List<(string Label, int CategoryId, int? SubCategoryId)>();
+        foreach (var (label, key, categoryOnly) in PopularPickKeys)
+        {
+            var s = subs.FirstOrDefault(x => string.Equals(x.Key, key, StringComparison.OrdinalIgnoreCase));
+            if (s != null)
+            {
+                picks.Add((label, s.CategoryId, categoryOnly ? null : s.SubcategoryId));
+            }
+        }
+
+        return picks;
+    }
+
+    // Liquidity and rate type only mean something for exchanges.
+    private async Task<bool> IsExchangeCategoryAsync(int? categoryId)
+    {
+        if (categoryId is not int id)
+        {
+            return false;
+        }
+
+        var subs = await this.subcategoryRepo.GetAllDtoAsync();
+        var name = subs.FirstOrDefault(s => s.CategoryId == id)?.CategoryName ?? string.Empty;
+        return name.Contains("exchange", StringComparison.OrdinalIgnoreCase);
     }
 
     // -------------------------
@@ -217,6 +265,7 @@ public class DirectoryFilterController : Controller
             {
                 item.AverageRating = rs.AvgRating;
                 item.ReviewCount = rs.ReviewCount;
+                item.VerifiedOrderCount = rs.VerifiedOrderCount;
             }
             else
             {
@@ -482,6 +531,7 @@ public class DirectoryFilterController : Controller
             DirectoryBadge = e.DirectoryBadge,
             KycPolicy = e.KycPolicy,
             Liquidity = e.Liquidity,
+            RateType = e.RateType,
 
             CountryCode = e.CountryCode,
             Location = e.Location,
@@ -574,7 +624,11 @@ public class DirectoryFilterController : Controller
                 || !string.IsNullOrWhiteSpace(q.SearchTerm)
                 || !string.IsNullOrWhiteSpace(q.Country)
                 || q.HasVideo || q.HasTor || q.HasI2p
-                || (q.Statuses is { Count: > 0 });
+                || (q.Statuses is { Count: > 0 })
+                || (q.KycPolicies is { Count: > 0 })
+                || (q.Liquidities is { Count: > 0 })
+                || (q.RateTypes is { Count: > 0 })
+                || q.VerifiedOrders;
 
             if (!any)
             {
@@ -593,6 +647,11 @@ public class DirectoryFilterController : Controller
                 HasTor = q.HasTor,
                 HasI2p = q.HasI2p,
                 Page = q.Page,
+                KycPolicies = q.KycPolicies is { Count: > 0 } ? string.Join(",", q.KycPolicies) : null,
+                Liquidities = q.Liquidities is { Count: > 0 } ? string.Join(",", q.Liquidities) : null,
+                RateTypes = q.RateTypes is { Count: > 0 } ? string.Join(",", q.RateTypes) : null,
+                VerifiedOrders = q.VerifiedOrders,
+                Sort = q.Sort.ToString(),
             });
         }
         catch

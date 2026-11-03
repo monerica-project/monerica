@@ -230,6 +230,7 @@ namespace DirectoryManager.Web.Controllers
                 CountryCode = vm.CountryCode,
                 KycPolicy = vm.KycPolicy,
                 Liquidity = vm.Liquidity,
+                RateType = vm.RateType,
                 FoundedDate = foundedDate,
                 ReviewsDisabled = vm.ReviewsDisabled,
                 RequireReviewVerificationDetails = vm.RequireReviewVerificationDetails,
@@ -302,6 +303,7 @@ namespace DirectoryManager.Web.Controllers
                 CountryCode = entry.CountryCode,
                 KycPolicy = entry.KycPolicy,
                 Liquidity = entry.Liquidity,
+                RateType = entry.RateType,
                 Processor = entry.Processor,
                 Email = entry.Email,
                 Messenger = entry.Messenger,
@@ -405,6 +407,7 @@ namespace DirectoryManager.Web.Controllers
             existingEntry.CountryCode = vm.CountryCode;
             existingEntry.KycPolicy = vm.KycPolicy;
             existingEntry.Liquidity = vm.Liquidity;
+            existingEntry.RateType = vm.RateType;
             existingEntry.PgpKey = vm.PgpKey?.Trim();
             existingEntry.FoundedDate = foundedDate;
             existingEntry.ReviewsDisabled = vm.ReviewsDisabled;
@@ -460,6 +463,7 @@ namespace DirectoryManager.Web.Controllers
                 CountryCode = directoryEntry.CountryCode,
                 KycPolicy = directoryEntry.KycPolicy,
                 Liquidity = directoryEntry.Liquidity,
+                RateType = directoryEntry.RateType,
                 PgpKey = directoryEntry.PgpKey,
                 ProofLink = directoryEntry.ProofLink,
                 VideoLink = directoryEntry.VideoLink,
@@ -665,6 +669,7 @@ namespace DirectoryManager.Web.Controllers
             return (links ?? Enumerable.Empty<string>())
                 .Select(x => (x ?? string.Empty).Trim())
                 .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(UrlHelper.ToStoredUrl) // the edit form shows Russian etc. decoded; store it encoded as before
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .Take(max)
                 .ToList();
@@ -1231,6 +1236,7 @@ namespace DirectoryManager.Web.Controllers
                 CountryCode = entry.CountryCode,
                 KycPolicy = entry.KycPolicy,
                 Liquidity = entry.Liquidity,
+                RateType = entry.RateType,
                 Guarantees = guarantees ?? new List<DirectoryManager.Data.Models.GuaranteeItem>(),
                 IsSponsored = isSponsor,
                 SponsorSinceUtc = sponsorSinceUtc,
@@ -1302,9 +1308,18 @@ namespace DirectoryManager.Web.Controllers
                 : null;
 
             var authorCounts = await this.GetAuthorPostCountsCachedAsync(ct);
+            var verifiedOrders = (await this.reviewRepository.GetRatingSummariesAsync(new[] { entry.DirectoryEntryId }))
+                .TryGetValue(entry.DirectoryEntryId, out var vsum) ? vsum.VerifiedOrderCount : 0;
+
+            var (amountCount, amountAvg) = DirectoryManager.Data.Helpers.VerifiedOrderAmounts.Summarize(
+                await this.reviewRepository.GetVerifiedOrderAmountBandsAsync(entry.DirectoryEntryId, ct));
 
             var vm = new EntryReviewsBlockViewModel
             {
+                VerifiedOrderCount = verifiedOrders,
+                VerifiedOrderAmountCount = amountCount,
+                VerifiedOrderAverageUsd = amountAvg,
+                IsExchange = string.Equals(entry.SubCategory?.Category?.CategoryKey, "exchanges", StringComparison.OrdinalIgnoreCase),
                 DirectoryEntryId = entry.DirectoryEntryId,
                 DirectoryEntryKey = entry.DirectoryEntryKey,
                 DirectoryEntryName = entry.Name,

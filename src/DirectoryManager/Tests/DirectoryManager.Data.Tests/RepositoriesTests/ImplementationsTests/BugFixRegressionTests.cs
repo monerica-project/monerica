@@ -4,6 +4,7 @@ using DirectoryManager.Data.Helpers;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.Reviews;
 using DirectoryManager.Data.Models.SponsoredListings;
+using DirectoryManager.Data.Models.VideoSponsorships;
 using DirectoryManager.Data.Repositories.Implementations;
 using Microsoft.EntityFrameworkCore;
 
@@ -49,6 +50,108 @@ namespace DirectoryManager.Data.Tests.RepositoriesTests.ImplementationsTests
 
             var ticker = await repo.GetSponsorTickerItemsAsync();
             Assert.Equal(new[] { 1, 4 }, ticker.Select(x => x.DirectoryEntryId).OrderBy(x => x));
+        }
+
+        [Fact]
+        public async Task SponsorTicker_ShowsASponsorOncePerTierItHolds()
+        {
+            using var context = NewContext();
+            context.Categories.Add(new Category { CategoryId = 1, Name = "Cat", CategoryKey = "cat" });
+            context.Subcategories.Add(new Subcategory { SubCategoryId = 1, CategoryId = 1, Name = "Sub", SubCategoryKey = "sub" });
+            context.Subcategories.Add(new Subcategory { SubCategoryId = 2, CategoryId = 1, Name = "Sub 2", SubCategoryKey = "sub-2" });
+            context.DirectoryEntries.Add(Entry(1, DirectoryStatus.Verified));
+            context.DirectoryEntries.Add(Entry(2, DirectoryStatus.Verified));
+            var now = DateTime.UtcNow;
+            SponsoredListing Spot(int id, int entryId, SponsorshipType type, int? sub = null, int? cat = null) => new SponsoredListing
+            {
+                SponsoredListingId = id,
+                DirectoryEntryId = entryId,
+                SponsorshipType = type,
+                SubCategoryId = sub,
+                CategoryId = cat,
+                CampaignStartDate = now.AddDays(-1),
+                CampaignEndDate = now.AddDays(10 + id),
+                SponsoredListingInvoiceId = id,
+            };
+
+            // Entry 1: main + category + TWO subcategory spots; entry 2: subcategory only.
+            context.SponsoredListings.AddRange(
+                Spot(1, 1, SponsorshipType.MainSponsor),
+                Spot(2, 1, SponsorshipType.CategorySponsor, cat: 1),
+                Spot(3, 1, SponsorshipType.SubcategorySponsor, sub: 1),
+                Spot(4, 1, SponsorshipType.SubcategorySponsor, sub: 2),
+                Spot(5, 2, SponsorshipType.SubcategorySponsor, sub: 1));
+            await context.SaveChangesAsync();
+
+            var ticker = await new SponsoredListingRepository(context).GetSponsorTickerItemsAsync();
+
+            // Main group, then category, then subcategory; entry 1 once in each tier it holds.
+            Assert.Equal(
+                new[] { (1, SponsorshipType.MainSponsor), (1, SponsorshipType.CategorySponsor), (2, SponsorshipType.SubcategorySponsor), (1, SponsorshipType.SubcategorySponsor) }
+                    .Select(x => x.Item2).ToArray(),
+                ticker.Select(x => x.Tier).ToArray());
+            Assert.Equal(2, ticker.Count(x => x.Tier == SponsorshipType.SubcategorySponsor));
+            Assert.Single(ticker, x => x.DirectoryEntryId == 1 && x.Tier == SponsorshipType.SubcategorySponsor);
+            Assert.Equal(3, ticker.Count(x => x.DirectoryEntryId == 1));
+        }
+
+        [Fact]
+        public async Task LastWaitlistChange_IsNewestJoinUpdateOrNotification()
+        {
+            using var context = NewContext();
+            var repo = new SponsoredListingOpeningNotificationRepository(context);
+            Assert.Null(await repo.GetLastWaitlistChangeUtcAsync());
+
+            var t0 = new DateTime(2026, 11, 1, 17, 0, 0, DateTimeKind.Utc);
+            context.SponsoredListingOpeningNotifications.AddRange(
+                new SponsoredListingOpeningNotification
+                {
+                    SponsoredListingOpeningNotificationId = 1, Email = "a@example.com", SponsorshipType = SponsorshipType.MainSponsor,
+                    IsActive = true, SubscribedDate = t0, CreateDate = t0,
+                },
+                new SponsoredListingOpeningNotification
+                {
+                    SponsoredListingOpeningNotificationId = 2, Email = "b@example.com", SponsorshipType = SponsorshipType.MainSponsor,
+                    IsActive = true, SubscribedDate = t0.AddMinutes(5), CreateDate = t0.AddMinutes(5),
+                });
+            await context.SaveChangesAsync();
+            Assert.Equal(t0.AddMinutes(5), await repo.GetLastWaitlistChangeUtcAsync());
+
+            // Someone being notified (leaving the waitlist) later also counts as a change.
+            var first = await context.SponsoredListingOpeningNotifications.FindAsync(1);
+            first!.IsReminderSent = true;
+            first.ReminderSentDateUtc = t0.AddMinutes(30);
+            await context.SaveChangesAsync();
+            var last = await repo.GetLastWaitlistChangeUtcAsync();
+            Assert.True(last >= t0.AddMinutes(30));
+        }
+
+        [Fact]
+        public async Task PaidDedicatedVideoOrder_ConfirmedTwice_CreatesOnlyOneVideo()
+        {
+            using var context = NewContext();
+            context.VideoSponsorOrders.Add(new VideoSponsorOrder
+            {
+                VideoSponsorOrderId = 9,
+                OfferName = "Dedicated video",
+                RefundAddress = "4refund",
+                Quantity = 1,
+                Items = new List<VideoSponsorOrderItem> { new VideoSponsorOrderItem { VideoSponsorOrderItemId = 12, Price = 1000m } },
+            });
+            await context.SaveChangesAsync();
+            var repo = new VideoSponsorshipRepository(context);
+
+            Assert.True(await repo.AssignVideosToPaidOrderAsync(9, "Dedicated video: GhostSwap"));
+
+            // A second confirmation that loaded the line item before the first one linked it.
+            var item = await context.VideoSponsorOrderItems.FindAsync(12);
+            item!.VideoIdeaId = null;
+            await context.SaveChangesAsync();
+            Assert.True(await repo.AssignVideosToPaidOrderAsync(9, "Dedicated video: GhostSwap"));
+
+            var dedicated = context.VideoIdeas.Where(x => x.IsDedicated && x.SponsoredByOrderId == 9).ToList();
+            Assert.Single(dedicated);
+            Assert.Equal(dedicated[0].VideoIdeaId, (await context.VideoSponsorOrderItems.FindAsync(12))!.VideoIdeaId);
         }
 
         [Fact]

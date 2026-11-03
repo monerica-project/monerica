@@ -135,6 +135,9 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.LastInvoicePaidUtc = this.SponsoredListingInvoiceRepository.GetLastPaidInvoiceCreateDate();
             this.ViewBag.LastInvoicePendingUtc = this.SponsoredListingInvoiceRepository.GetLastPendingInvoiceCreateDate();
             this.ViewBag.InvoiceAttention = this.SponsoredListingInvoiceRepository.GetPaymentAttentionCounts();
+            this.ViewBag.RevenueSummary = await this.HttpContext.RequestServices
+                .GetRequiredService<DirectoryManager.Web.Services.Implementations.RevenueOpportunityService>()
+                .GetSummaryAsync();
             this.ViewBag.TotalPendingReviewReviews = pendingReviews;
             this.ViewBag.TotalPendingReviewComments = pendingReviewComments;
             this.ViewBag.TotalPendingVerificationRequests = pendingVerificationRequests;
@@ -147,6 +150,32 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.LastProblemReportPaidUtc = await this.problemReportRepository.GetLastPaidUtcAsync();
 
             this.ViewBag.LastVideoSponsorPaidUtc = await this.videoSponsorshipRepository.GetLastPaidUtcAsync();
+
+            // Last payment per income source (Last paid column: when + USD + XMR), and the single most
+            // recent payment of any kind (shown above Daily Tasks, linked to the item).
+            var sub = await this.submissionRepository.GetLastPaymentAsync();
+            var prob = await this.problemReportRepository.GetLastPaymentAsync();
+            var verif = await this.verificationRequestRepository.GetLastPaymentAsync();
+            var vid = await this.videoSponsorshipRepository.GetLastPaymentAsync();
+            var inv = this.SponsoredListingInvoiceRepository.GetLastPaidInvoice();
+            var invUsd = inv.Currency is DirectoryManager.Data.Enums.Currency.USD or DirectoryManager.Data.Enums.Currency.Unknown ? inv.Amount : null;
+            this.ViewBag.PaySubmission = (sub.PaidUtc, sub.Usd, sub.Xmr);
+            this.ViewBag.PayProblem = (prob.PaidUtc, prob.Usd, prob.Xmr);
+            this.ViewBag.PayVerification = (verif.PaidUtc, verif.Usd, verif.Xmr);
+            this.ViewBag.PayVideo = (vid.PaidUtc, vid.Usd, vid.Xmr);
+            this.ViewBag.PayInvoice = (inv.PaidUtc, invUsd, inv.Xmr);
+            this.ViewBag.LastPayment = new (DateTime? When, decimal? Usd, decimal? Xmr, string What, string Url)[]
+                {
+                    (sub.PaidUtc, sub.Usd, sub.Xmr, $"Listing submission #{sub.Id}", $"/submission/{sub.Id}"),
+                    (prob.PaidUtc, prob.Usd, prob.Xmr, $"Problem report #{prob.Id}", $"/admin/problem-reports/{prob.Id}"),
+                    (verif.PaidUtc, verif.Usd, verif.Xmr, $"Verification request #{verif.Id}", $"/admin/verification-requests/{verif.Id}"),
+                    (vid.PaidUtc, vid.Usd, vid.Xmr, $"Video sponsorship order #{vid.Id}", $"/admin/video-sponsorship/orders/{vid.Id}"),
+                    (inv.PaidUtc, invUsd, inv.Xmr, $"Site sponsorship invoice #{inv.Id}", $"/sponsoredlistinginvoice/details?id={inv.Id}"),
+                }
+                .Where(x => x.When.HasValue)
+                .OrderByDescending(x => x.When)
+                .Select(x => ((DateTime, decimal?, decimal?, string, string)?)(x.When!.Value, x.Usd, x.Xmr, x.What, x.Url))
+                .FirstOrDefault();
             this.ViewBag.VideoAttention = await this.videoSponsorshipRepository.GetPaymentAttentionAsync();
 
             // "Newest waiting" = create time of the newest item NOT yet handled (null when none).

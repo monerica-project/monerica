@@ -196,6 +196,32 @@ namespace DirectoryManager.Data.Tests.Helpers
             Assert.Equal("GoyMail", Search("goymail").First());
         }
 
+        [Theory]
+        [InlineData("sim", "Silent eSIM")]
+        [InlineData("mail", "Proton Mail Alt")]
+        [InlineData("casino", "Lucky Bets")]
+        public void Synonym_FindsTheSameThing(string typed, string expected)
+        {
+            var dir = new List<DirectoryEntry>
+            {
+                Entry(9001, "Silent eSIM", "Anonymous esim data plans paid in Monero", "eSIMs", "Phone & SMS", DirectoryStatus.Admitted),
+                Entry(9002, "Proton Mail Alt", "Private email provider", "Email Providers", "Businesses", DirectoryStatus.Admitted),
+                Entry(9003, "Lucky Bets", "Online gambling site that accepts XMR", "Gambling", "Businesses", DirectoryStatus.Admitted),
+            };
+            Assert.Contains(expected, DirectorySearchEngine.Rank(dir, typed).Select(e => e.Name));
+        }
+
+        [Fact]
+        public void ExactWord_RanksAboveSynonymMatch()
+        {
+            var dir = new List<DirectoryEntry>
+            {
+                Entry(9004, "Casino Royale XMR", "Plays games", "Gambling", "Businesses", DirectoryStatus.Admitted),
+                Entry(9005, "Bet Hub", "Online gambling for Monero", "Gambling", "Businesses", DirectoryStatus.Admitted),
+            };
+            Assert.Equal("Casino Royale XMR", DirectorySearchEngine.Rank(dir, "casino").First().Name);
+        }
+
         [Fact]
         public void EmptyQuery_ReturnsNothing()
         {

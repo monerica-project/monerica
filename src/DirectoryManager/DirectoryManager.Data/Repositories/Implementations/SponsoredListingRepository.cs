@@ -467,13 +467,13 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     Rank = TierRank(x.SponsorshipType),
                 });
 
-            // Dedup by DirectoryEntryId:
-            // pick best tier first, then keep your consistent campaign ordering
+            // One item per sponsor PER TIER: a sponsor holding a main and a category spot appears in
+            // both groups of the ticker. Several spots in the same tier (e.g. two subcategories) still
+            // show once in that tier, using the longest-running campaign.
             var bestPerEntry = candidates
-                .GroupBy(x => x.Entry.DirectoryEntryId)
+                .GroupBy(x => new { x.Entry.DirectoryEntryId, x.Listing.SponsorshipType })
                 .Select(g =>
-                    g.OrderBy(x => x.Rank)
-                     .ThenByDescending(x => x.Listing.CampaignEndDate)
+                    g.OrderByDescending(x => x.Listing.CampaignEndDate)
                      .ThenByDescending(x => x.Listing.CampaignStartDate)
                      .First())
                 .ToList();

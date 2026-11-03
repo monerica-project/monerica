@@ -175,6 +175,14 @@
             .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
     }
 
+    @{
+        // Featured picks for this page: the category's own pick, and each subcategory section's pick.
+        var categoryPick = (await categoryRepo.GetByIdAsync(Model.CategoryId))?.FeaturedDirectoryEntryId;
+        var subcategoryPicks = (await subCatRepo.GetAllActiveSubCategoriesAsync())
+            .Where(s => s.FeaturedDirectoryEntryId.HasValue)
+            .ToDictionary(s => s.SubCategoryId, s => s.FeaturedDirectoryEntryId!.Value);
+    }
+
     @foreach (var group in grouped)
     {
         <h2 class="subcat-heading">@group.Key</h2>
@@ -182,6 +190,8 @@
             @foreach (var entryVm in group)
             {
                 entryVm.LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.ListingPage;
+                entryVm.IsFeaturedInThisList = entryVm.DirectoryEntryId == categoryPick
+                    || (entryVm.SubCategoryId is int sid && subcategoryPicks.TryGetValue(sid, out var pick) && pick == entryVm.DirectoryEntryId);
 
                 if (Model.SponsoredDirectoryEntryIds.Contains(entryVm.DirectoryEntryId) ||
                     Model.SponsoredSubcategoryRows.Contains((entryVm.DirectoryEntryId, entryVm.SubCategoryId ?? 0)))

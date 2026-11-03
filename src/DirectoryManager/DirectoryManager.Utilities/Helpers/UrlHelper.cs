@@ -11,6 +11,54 @@ namespace DirectoryManager.Web.Helpers
             TimeSpan.FromMilliseconds(250));
 
         /// <summary>
+        /// Storage form of a URL typed into a form: non-ASCII characters in the path, query or
+        /// fragment (e.g. Russian text shown decoded by <see cref="ToDisplayUrl"/> on an edit
+        /// page) are percent-encoded again as UTF-8, so saving an unchanged form stores exactly
+        /// what was there before. Plain-ASCII input (including existing %XX escapes) is returned
+        /// unchanged; so is anything that isn't an absolute URL.
+        /// </summary>
+        public static string ToStoredUrl(string? url)
+        {
+            if (string.IsNullOrEmpty(url))
+            {
+                return url ?? string.Empty;
+            }
+
+            var hasNonAscii = false;
+            foreach (var ch in url)
+            {
+                if (ch > 127)
+                {
+                    hasNonAscii = true;
+                    break;
+                }
+            }
+
+            if (!hasNonAscii)
+            {
+                return url;
+            }
+
+            var sb = new System.Text.StringBuilder(url.Length * 2);
+            foreach (var ch in url)
+            {
+                if (ch <= 127)
+                {
+                    sb.Append(ch);
+                }
+                else
+                {
+                    foreach (var b in System.Text.Encoding.UTF8.GetBytes(ch.ToString()))
+                    {
+                        sb.Append('%').Append(b.ToString("X2"));
+                    }
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        /// <summary>
         /// Human-readable form of a URL for link TEXT: percent-escapes are decoded so
         /// "%D0%BA%D1%80" shows as "кр". The href itself should keep the original (encoded)
         /// URL. Returns the input unchanged if it isn't valid escaped UTF-8 or if decoding would

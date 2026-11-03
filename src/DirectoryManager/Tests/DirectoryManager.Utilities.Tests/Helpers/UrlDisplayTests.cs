@@ -12,6 +12,20 @@ namespace DirectoryManager.Utilities.Tests.Helpers
                 UrlHelper.ToDisplayUrl("https://forum.bits.media/topic/67tax-%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%B0-%D1%84%D0%B8%D0%B0%D1%82"));
         }
 
+        [Fact]
+        public void StoredFormReencodesWhatDisplayDecoded()
+        {
+            const string stored = "https://forum.bits.media/topic/67tax-%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%B0-%D1%84%D0%B8%D0%B0%D1%82";
+            Assert.Equal(stored, UrlHelper.ToStoredUrl(UrlHelper.ToDisplayUrl(stored)));
+        }
+
+        [Theory]
+        [InlineData("https://example.com/plain")]
+        [InlineData("https://example.com/a%20b")]
+        [InlineData("")]
+        public void StoredFormLeavesAsciiUrlsAlone(string url) =>
+            Assert.Equal(url, UrlHelper.ToStoredUrl(url));
+
         [Theory]
         [InlineData("https://example.com/plain")]
         [InlineData("")]

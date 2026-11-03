@@ -248,7 +248,7 @@ namespace DirectoryManager.Web.Controllers
             {
                 try
                 {
-                    var existing = await this.btcPay.GetInvoiceOnStoreAsync(storeId, request.BtcPayInvoiceId!);
+                    var existing = await DirectoryManager.Web.Helpers.BtcPayRetry.RunAsync(() => this.btcPay.GetInvoiceOnStoreAsync(storeId, request.BtcPayInvoiceId!), "problem report GetInvoiceOnStoreAsync");
                     if (!existing.IsExpired)
                     {
                         return this.RedirectToAction(nameof(this.PayInvoice), new { token });
@@ -282,7 +282,7 @@ namespace DirectoryManager.Web.Controllers
 
             try
             {
-                var invoice = await this.btcPay.CreateInvoiceOnStoreAsync(storeId, invoiceRequest);
+                var invoice = await DirectoryManager.Web.Helpers.BtcPayRetry.RunAsync(() => this.btcPay.CreateInvoiceOnStoreAsync(storeId, invoiceRequest), "problem report CreateInvoiceOnStoreAsync");
                 await this.requests.SetInvoiceIdAsync(request.ProblemReportId, invoice.Id, ct);
                 return this.RedirectToAction(nameof(this.PayInvoice), new { token });
             }
@@ -317,8 +317,8 @@ namespace DirectoryManager.Web.Controllers
 
             try
             {
-                var xmr = await this.btcPay.GetXmrPaymentMethodOnStoreAsync(
-                    this.btcPay.ReviewDonationsStoreId, request.BtcPayInvoiceId!);
+                var xmr = await DirectoryManager.Web.Helpers.BtcPayRetry.RunAsync(() => this.btcPay.GetXmrPaymentMethodOnStoreAsync(
+                    this.btcPay.ReviewDonationsStoreId, request.BtcPayInvoiceId!), "problem report GetXmrPaymentMethodOnStoreAsync");
                 if (xmr is not null && !string.IsNullOrWhiteSpace(xmr.Destination))
                 {
                     vm.Address = xmr.Destination;

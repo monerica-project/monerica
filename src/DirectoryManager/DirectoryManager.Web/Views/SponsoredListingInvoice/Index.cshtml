@@ -37,9 +37,8 @@
             <th>Listing</th>
             <th>Date</th>
             <th>Payment Status</th>
-            <th>Amount Asked</th>
-            <th>Outcome Amount</th>
-            <th>Paid In Currency</th>
+            <th>Paid</th>
+            <th>Test</th>
         </tr>
     </thead>
     <tbody>
@@ -52,7 +51,7 @@
         }
         @foreach (var invoice in Model)
         {
-            <tr>
+            <tr style="@(invoice.IsTest ? "opacity:.55;" : null)">
                 <td>
                     <a href="@Url.Action("Details", new { id = invoice.SponsoredListingInvoiceId })">@invoice.SponsoredListingInvoiceId</a>
                 </td>
@@ -77,9 +76,33 @@
                         @EnumHelper.GetDescription(invoice.PaymentStatus)
                     }
                 </td>
-                <td>@invoice.Amount.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat) (@invoice.Currency.ToString())</td>
-                <td>@invoice.OutcomeAmount</td>
-                <td>@invoice.PaidInCurrency</td>
+                <td style="white-space:nowrap;">
+                    @* Asked price on top; what actually came in (amount + coin) underneath. *@
+                    @invoice.Amount.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat) <small class="u-color-888">@invoice.Currency</small>
+                    @{
+                        var received = invoice.PaidAmount > 0 ? invoice.PaidAmount : invoice.OutcomeAmount;
+                    }
+                    @if (received > 0)
+                    {
+                        <br /><small>@received.ToString("0.########") @(invoice.PaidInCurrency != DirectoryManager.Data.Enums.Currency.Unknown ? invoice.PaidInCurrency.ToString() : "")</small>
+                    }
+                </td>
+                <td style="white-space:nowrap;">
+                    @* One click: mark/unmark as my own test checkout (hidden from revenue reports and pending warnings). *@
+                    <form method="post" action="/admin/revenue-opportunities/test/@invoice.SponsoredListingInvoiceId" class="u-inline">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="isTest" value="@(invoice.IsTest ? "false" : "true")" />
+                        <input type="hidden" name="returnUrl" value="@(Context.Request.Path + Context.Request.QueryString)" />
+                        @if (invoice.IsTest)
+                        {
+                            <b>TEST</b> <button type="submit" class="btn btn-sm btn-link" title="Not a test after all">undo</button>
+                        }
+                        else
+                        {
+                            <button type="submit" class="btn btn-sm btn-secondary" title="This was my test checkout">Test</button>
+                        }
+                    </form>
+                </td>
             </tr>
         }
     </tbody>

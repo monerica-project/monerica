@@ -216,10 +216,15 @@
         int? subSponsorEntryId = subCategorySponsorModel.DirectoryEntry?.DirectoryEntryId;
     }
 
+    @{
+        var subcategoryPick = (await subCatRepo.GetByIdAsync(Model.SubCategoryId))?.FeaturedDirectoryEntryId;
+    }
+
     <ul class="blank_list_item">
         @foreach (var viewModel in viewModelList)
         {
             viewModel.LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.ListingPage;
+            viewModel.IsFeaturedInThisList = viewModel.DirectoryEntryId == subcategoryPick;
 
             if (highlightIds.Contains(viewModel.DirectoryEntryId) ||
             (subSponsorEntryId.HasValue && viewModel.DirectoryEntryId == subSponsorEntryId.Value))

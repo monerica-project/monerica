@@ -178,10 +178,23 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .Max(e => (DateTime?)e.CreateDate);
         }
 
+        public (DateTime? PaidUtc, decimal? Amount, Enums.Currency Currency, decimal? Xmr, int Id) GetLastPaidInvoice()
+        {
+            var last = this.context.SponsoredListingInvoices
+                .AsNoTracking()
+                .Where(e => e.PaymentStatus == Enums.PaymentStatus.Paid || e.PaymentStatus == Enums.PaymentStatus.OverPayment)
+                .OrderByDescending(e => e.CreateDate)
+                .Select(e => new { e.CreateDate, e.Amount, e.Currency, e.PaidAmount, e.PaidInCurrency, e.SponsoredListingInvoiceId })
+                .FirstOrDefault();
+            return last == null ? (null, null, Enums.Currency.Unknown, null, 0)
+                : (last.CreateDate, last.Amount, last.Currency, last.PaidInCurrency == Enums.Currency.XMR && last.PaidAmount > 0 ? last.PaidAmount : null, last.SponsoredListingInvoiceId);
+        }
+
         public DateTime? GetLastPendingInvoiceCreateDate()
         {
             return this.context.SponsoredListingInvoices
                 .AsNoTracking()
+                .Where(e => !e.IsTest)
                 .Where(e => e.PaymentStatus == Enums.PaymentStatus.Pending || e.PaymentStatus == Enums.PaymentStatus.UnderPayment)
                 .Max(e => (DateTime?)e.CreateDate);
         }
@@ -191,6 +204,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             var since = DateTime.UtcNow.AddDays(-30);
             var rows = this.context.SponsoredListingInvoices
                 .AsNoTracking()
+                .Where(e => !e.IsTest)
                 .Where(e => e.PaymentStatus == Enums.PaymentStatus.Pending
                     || e.PaymentStatus == Enums.PaymentStatus.UnderPayment
                     || (e.PaymentStatus == Enums.PaymentStatus.OverPayment && e.CreateDate >= since))
@@ -724,6 +738,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             // processor + request/response blobs
             target.PaymentProcessor = src.PaymentProcessor;
             target.InvoiceRequest = src.InvoiceRequest;
+            target.IsTest = src.IsTest;
             target.InvoiceResponse = src.InvoiceResponse;
             target.PaymentResponse = src.PaymentResponse;
             target.ProcessorInvoiceId = src.ProcessorInvoiceId;

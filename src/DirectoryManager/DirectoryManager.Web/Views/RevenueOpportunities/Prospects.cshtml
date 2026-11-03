@@ -1,0 +1,50 @@
+@model DirectoryManager.Web.Models.Revenue.RevenueOpportunitiesViewModel
+@{
+    PageMeta.Title = "Never-Sponsored Prospects";
+    Layout = "_CenteredLayout";
+    var df = DirectoryManager.Common.Constants.StringConstants.DateFormat;
+}
+
+@section PageContent {
+    <h1>@PageMeta.Title</h1>
+    @await Html.PartialAsync("_AdminMenu")
+    @await Html.PartialAsync("_Nav")
+
+    <p>
+        Verified listings that can sponsor (listed @DirectoryManager.Common.Constants.IntegerConstants.MinimumDaysListedBeforeSponsoring+ days)
+        but have never paid for a sponsorship, busiest profile pages first. Good targets for sponsor or video-sponsor outreach.
+        "Looks" = times they opened their own sponsorship prices in the last 90 days.
+    </p>
+    <p><small>
+        Page views of /site/ pages on monerica.com and app.monerica.com,
+        @(Model.ViewsUpdatedUtc.HasValue ? "updated " + Model.ViewsUpdatedUtc.Value.ToString("yyyy-MM-dd HH:mm") + " UTC" : "not loaded yet (refreshed nightly)").
+        Only each day's busier pages are counted, so quiet listings show 0.
+    </small></p>
+
+    <div class="u-overflow-x-auto">
+        <table class="table table-striped table-sm">
+            <thead>
+                <tr><th>#</th><th>Listing</th><th>Category</th><th>Views 30d</th><th>Views 90d</th><th>Looks</th><th>Email</th></tr>
+            </thead>
+            <tbody>
+                @{ var n = 0; }
+                @foreach (var p in Model.Prospects)
+                {
+                    n++;
+                    <tr>
+                        <td>@n</td>
+                        <td>
+                            <a href="@p.ProfilePath">@p.Name</a>
+                            <br /><small><a href="/sponsorship/options/@p.DirectoryEntryId">prices</a> · <a href="/directoryentry/edit/@p.DirectoryEntryId">edit</a></small>
+                        </td>
+                        <td>@p.Category</td>
+                        <td>@p.Views30</td>
+                        <td>@p.Views90</td>
+                        <td>@(p.InterestLooks > 0 ? p.InterestLooks.ToString() : "")</td>
+                        <td>@if (!string.IsNullOrWhiteSpace(p.Email)) { <a href="mailto:@p.Email">@p.Email</a> } else { <i>none</i> }</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

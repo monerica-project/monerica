@@ -170,6 +170,103 @@ namespace DirectoryManager.Web.Charting
             return plt.GetDarkImageBytes(1400, 650, ImageFormat.Png);
         }
 
+        /// <summary>
+        /// History and forecast, by stream. All streams (stream = null): stacked bars per stream,
+        /// solid for past months and faded for forecast months, with the total's expected line and
+        /// range. One stream: that stream's bars, expected line and range.
+        /// </summary>
+        public static byte[] ForecastByStream(IReadOnlyList<RevenueMonth> history, SponsorshipForecastModel.Result f, RevenueSource? stream)
+        {
+            var plt = new Plot();
+            var labels = history.Select(m => m.Month).Concat(f.Months.Select(m => m.MonthStart)).ToList();
+            int h = history.Count;
+            var sources = stream is RevenueSource only ? new List<RevenueSource> { only } : RevenueReportBuilder.Sources.ToList();
+
+            // Biggest stream at the bottom of each stack.
+            double Hist(int i, RevenueSource s) => history[i].BySource.TryGetValue(s, out var v) ? (double)v : 0d;
+            double Fore(int i, RevenueSource s) => (double)SponsorshipForecastModel.StreamMonth(f.Months[i], s).Expected;
+            var order = sources
+                .OrderByDescending(s => Enumerable.Range(0, h).Sum(i => Hist(i, s)) + Enumerable.Range(0, f.Months.Count).Sum(i => Fore(i, s)))
+                .ToList();
+
+            foreach (var src in order)
+            {
+                bool any = Enumerable.Range(0, h).Any(i => Hist(i, src) > 0) || Enumerable.Range(0, f.Months.Count).Any(i => Fore(i, src) > 0);
+                if (!any && stream == null)
+                {
+                    continue;
+                }
+
+                var bars = new List<Bar>();
+                for (int i = 0; i < h + f.Months.Count; i++)
+                {
+                    bool future = i >= h;
+                    double below = order.TakeWhile(x => x != src).Sum(x => future ? Fore(i - h, x) : Hist(i, x));
+                    double v = future ? Fore(i - h, src) : Hist(i, src);
+                    bars.Add(new Bar
+                    {
+                        Position = i,
+                        ValueBase = below,
+                        Value = below + v,
+                        FillColor = ColorFor(src).WithAlpha(future ? 0.45 : 1.0),
+                        LineWidth = 0,
+                    });
+                }
+
+                var bp = plt.Add.Bars(bars);
+                var note = src != RevenueSource.SiteSponsors && f.SourceStatuses.TryGetValue(src, out var st) && st.Weight <= 0
+                    ? " (too new, not projected)"
+                    : string.Empty;
+                bp.LegendText = RevenueReportBuilder.Label(src) + note;
+            }
+
+            if (f.Months.Count > 0)
+            {
+                var xs = f.Months.Select((_, i) => (double)(h + i)).ToArray();
+                double[] low, high, exp;
+                if (stream is RevenueSource one)
+                {
+                    low = f.Months.Select(m => (double)SponsorshipForecastModel.StreamMonth(m, one).Low).ToArray();
+                    high = f.Months.Select(m => (double)SponsorshipForecastModel.StreamMonth(m, one).High).ToArray();
+                    exp = f.Months.Select(m => (double)SponsorshipForecastModel.StreamMonth(m, one).Expected).ToArray();
+                }
+                else
+                {
+                    low = f.Months.Select(m => (double)m.Low).ToArray();
+                    high = f.Months.Select(m => (double)m.High).ToArray();
+                    exp = f.Months.Select(m => (double)m.Expected).ToArray();
+                }
+
+                var band = plt.Add.FillY(xs, low, high);
+                band.FillColor = Color.FromHex("#ffffff").WithAlpha(0.10);
+                band.LineWidth = 0;
+                band.LegendText = $"{(int)Math.Round(f.Confidence * 100)}% range";
+
+                var line = plt.Add.Scatter(xs, exp);
+                line.Color = Color.FromHex("#ffffff");
+                line.LineWidth = 2f;
+                line.MarkerSize = 4;
+                line.LegendText = stream == null ? "Expected, all revenue" : "Expected";
+
+                if (h > 0)
+                {
+                    var divider = plt.Add.VerticalLine(h - 0.5);
+                    divider.Color = Color.FromHex("#999999");
+                    divider.LinePattern = LinePattern.Dashed;
+                    divider.LegendText = "Today";
+                }
+            }
+
+            MonthTicks(plt, labels);
+            plt.Axes.Margins(bottom: 0, top: 0.1);
+            plt.Title(stream is RevenueSource t
+                ? $"{RevenueReportBuilder.Label(t)}: earned per month and forecast (USD)"
+                : "All revenue by stream: earned per month and forecast (USD)");
+            plt.YLabel("USD");
+            plt.ShowLegend(Edge.Right);
+            return plt.GetDarkImageBytes(1400, 650, ImageFormat.Png);
+        }
+
         // Backtest: what the model predicted (line + band) vs what was earned (bars).
         public static byte[] Backtest(SponsorshipForecastModel.Backtest bt, double confidence)
         {

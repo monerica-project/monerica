@@ -9,7 +9,11 @@
 
     var usd = CultureInfo.GetCultureInfo("en-US");
     var r = Model.Result;
-    var q = $"horizonMonths={Model.HorizonMonths}&confidence={Model.ConfidencePercent}&priceGrowth={Model.PriceGrowthPercent.ToString(CultureInfo.InvariantCulture)}";
+    var q = $"horizonMonths={Model.HorizonMonths}&confidence={Model.ConfidencePercent}&priceGrowth={Model.PriceGrowthPercent.ToString(CultureInfo.InvariantCulture)}&lookbackYears={Model.LookbackYears}";
+    var qStream = q + (Model.Stream is RevenueSource qs ? "&stream=" + qs : "");
+    var all = Model.Stream == null;
+    var learnFrom = DateTime.UtcNow.Date.AddDays(-365 * Model.LookbackYears);
+    string Fmt(DateTime d) => d.ToString("MMM yyyy", CultureInfo.InvariantCulture);
     var v = r.AsOfUtc.ToString(DirectoryManager.Common.Constants.StringConstants.CompactDateFormat, CultureInfo.InvariantCulture);
     var lowPct = (100 - Model.ConfidencePercent) / 2;
     var highPct = 100 - lowPct;
@@ -24,6 +28,49 @@
     };
 
     var next12 = r.Months.Take(12).ToList();
+
+    // Every revenue stream, each forecast on its own; site sponsors come from the sponsorship model.
+    var allSources = DirectoryManager.Web.Revenue.RevenueReportBuilder.Sources;
+    string Label(RevenueSource s) => DirectoryManager.Web.Revenue.RevenueReportBuilder.Label(s);
+    (decimal Expected, decimal Low, decimal High) StreamMonth(DirectoryManager.Web.Forecasting.SponsorshipForecastModel.Month m, RevenueSource s)
+    {
+        if (s == RevenueSource.SiteSponsors)
+        {
+            return (m.SponsorExpected + m.SponsorSoFar, m.SponsorLow + m.SponsorSoFar, m.SponsorHigh + m.SponsorSoFar);
+        }
+
+        var f = m.Sources.FirstOrDefault(x => x.Source == s);
+        return f == null ? (0m, 0m, 0m) : (f.Expected, f.Low, f.High);
+    }
+
+    decimal StreamAverage(RevenueSource s) => s == RevenueSource.SiteSponsors
+        ? 0m
+        : (r.SourceMonthlyAverage.TryGetValue(s, out var a) ? a : 0m);
+    var totalNext = next12.Sum(m => m.Expected);
+
+    // How much history a stream has and how much of its pace the forecast uses.
+    string TrustText(RevenueSource s)
+    {
+        if (s == RevenueSource.SiteSponsors)
+        {
+            return "Sponsorship model (full history)";
+        }
+
+        if (!r.SourceStatuses.TryGetValue(s, out var st))
+        {
+            return "<span class=\"text-muted\">No payments yet</span>";
+        }
+
+        var age = st.MonthsOfData < 1 ? $"{Math.Max(1, (int)Math.Round(st.MonthsOfData * 4.35))} weeks" : $"{st.MonthsOfData:0.#} months";
+        if (st.Weight <= 0)
+        {
+            return $"<span class=\"text-warning\">Too new to forecast</span> ({age}, {st.ReceivedSoFar.ToString("C0", usd)} so far)";
+        }
+
+        return st.Weight < 1
+            ? $"Limited: {age}, counts {st.Weight * 100:0}% of its pace"
+            : $"Full ({age} of payments since {Fmt(st.FirstPaidUtc)})";
+    }
 }
 
 @section PageContent {
@@ -46,7 +93,7 @@
         <li><strong>Renewals:</strong> when a live advertiser's campaign ends, it renews as often as that tier has historically
             (shown below), for the same length, at <em>recent</em> prices@(Model.PriceGrowthPercent != 0m ? $", changing {Model.PriceGrowthPercent.ToString("0.#", CultureInfo.InvariantCulture)}% per year" : " (prices are assumed to stay where they are)"). Pulled advertisers never renew.</li>
         <li><strong>New sponsors</strong> arrive at the rate they have recently (the last six months count most), but only into free slots. A tier that is always sold out, like Main, refills an open slot as fast as it has in the past.</li>
-        <li><strong>Other income</strong> (video sponsorships, affiliate commissions, and submission review, verification and problem report payments) is drawn from the last 12 months.</li>
+        <li><strong>Every other stream</strong> (video sponsorships, affiliate commissions, submission review, verification and problem report payments) is forecast on its own, each month drawn from that stream's own last 12 months, and added to the total.</li>
     </ul>
     <p class="text-muted">
         All figures are <strong>revenue, not profit</strong>: review and verification payments pay for the review work, and
@@ -58,6 +105,31 @@
     </p>
 
     <form method="get" action="~/admin/revenue/forecast">
+        <div class="form-row">
+            <div class="form-group col-md-6">
+                <label for="stream">Revenue stream</label>
+                <select id="stream" name="stream" class="form-control">
+                    <option value="all" selected="@(all ? "selected" : null)">All revenue (every stream)</option>
+                    @foreach (var src in allSources)
+                    {
+                        <option value="@src" selected="@(Model.Stream == src ? "selected" : null)">@Label(src)</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group col-md-6">
+                <label for="lookbackYears">Learn from the last</label>
+                <select id="lookbackYears" name="lookbackYears" class="form-control">
+                    @for (int y = 1; y <= Model.MaxLookbackYears; y++)
+                    {
+                        var since = DateTime.UtcNow.Date.AddDays(-365 * y);
+                        var label = y == Model.MaxLookbackYears && Model.FirstPaymentUtc.HasValue
+                            ? $"{y} year{(y == 1 ? "" : "s")}: all history (since {Fmt(Model.FirstPaymentUtc.Value)})"
+                            : $"{y} year{(y == 1 ? "" : "s")} (since {Fmt(since)})";
+                        <option value="@y" selected="@(Model.LookbackYears == y ? "selected" : null)">@label</option>
+                    }
+                </select>
+            </div>
+        </div>
         <div class="form-row">
             <div class="form-group col-md-4">
                 <label for="horizonMonths">Months ahead</label>
@@ -75,6 +147,19 @@
         <button type="submit" class="btn btn-primary">Update</button>
     </form>
 
+    <p>
+        <strong>Learning from:</strong> @Model.LookbackYears year@(Model.LookbackYears == 1 ? "" : "s") of payments, @Fmt(learnFrom) to now
+        @(Model.FirstPaymentUtc.HasValue ? $"(payments go back to {Fmt(Model.FirstPaymentUtc.Value)})" : "").
+        New sponsors are learned from this period (recent months count most), renewal rates from the last
+        @Math.Round(Model.LookbackYears * 1.5, 1) years of ended campaigns, and every other stream from its own months in this period.
+    </p>
+    <p class="text-muted">
+        <strong>New streams aren't projected from a few weeks of sales.</strong> A stream with under
+        @DirectoryManager.Web.Forecasting.SponsorshipForecastModel.MinMonthsToForecast months of payments isn't projected at all;
+        from then on the forecast counts part of its recent pace, growing to all of it at
+        @DirectoryManager.Web.Forecasting.SponsorshipForecastModel.FullTrustMonths months.
+    </p>
+
     @if (Model.Advice.Count > 0)
     {
         <h2>What this means</h2>
@@ -86,6 +171,8 @@
         </ul>
     }
 
+    @if (all)
+    {
     <h2>Summary</h2>
     <div class="u-overflowx-auto">
     <table class="table table-sm">
@@ -98,9 +185,70 @@
         </tbody>
     </table>
     </div>
+    }
+    else
+    {
+        var one = Model.Stream!.Value;
+        <h2>@Label(one)</h2>
+        <div class="u-overflowx-auto">
+        <table class="table table-sm">
+            <tbody>
+                <tr><td>Expected, next @next12.Count months</td><td class="text-right"><strong>@next12.Sum(m => DirectoryManager.Web.Forecasting.SponsorshipForecastModel.StreamMonth(m, one).Expected).ToString("C0", usd)</strong></td></tr>
+                <tr><td>Range (sum of monthly @lowPct–@highPct percentiles)</td><td class="text-right">@next12.Sum(m => DirectoryManager.Web.Forecasting.SponsorshipForecastModel.StreamMonth(m, one).Low).ToString("C0", usd) – @next12.Sum(m => DirectoryManager.Web.Forecasting.SponsorshipForecastModel.StreamMonth(m, one).High).ToString("C0", usd)</td></tr>
+                <tr><td>Share of all expected revenue</td><td class="text-right">@(totalNext == 0m ? "0%" : (next12.Sum(m => DirectoryManager.Web.Forecasting.SponsorshipForecastModel.StreamMonth(m, one).Expected) * 100m / totalNext).ToString("0") + "%")</td></tr>
+                <tr><td>History used</td><td class="text-right">@Html.Raw(TrustText(one))</td></tr>
+            </tbody>
+        </table>
+        </div>
+    }
 
-    <img class="u-maxw-100pct-h-auto-block-m-0-auto-pb-10px" alt="Revenue history and forecast" src="~/admin/revenue/forecast.png?@q&v=@v" width="1400" height="650" />
+    <h2>Every revenue stream</h2>
+    <p class="text-muted">Each stream is forecast on its own (site sponsors by the sponsorship model above, every other stream from its own last 12 months); the total is all of them added together.</p>
+    <div class="u-overflowx-auto">
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Stream</th>
+                <th class="text-right">Expected, next @next12.Count months</th>
+                <th class="text-right">Range (@lowPct–@highPct%)</th>
+                <th class="text-right">Per month</th>
+                <th class="text-right">Monthly average, last 12 months</th>
+                <th class="text-right">Share</th>
+                <th>History used</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var src in allSources)
+            {
+                var exp = next12.Sum(m => StreamMonth(m, src).Expected);
+                <tr>
+                    <td>@Label(src)</td>
+                    <td class="text-right"><strong>@exp.ToString("C0", usd)</strong></td>
+                    <td class="text-right">@next12.Sum(m => StreamMonth(m, src).Low).ToString("C0", usd) – @next12.Sum(m => StreamMonth(m, src).High).ToString("C0", usd)</td>
+                    <td class="text-right">@((next12.Count == 0 ? 0m : exp / next12.Count).ToString("C0", usd))</td>
+                    <td class="text-right">@(src == RevenueSource.SiteSponsors ? "—" : StreamAverage(src).ToString("C0", usd))</td>
+                    <td class="text-right">@(totalNext == 0m ? "0%" : (exp * 100m / totalNext).ToString("0") + "%")</td>
+                    <td>@Html.Raw(TrustText(src))</td>
+                </tr>
+            }
+            <tr>
+                <td><strong>All revenue</strong></td>
+                <td class="text-right"><strong>@totalNext.ToString("C0", usd)</strong></td>
+                <td class="text-right">@next12.Sum(m => m.Low).ToString("C0", usd) – @next12.Sum(m => m.High).ToString("C0", usd)</td>
+                <td class="text-right">@((next12.Count == 0 ? 0m : totalNext / next12.Count).ToString("C0", usd))</td>
+                <td class="text-right"></td>
+                <td class="text-right">100%</td>
+                <td></td>
+            </tr>
+        </tbody>
+    </table>
+    </div>
+    <p class="text-muted"><small>Stream ranges are each stream's own; the "All revenue" range is from the combined simulation, so it is narrower than adding the stream ranges.</small></p>
 
+    <img class="u-maxw-100pct-h-auto-block-m-0-auto-pb-10px" alt="Revenue history and forecast" src="~/admin/revenue/forecast.png?@qStream&v=@v" width="1400" height="650" />
+
+    @if (all)
+    {
     <h2>By month</h2>
     <div class="u-overflowx-auto">
     <table class="table table-sm">
@@ -131,7 +279,89 @@
         </tbody>
     </table>
     </div>
+    }
+    else
+    {
+        var one = Model.Stream!.Value;
+        <h2>By month</h2>
+        <div class="u-overflowx-auto">
+        <table class="table table-sm">
+            <thead><tr><th>Month</th><th class="text-right">Expected</th><th class="text-right">Range (@lowPct–@highPct%)</th><th class="text-right">Share of the month</th></tr></thead>
+            <tbody>
+                @foreach (var m in r.Months)
+                {
+                    var sm = DirectoryManager.Web.Forecasting.SponsorshipForecastModel.StreamMonth(m, one);
+                    <tr>
+                        <td>@m.MonthStart.ToString(DirectoryManager.Common.Constants.StringConstants.MonthYearFormat, CultureInfo.InvariantCulture)</td>
+                        <td class="text-right"><strong>@sm.Expected.ToString("C0", usd)</strong></td>
+                        <td class="text-right">@sm.Low.ToString("C0", usd) – @sm.High.ToString("C0", usd)</td>
+                        <td class="text-right">@(m.Expected == 0m ? "0%" : (sm.Expected * 100m / m.Expected).ToString("0") + "%")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        </div>
+    }
 
+    @if (all)
+    {
+    <h2>By month, by stream</h2>
+    <div class="u-overflowx-auto">
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Month</th>
+                @foreach (var src in allSources)
+                {
+                    <th class="text-right">@Label(src)</th>
+                }
+                <th class="text-right">All revenue</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var m in r.Months)
+            {
+                <tr>
+                    <td>@m.MonthStart.ToString(DirectoryManager.Common.Constants.StringConstants.MonthYearFormat, CultureInfo.InvariantCulture)</td>
+                    @foreach (var src in allSources)
+                    {
+                        <td class="text-right">@StreamMonth(m, src).Expected.ToString("C0", usd)</td>
+                    }
+                    <td class="text-right"><strong>@m.Expected.ToString("C0", usd)</strong></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    </div>
+
+    <h2>Each stream's forecast</h2>
+    @foreach (var src in allSources)
+    {
+        var exp = next12.Sum(m => StreamMonth(m, src).Expected);
+        <details>
+            <summary><strong>@Label(src)</strong>: @exp.ToString("C0", usd) expected over the next @next12.Count months</summary>
+            <div class="u-overflowx-auto">
+            <table class="table table-sm">
+                <thead><tr><th>Month</th><th class="text-right">Expected</th><th class="text-right">Range (@lowPct–@highPct%)</th></tr></thead>
+                <tbody>
+                    @foreach (var m in r.Months)
+                    {
+                        var sm = StreamMonth(m, src);
+                        <tr>
+                            <td>@m.MonthStart.ToString(DirectoryManager.Common.Constants.StringConstants.MonthYearFormat, CultureInfo.InvariantCulture)</td>
+                            <td class="text-right">@sm.Expected.ToString("C0", usd)</td>
+                            <td class="text-right">@sm.Low.ToString("C0", usd) – @sm.High.ToString("C0", usd)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            </div>
+        </details>
+    }
+    }
+
+    @if (all || Model.Stream == RevenueSource.SiteSponsors)
+    {
     <h2>What the model learned</h2>
     <div class="u-overflowx-auto">
     <table class="table table-sm">
@@ -163,7 +393,10 @@
     </table>
     </div>
     <p class="text-muted">Renewal rate: of the campaigns that ended between 18 and 1.5 months ago, how many were followed by another campaign in the same slot.</p>
+    }
 
+    @if (all)
+    {
     <h2>How accurate is it?</h2>
     @if (r.Backtests.Count == 0)
     {
@@ -217,5 +450,6 @@
             var monthsBack = ((nowMonth.Year - bt.AsOfUtc.Year) * 12) + nowMonth.Month - bt.AsOfUtc.Month;
             <img class="u-maxw-100pct-h-auto-block-m-0-auto-pb-10px" alt="Backtest from @bt.AsOfUtc.ToString(DirectoryManager.Common.Constants.StringConstants.MonthYearFormat, CultureInfo.InvariantCulture)" src="~/admin/revenue/backtest/@(monthsBack).png?@q&v=@v" width="1100" height="450" />
         }
+    }
     }
 }

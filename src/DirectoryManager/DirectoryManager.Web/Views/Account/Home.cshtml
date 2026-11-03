@@ -49,6 +49,37 @@
             ? $"<span title=\"{t.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat)} UTC\">{FormatAgoCompact(t)}</span>"
             : "<span class=\"u-color-888\">—</span>");
 
+    // "$250" (or "$12.50") and a small "1.234 XMR" underneath.
+    static string Money(decimal? usd, decimal? xmr)
+    {
+        var parts = new List<string>();
+        if (usd is decimal u && u > 0)
+        {
+            parts.Add("<b>$" + u.ToString(u % 1 == 0 ? "N0" : "N2", System.Globalization.CultureInfo.InvariantCulture) + "</b>");
+        }
+
+        if (xmr is decimal x && x > 0)
+        {
+            parts.Add("<small class=\"task-xmr\">" + x.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) + " XMR</small>");
+        }
+
+        return string.Join(" ", parts);
+    }
+
+    // Last paid: "3d ago" (hover = exact time) with the amount underneath.
+    static Microsoft.AspNetCore.Html.IHtmlContent PaidCell(object? pay)
+    {
+        if (pay is not ValueTuple<DateTime?, decimal?, decimal?> p || p.Item1 is not DateTime t)
+        {
+            return new Microsoft.AspNetCore.Html.HtmlString("<span class=\"u-color-888\">—</span>");
+        }
+
+        var money = Money(p.Item2, p.Item3);
+        return new Microsoft.AspNetCore.Html.HtmlString(
+            $"<span title=\"{t.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat)} UTC\">{FormatAgoCompact(t)}</span>" +
+            (money.Length > 0 ? "<br />" + money : string.Empty));
+    }
+
     // Payments stuck in between: seen but unconfirmed (pending) or too little sent (underpaid).
     static Microsoft.AspNetCore.Html.IHtmlContent PaymentAttention(int pending, int underPaid)
     {
@@ -119,6 +150,18 @@
     @* =============================================================
        DAILY TASKS — pinned at top.
        ============================================================= *@
+    @{ var lastPay = ViewBag.LastPayment as ValueTuple<DateTime, decimal?, decimal?, string, string>?; }
+    @if (lastPay is { } lp)
+    {
+        @* Most recent money in, of any kind, linked to what it was for. *@
+        <p class="last-payment">
+            <b>Last payment:</b>
+            @lp.Item1.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat) UTC
+            <small class="u-color-888">(@FormatAgoCompact(lp.Item1))</small>
+            &middot; @Html.Raw(Money(lp.Item2, lp.Item3))
+            &middot; <a href="@lp.Item5">@lp.Item4</a>
+        </p>
+    }
     <h3>Daily Tasks</h3>
     @{
         int pendingSubs = Convert.ToInt32(ViewBag.TotalPendingSubmissions ?? 0);
@@ -158,61 +201,60 @@
     </p>
     <div class="table-wrapper">
         <table class="table table-sm admin-daily-tasks">
+            <colgroup><col class="c-task" /><col class="c-wait" /><col class="c-paid" /><col class="c-new" /></colgroup>
             <thead>
                 <tr>
                     <th>Task</th>
                     <th>Waiting</th>
-                    <th>Newest waiting</th>
                     <th>Last paid</th>
+                    <th>Newest waiting</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
-                    <td><a href="~/submission/index"><b>Submissions</b></a></td>
-                    <td>@WaitingCell(pendingSubs)</td>
-                    <td>@AgoCell(newestSub)</td>
-                    <td>@AgoCell(ViewBag.LastSubmissionPaidUtc as DateTime?)</td>
+                    <td class="task-name"><a href="~/submission/index">Submissions</a></td>
+                    <td data-label="Waiting">@WaitingCell(pendingSubs)</td>
+                    <td data-label="Last paid">@PaidCell(ViewBag.PaySubmission)</td>
+                    <td data-label="Newest">@AgoCell(newestSub)</td>
                 </tr>
                 <tr>
-                    <td><a href="~/admin/reviews"><b>Reviews</b></a></td>
-                    <td>
+                    <td class="task-name"><a href="~/admin/reviews">Reviews</a></td>
+                    <td data-label="Waiting">
                         @WaitingCell(pendingRevs + pendingComments)
                         @if (pendingRevs + pendingComments > 0)
                         {
                             <small class="u-color-888">(@pendingRevs reviews, @pendingComments replies)</small>
                         }
                     </td>
-                    <td>@AgoCell(newestRev)</td>
-                    <td><span class="u-color-888">—</span></td>
+                    <td data-label="Last paid"><span class="u-color-888">—</span></td>
+                    <td data-label="Newest">@AgoCell(newestRev)</td>
                 </tr>
                 <tr>
-                    <td><a href="~/admin/problem-reports"><b>Problems</b></a></td>
-                    <td>@WaitingCell(pendingProblems)</td>
-                    <td>@AgoCell(newestProb)</td>
-                    <td>@AgoCell(ViewBag.LastProblemReportPaidUtc as DateTime?)</td>
+                    <td class="task-name"><a href="~/admin/problem-reports">Problems</a></td>
+                    <td data-label="Waiting">@WaitingCell(pendingProblems)</td>
+                    <td data-label="Last paid">@PaidCell(ViewBag.PayProblem)</td>
+                    <td data-label="Newest">@AgoCell(newestProb)</td>
                 </tr>
                 <tr>
-                    <td><a href="~/admin/verification-requests"><b>Verifications</b></a></td>
-                    <td>@WaitingCell(pendingVerifs)</td>
-                    <td>@AgoCell(newestVerif)</td>
-                    <td>@AgoCell(ViewBag.LastVerificationPaidUtc as DateTime?)</td>
+                    <td class="task-name"><a href="~/admin/verification-requests">Verifications</a></td>
+                    <td data-label="Waiting">@WaitingCell(pendingVerifs)</td>
+                    <td data-label="Last paid">@PaidCell(ViewBag.PayVerification)</td>
+                    <td data-label="Newest">@AgoCell(newestVerif)</td>
                 </tr>
                 <tr>
-                    <td><a href="~/sponsoredlistinginvoice"><b>Site Sponsors</b></a></td>
-                    <td>
-                        @PaymentAttention(invAttn.Item1, invAttn.Item2)
+                    <td class="task-name"><a href="~/sponsoredlistinginvoice">Site Sponsors</a></td>
+                    <td data-label="Waiting">@PaymentAttention(invAttn.Item1, invAttn.Item2)</td>
+                    <td data-label="Last paid">@PaidCell(ViewBag.PayInvoice) @OverpaidNote(invAttn.Item3)</td>
+                    <td data-label="Newest">@AgoCell(unpaidCheckout)</td>
+                </tr>
+                <tr>
+                    <td class="task-name">
+                        <a href="~/admin/video-sponsorship/sponsors">Video Sponsors</a>
+                        <a class="task-sub" href="~/admin/video-sponsorship/orders">orders</a>
                     </td>
-                    <td>@AgoCell(unpaidCheckout)</td>
-                    <td>@AgoCell(ViewBag.LastInvoicePaidUtc as DateTime?) @OverpaidNote(invAttn.Item3)</td>
-                </tr>
-                <tr>
-                    <td>
-                        <a href="~/admin/video-sponsorship/sponsors"><b>Video Sponsors</b></a>
-                        <small>&middot; <a href="~/admin/video-sponsorship/orders">orders</a></small>
-                    </td>
-                    <td>@PaymentAttention(vidAttn.Item1, vidAttn.Item2)</td>
-                    <td>@AgoCell(vidAttn.Item4)</td>
-                    <td>@AgoCell(ViewBag.LastVideoSponsorPaidUtc as DateTime?) @OverpaidNote(vidAttn.Item3)</td>
+                    <td data-label="Waiting">@PaymentAttention(vidAttn.Item1, vidAttn.Item2)</td>
+                    <td data-label="Last paid">@PaidCell(ViewBag.PayVideo) @OverpaidNote(vidAttn.Item3)</td>
+                    <td data-label="Newest">@AgoCell(vidAttn.Item4)</td>
                 </tr>
             </tbody>
         </table>
@@ -250,12 +292,47 @@
         </li>
     </ul>
 
-    @* ------------------- Revenue ------------------- *@
-    <h3>Revenue</h3>
-    <ul>
-        <li><a href="~/admin/revenue">All revenue by source</a> (pie chart by period)</li>
-        <li><a href="~/admin/revenue/forecast">Revenue forecast</a></li>
-    </ul>
+    @* ------------------- Revenue & growth ------------------- *@
+    @{
+        var rev = ViewBag.RevenueSummary as DirectoryManager.Web.Models.Revenue.RevenueSummary;
+        string Count(int n) => n > 0 ? $"<b>{n}</b>" : "0";
+    }
+    <style>
+        .rev-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: 6px 0 18px; }
+        .rev-box { border: 1px solid var(--orange, #f26822); border-radius: 8px; padding: 10px 14px; background: var(--bg-card-2, transparent); }
+        .rev-box h4 { margin: 0 0 6px; font-size: 0.95rem; }
+        .rev-box ul { margin: 0; padding-left: 18px; }
+        .rev-box li { margin-bottom: 4px; }
+    </style>
+    <h3>Revenue &amp; growth</h3>
+    <div class="rev-grid">
+        <div class="rev-box">
+            <h4>Money in</h4>
+            <ul>
+                <li><a href="~/admin/revenue">All revenue by source</a></li>
+                <li><a href="~/admin/revenue/forecast">Revenue forecast</a></li>
+                <li><a href="~/sponsoredlistinginvoice">Sponsor invoices</a> (mark tests here)</li>
+                <li><a href="~/sponsoredlistinginvoice/report">Sponsor sales report</a></li>
+                <li><a href="~/admin/video-sponsorship/reports">Video sponsorship reports</a></li>
+            </ul>
+        </div>
+        <div class="rev-box">
+            <h4>Follow up now</h4>
+            <ul>
+                <li><a href="~/admin/revenue-opportunities/abandoned">Abandoned checkouts</a> @Html.Raw(rev != null ? "(" + Count(rev.AbandonedLast30Days) + " in 30 days)" : "")</li>
+                <li><a href="~/admin/revenue-opportunities/renewals">Renewals due</a> @Html.Raw(rev != null ? "(" + Count(rev.ExpiringIn30Days) + " ending in 30 days, " + Count(rev.Lapsed) + " lapsed)" : "")</li>
+                <li><a href="~/admin/revenue-opportunities/prospects">Never-sponsored prospects</a> @Html.Raw(rev != null ? "(" + Count(rev.Prospects) + " with traffic)" : "")</li>
+            </ul>
+        </div>
+        <div class="rev-box">
+            <h4>Demand</h4>
+            <ul>
+                <li><a href="~/admin/sponsor-interest">Sponsor interest</a> @Html.Raw(rev != null ? "(" + Count(rev.InterestLast7Days) + " listings this week)" : "")</li>
+                <li><a href="~/sponsorship/waitlist">Waitlists</a></li>
+                <li><a href="~/sponsorship/pricing">Sponsor pricing</a></li>
+            </ul>
+        </div>
+    </div>
 
     @* ------------------- Sponsored Listings ------------------- *@
     <h3>Sponsored Listings</h3>

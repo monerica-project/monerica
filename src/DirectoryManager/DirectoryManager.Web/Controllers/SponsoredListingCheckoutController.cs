@@ -318,6 +318,15 @@ namespace DirectoryManager.Web.Controllers
                     .ConfigureAwait(false);
             this.ViewBag.RequiresReservationStart = !isExtension && this.ViewBag.ReservationGuid == null;
 
+            await SponsorInterestTracker.LogAsync(this.HttpContext, entry.DirectoryEntryId, sponsorshipType, placementId, SponsorInterestStep.ViewedPrices);
+
+            // People waiting for this exact spot (shown at the bottom, with a link to the waitlist).
+            int? waitlistTypeId = sponsorshipType == SponsorshipType.MainSponsor ? null : placementId;
+            var waitlistRepo = this.HttpContext.RequestServices
+                .GetRequiredService<DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingOpeningNotificationRepository>();
+            this.ViewBag.WaitlistCount = await waitlistRepo.GetWaitlistCountAsync(sponsorshipType, waitlistTypeId).ConfigureAwait(false);
+            this.ViewBag.WaitlistUrl = this.Url.Action("Waitlist", "Sponsorship", new { type = sponsorshipType, typeId = waitlistTypeId });
+
             // Renewal: new time is added after the current slot ends, so say when that is.
             if (isExtension)
             {
@@ -548,6 +557,13 @@ namespace DirectoryManager.Web.Controllers
             await this.ApplyExistingSponsorPerkToOfferModelAsync(vm.Offer, v.Entry!.DirectoryEntryId).ConfigureAwait(false);
             await this.SetFullPriceViewBagAsync(v.Offer!).ConfigureAwait(false);
             vm.CanCreateSponsoredListing = true;
+
+            await SponsorInterestTracker.LogAsync(
+                this.HttpContext,
+                v.Entry!.DirectoryEntryId,
+                v.Offer!.SponsorshipType,
+                SponsoredListingCheckoutHelper.ResolveTypeIdForGroup(v.Offer!.SponsorshipType, v.Entry!, null, null),
+                SponsorInterestStep.PickedDuration);
             return this.View(ConfirmCheckoutView, vm);
         }
 
@@ -608,6 +624,19 @@ namespace DirectoryManager.Web.Controllers
             this.HttpContext.Session.Remove(CheckoutVerifiedSessionKeyPrefix + directoryEntryId);
 
             var invoice = await this.BuildBaseInvoiceAsync(entry, offer);
+
+            // The owner's own test checkouts (signed in, or an email already used for a test)
+            // are flagged so they stay out of the revenue reports and pending warnings.
+            var revenueRepo = this.HttpContext.RequestServices.GetService<IRevenueOpportunityRepository>();
+            invoice.IsTest = this.User.Identity?.IsAuthenticated == true
+                || (revenueRepo != null && await revenueRepo.IsTestEmailAsync(normalizedEmail).ConfigureAwait(false));
+
+            await SponsorInterestTracker.LogAsync(
+                this.HttpContext,
+                entry.DirectoryEntryId,
+                offer.SponsorshipType,
+                SponsoredListingCheckoutHelper.ResolveTypeIdForGroup(offer.SponsorshipType, entry, null, null),
+                SponsorInterestStep.StartedPayment);
 
             if (string.Equals(selectedProcessor, "BTCPayServer", StringComparison.OrdinalIgnoreCase))
             {

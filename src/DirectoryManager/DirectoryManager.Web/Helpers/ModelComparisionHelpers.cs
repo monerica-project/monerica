@@ -166,6 +166,11 @@ namespace DirectoryManager.Web.Helpers
                 AddDifference("Liquidity", EnumHelper.GetDescription(entry.Liquidity), EnumHelper.GetDescription(submission.Liquidity));
             }
 
+            if (entry.RateType != submission.RateType)
+            {
+                AddDifference("Rate type", EnumHelper.GetDescription(entry.RateType), EnumHelper.GetDescription(submission.RateType));
+            }
+
             if (NotEqualTrimmed(entry.VideoLink, submission.VideoLink))
             {
                 AddDifference("VideoLink", entry.VideoLink, submission.VideoLink);

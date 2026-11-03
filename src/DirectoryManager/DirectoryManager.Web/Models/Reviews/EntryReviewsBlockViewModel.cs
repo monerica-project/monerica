@@ -17,6 +17,17 @@ namespace DirectoryManager.Web.Models.Reviews
 
         // Used by _EntryReviews.cshtml
         public int ReviewCount { get; set; }
+
+        /// <summary>Approved reviews tagged "Valid Order" (order checked by hand).</summary>
+        public int VerifiedOrderCount { get; set; }
+
+        /// <summary>Verified orders that state an amount band, and their estimated average (USD).</summary>
+        public int VerifiedOrderAmountCount { get; set; }
+
+        public decimal? VerifiedOrderAverageUsd { get; set; }
+
+        /// <summary>Exchanges say "swap"; everything else says "order".</summary>
+        public bool IsExchange { get; set; }
         public double? AverageRating { get; set; }
 
         public List<DirectoryEntryReview> Reviews { get; set; } = new ();

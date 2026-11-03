@@ -28,6 +28,13 @@ namespace DirectoryManager.DisplayFormatting.Helpers
 
             AppendOptionalDate(sb, model);
 
+            // This list's featured pick: a small "Featured" chip at the start of its regular line
+            // (not a star, which would read as a rating; not on the featured box or sponsor blocks).
+            if (model.IsFeaturedInThisList && !model.IsFeatured && !(model.IsSponsored && !model.DisplayAsSponsoredItem))
+            {
+                sb.Append("<span class=\"featured-chip\" title=\"Featured: the editors&#39; pick for this list\">Featured</span> ");
+            }
+
             var effectiveLinkType = GetEffectiveLinkTypeForDirectoryEntryRender(model);
 
             if (sponsorInlineHeader)
@@ -589,6 +596,8 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 sb.Append("&nbsp;");
                 AppendRatingStars(sb, model.AverageRating.Value, model.ReviewCount.Value, reviewsUrl);
             }
+
+            AppendVerifiedOrders(sb, model.VerifiedOrderCount, reviewsUrl);
         }
 
         private static void AppendCategoryBreadcrumbLine(StringBuilder sb, DirectoryEntryViewModel model, string domain)
@@ -771,6 +780,31 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             }
 
             AppendRatingStars(sb, model.AverageRating.Value, count, reviewsUrl);
+            AppendVerifiedOrders(sb, model.VerifiedOrderCount, reviewsUrl);
+        }
+
+        /// <summary>
+        /// "✓ N verified orders": approved reviews whose order link was checked by hand. Shown next to
+        /// the stars so people can see real, proven trades at a glance. Renders nothing when there are none.
+        /// </summary>
+        private static void AppendVerifiedOrders(StringBuilder sb, int count, string? reviewsUrl)
+        {
+            if (count <= 0)
+            {
+                return;
+            }
+
+            var label = $"{count} verified order{(count == 1 ? string.Empty : "s")}";
+            var title = $"{count} review{(count == 1 ? " is" : "s are")} from people whose order was checked by hand";
+            sb.Append(' ');
+            if (string.IsNullOrWhiteSpace(reviewsUrl))
+            {
+                sb.Append($"<span class=\"verified-orders\" title=\"{title}\">{label}</span>");
+            }
+            else
+            {
+                sb.Append($"<a class=\"verified-orders\" href=\"{reviewsUrl}\" title=\"{title}\">{label}</a>");
+            }
         }
 
         private static string? BuildReviewsUrl(string? rootUrl, string? itemPath)

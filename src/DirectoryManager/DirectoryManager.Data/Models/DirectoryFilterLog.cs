@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using DirectoryManager.Data.Models.BaseModels;
 
 namespace DirectoryManager.Data.Models
@@ -32,5 +33,20 @@ namespace DirectoryManager.Data.Models
         public bool HasI2p { get; set; }
 
         public int Page { get; set; }
+
+        // Added 2026-11-03 so the newer filters can be measured too.
+        [MaxLength(500)]
+        public string? KycPolicies { get; set; }
+
+        [MaxLength(500)]
+        public string? Liquidities { get; set; }
+
+        [MaxLength(200)]
+        public string? RateTypes { get; set; }
+
+        public bool VerifiedOrders { get; set; }
+
+        [MaxLength(50)]
+        public string? Sort { get; set; }
     }
 }

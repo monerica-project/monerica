@@ -530,6 +530,8 @@ namespace DirectoryManager.Web.Controllers
             var vm = await this.BuildOptionsVmAsync(
                 entry, subscribed);
 
+            await SponsorInterestTracker.LogAsync(this.HttpContext, entry.DirectoryEntryId, SponsorshipType.Unknown, null, SponsorInterestStep.ViewedOptions);
+
             return this.View("Options", vm);
         }
 
@@ -1465,6 +1467,10 @@ namespace DirectoryManager.Web.Controllers
                     mainRows.Concat(catRows).Concat(subRows)
                         .Select(x => x.DirectoryEntryId));
 
+            await this.LoadWaitlistEligibilityAsync(
+                mainRows.Concat(catRows).Concat(subRows)
+                    .Select(x => (x.SponsoredListingOpeningNotificationId, x.SponsorshipType, x.TypeId, x.DirectoryEntryId)));
+
             List<WaitlistPublicItemVm> MapScopedItems(
                 IEnumerable<WaitlistScopedItemDto> rows)
             {
@@ -1480,7 +1486,9 @@ namespace DirectoryManager.Web.Controllers
                                 entry, dto.DirectoryEntryId),
                             ListingUrl =
                                 this.WaitlistProfileUrl(entry),
-                            JoinedUtc = dto.SubscribedDateUtc
+                            JoinedUtc = dto.SubscribedDateUtc,
+                            IsEligible = this.EligibleRow(dto.SponsoredListingOpeningNotificationId).Eligible,
+                            Eligibility = this.EligibleRow(dto.SponsoredListingOpeningNotificationId).Reason ?? string.Empty,
                         };
                     })
                     .OrderByDescending(x => x.JoinedUtc)
@@ -1704,7 +1712,9 @@ namespace DirectoryManager.Web.Controllers
                         PaidAmount = r.PaidAmount,
                         ExpiresUtc = r.ExpiresUtc,
                         ListingName = r.ListingName,
-                        ListingUrl = r.ListingUrl
+
+                        // Link to the sponsor's listing page on this site, not straight to their website.
+                        ListingUrl = entry != null ? this.WaitlistProfileUrl(entry) : r.ListingUrl
                     };
                 }).ToList()
             };
@@ -1828,6 +1838,9 @@ namespace DirectoryManager.Web.Controllers
                 await this.LoadDirectoryEntryLookupAsync(
                     list.Select(x => x.DirectoryEntryId));
 
+            await this.LoadWaitlistEligibilityAsync(
+                list.Select(x => (x.SponsoredListingOpeningNotificationId, x.SponsorshipType, x.TypeId, x.DirectoryEntryId)));
+
             return list
                 .Select(dto => mapper(
                     TryGetEntry(lookup, dto.DirectoryEntryId),
@@ -1840,6 +1853,23 @@ namespace DirectoryManager.Web.Controllers
         // app.monerica.com host the waitlist itself is served on. The resolver returns
         // the canonical clearnet URL off-Tor, and a relative path on Tor/local so the
         // onion still works. Falls back to the external link only if the key is missing.
+        // Same eligibility code as the admin notification list (WaitlistEligibilityService).
+        private Dictionary<int, (bool Eligible, string? Reason)> waitlistEligibility = new ();
+
+        private async Task LoadWaitlistEligibilityAsync(IEnumerable<(int Id, SponsorshipType Type, int? TypeId, int? DirectoryEntryId)> rows)
+        {
+            var map = await this.HttpContext.RequestServices
+                .GetRequiredService<DirectoryManager.Web.Services.Implementations.WaitlistEligibilityService>()
+                .ForRowsAsync(rows);
+            foreach (var kv in map)
+            {
+                this.waitlistEligibility[kv.Key] = kv.Value;
+            }
+        }
+
+        private (bool Eligible, string? Reason) EligibleRow(int waitlistId) =>
+            this.waitlistEligibility.TryGetValue(waitlistId, out var e) ? e : (false, null);
+
         private string WaitlistProfileUrl(DirectoryEntry? entry)
             => entry != null && !string.IsNullOrWhiteSpace(entry.DirectoryEntryKey)
                 ? this.urlResolver.ResolveToRoot(UrlBuilder.ListingPath(entry.DirectoryEntryKey))
@@ -1856,7 +1886,9 @@ namespace DirectoryManager.Web.Controllers
                     ListingName = ResolveListingName(
                         entry, dto.DirectoryEntryId),
                     ListingUrl = this.WaitlistProfileUrl(entry),
-                    JoinedUtc = dto.CreateDateUtc
+                    JoinedUtc = dto.CreateDateUtc,
+                    IsEligible = this.EligibleRow(dto.SponsoredListingOpeningNotificationId).Eligible,
+                    Eligibility = this.EligibleRow(dto.SponsoredListingOpeningNotificationId).Reason ?? string.Empty,
                 });
         }
 
@@ -1871,7 +1903,9 @@ namespace DirectoryManager.Web.Controllers
                     ListingName = ResolveListingName(
                         entry, dto.DirectoryEntryId),
                     ListingUrl = this.WaitlistProfileUrl(entry),
-                    JoinedUtc = dto.CreateDateUtc
+                    JoinedUtc = dto.CreateDateUtc,
+                    IsEligible = this.EligibleRow(dto.SponsoredListingOpeningNotificationId).Eligible,
+                    Eligibility = this.EligibleRow(dto.SponsoredListingOpeningNotificationId).Reason ?? string.Empty,
                 });
         }
 

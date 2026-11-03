@@ -47,6 +47,8 @@ namespace DirectoryManager.Data.Models
 
         public Liquidity Liquidity { get; set; }
 
+        public RateType RateType { get; set; }
+
         [MaxLength(500)]
         public string? Description { get; set; }
 

@@ -39,6 +39,9 @@ namespace DirectoryManager.Data.Repositories.Interfaces
 
         Task<DateTime?> GetLastPaidUtcAsync(CancellationToken ct = default);
 
+        /// <summary>Most recent payment: when it arrived and its USD value (null when unknown), and its id.</summary>
+        Task<(DateTime? PaidUtc, decimal? Usd, decimal? Xmr, int Id)> GetLastPaymentAsync(CancellationToken ct = default);
+
         Task SetStatusAsync(int id, ProblemReportStatus status, CancellationToken ct = default);
     }
 }

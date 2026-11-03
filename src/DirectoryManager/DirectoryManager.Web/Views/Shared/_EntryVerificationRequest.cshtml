@@ -7,6 +7,7 @@
    block so it isn't mistaken for part of the review system. *@
 @if (Model != null && Model.ShowRequestVerification)
 {
+    <hr class="entry-divider" />
     <div class="entry-section entry-verification">
         <div class="verification-request-notice">
             <span class="vr-text">This listing hasn't been verified by @(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName)) yet.</span>

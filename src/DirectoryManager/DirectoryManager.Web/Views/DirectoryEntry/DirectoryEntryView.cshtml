@@ -129,7 +129,7 @@
 
     <div class="directory-entry-details container py-4">
         <h1 class="mb-3 multi-line-text">@Model.Name</h1>
-        <hr />
+        <hr class="entry-divider entry-divider--title" />
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
                 <li class="breadcrumb-item">
@@ -158,6 +158,9 @@
         @{
             var sponsoredClass = Model.IsSponsored ? "sponsor-card" : "";
         }
+
+        @* "At a glance": the deciding facts in one panel, above the full details. *@
+        @await Html.PartialAsync("_ListingGlance", Model)
 
         @* ---------------------------------------------------------------
            Meta card. Fixed-layout table inside a width-capped card so every
@@ -399,6 +402,7 @@
 
         @if (!string.IsNullOrEmpty(Model.Description))
         {
+            <hr class="entry-divider" />
             <div class="entry-section">
                 <h3>Description</h3>
                 <p class="mb-0">@Model.Description</p>
@@ -407,6 +411,7 @@
 
         @if (!string.IsNullOrEmpty(Model.Note))
         {
+            <hr class="entry-divider" />
             <div class="entry-section">
                 @if (Model.DirectoryStatus == DirectoryStatus.Scam || Model.DirectoryStatus == DirectoryStatus.Questionable)
                 {
@@ -421,7 +426,8 @@
         }
 
         @if (!string.IsNullOrEmpty(Model.PgpKey))
-        {   <br />
+        {
+            <hr class="entry-divider" />
             <div class="entry-section">
                 <h4>PGP Key</h4>
 <pre class="pgp-key">
@@ -435,54 +441,11 @@
             // Unknown value is hidden (it is never a real, deliberate policy).
             var kycPolicyValue = Model.KycPolicy ?? KycPolicy.NotStated;
         }
-        @if (kycPolicyValue != KycPolicy.Unknown)
-        {
-            <div class="entry-section entry-kyc-policy">
-                <strong>KYC Policy:</strong> <a href="~/faq#@(DirectoryManager.Web.Helpers.FaqAnchorHelper.KycPolicyAnchor(kycPolicyValue))" title="What this KYC policy means">@EnumHelper.GetDescription(kycPolicyValue)</a>
-            </div>
-        }
-
-        @* Liquidity (primarily instant-swap exchanges). Only Own/Mixed/Third Party/Varies render;
-           Unknown and Not Applicable show nothing. *@
-        @if (Model.Liquidity.IsPubliclyShown())
-        {
-            <div class="entry-section entry-liquidity">
-                <strong>Liquidity:</strong> <a href="~/faq#@(DirectoryManager.Web.Helpers.FaqAnchorHelper.LiquidityAnchor(Model.Liquidity))" title="What this liquidity type means">@EnumHelper.GetDescription(Model.Liquidity)</a>
-            </div>
-        }
-
-        @* Deposit guarantees — up to 4 (link + USD amount). A single one shows inline; several
-           collapse into a no-JS <details> so the list never runs long. The point is to surface
-           real deposits so a person feels safe exchanging. *@
-        @if (Model.Guarantees != null && Model.Guarantees.Any())
-        {
-            // Proof links are evidence/citations (often user-submitted) — never pass equity or
-            // endorse the target. ugc+nofollow regardless of scam status.
-            var gRel = "ugc nofollow noopener";
-            <div class="entry-section entry-deposit-guarantee">
-                <strong>@(Model.Guarantees.Count > 1 ? "Deposit Guarantees:" : "Deposit Guarantee:")</strong>
-                @if (Model.Guarantees.Count == 1)
-                {
-                    <span>@DirectoryManager.Data.Helpers.DepositGuaranteeHelper.FormatAmount(Model.Guarantees[0].Amount.GetValueOrDefault(), Model.Guarantees[0].Currency)</span>
-                    <a href="@(DirectoryManager.Web.Helpers.UrlSchemeGuard.SafeHref(Model.Guarantees[0].Link))" target="_blank" rel="@gRel">@DirectoryManager.Data.Helpers.DepositGuaranteeHelper.ProofLinkLabel(Model.Guarantees[0].Link)</a>
-                }
-                else
-                {
-                    <details class="entry-guarantee-list">
-                        <summary>@Model.Guarantees.Count deposits, totaling @DirectoryManager.Data.Helpers.DepositGuaranteeHelper.SummarizeByCurrency(Model.Guarantees)</summary>
-                        <ul>
-                            @foreach (var g in Model.Guarantees)
-                            {
-                                <li>@DirectoryManager.Data.Helpers.DepositGuaranteeHelper.FormatAmount(g.Amount.GetValueOrDefault(), g.Currency) &mdash; <a href="@(DirectoryManager.Web.Helpers.UrlSchemeGuard.SafeHref(g.Link))" target="_blank" rel="@gRel">@DirectoryManager.Data.Helpers.DepositGuaranteeHelper.ProofLinkLabel(g.Link)</a></li>
-                            }
-                        </ul>
-                    </details>
-                }
-            </div>
-        }
+        @* KYC policy, liquidity and deposit guarantees now live in the "Trust & safety" panel near the top. *@
 
         @if (Model.TagsAndKeys?.Any() ?? false)
         {
+            <hr class="entry-divider" />
             <div class="entry-section entry-tags">
                 <strong>Tags:</strong>
                 @{
@@ -501,6 +464,7 @@
 
         @if (Model.AdditionalLinks?.Any() ?? false)
         {
+            <hr class="entry-divider" />
             <div class="entry-section entry-additional-links">
                 <strong>Related Links:</strong>
                 <ul class="mb-0">
@@ -520,6 +484,7 @@
         }
         @if (additionalSubcats.Count > 0)
         {
+            <hr class="entry-divider" />
             <div class="entry-section entry-additional-subcategories">
                 <h3>Additional Subcategories</h3>
                 @foreach (var alt in additionalSubcats)
@@ -627,6 +592,7 @@
            are visually distinct (verification ≠ reviews). *@
         @await Html.PartialAsync("_EntryVerificationRequest", (DirectoryManager.Web.Models.Reviews.EntryReviewsBlockViewModel)ViewBag.ReviewsVm)
 
+        <hr class="entry-divider" />
         <div class="entry-section">
             @await Html.PartialAsync("_EntryReviews", (DirectoryManager.Web.Models.Reviews.EntryReviewsBlockViewModel)ViewBag.ReviewsVm)
         </div>
@@ -647,6 +613,7 @@
         }
         @if (!isScam && !reviewsDisabled)
         {
+            <hr class="entry-divider" />
             <div class="entry-section entry-embed">
                 <h3>Get more reviews</h3>
                 <p class="mb-2">
@@ -673,6 +640,7 @@
            --------------------------------------------------------------- *@
         @if (!isScam && !isQuestionable)
         {
+            <hr class="entry-divider" />
             <div class="sponsor-cta">
                 @if (Model.IsSponsored)
                 {
@@ -731,6 +699,7 @@
 
     </div>
 
-    <hr />
+    @* End of this listing: a stronger divider before the site-wide Main Sponsors section. *@
+    <hr class="entry-divider--major" />
     @await Html.PartialAsync("_SponsoredListingPartial")
 }

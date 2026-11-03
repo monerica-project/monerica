@@ -48,6 +48,10 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<DirectoryEntryAdditionalSubcategory> DirectoryEntryAdditionalSubcategories { get; set; }
         public DbSet<SearchLog> SearchLogs { get; set; }
         public DbSet<DirectoryFilterLog> DirectoryFilterLogs { get; set; }
+
+        public DbSet<SponsorInterestLog> SponsorInterestLogs { get; set; }
+
+        public DbSet<ListingPageView> ListingPageViews { get; set; }
         public DbSet<ReviewerKey> ReviewerKeys { get; set; }
         public DbSet<DirectoryEntryReview> DirectoryEntryReviews { get; set; }
         public DbSet<DirectoryManager.Data.Models.VerificationRequests.VerificationRequest> VerificationRequests { get; set; }

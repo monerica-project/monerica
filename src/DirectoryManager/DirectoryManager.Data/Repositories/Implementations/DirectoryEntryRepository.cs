@@ -193,6 +193,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             existing.PgpKey = entry.PgpKey;
             existing.CountryCode = entry.CountryCode;
             existing.Liquidity = entry.Liquidity;
+            existing.RateType = entry.RateType;
             existing.KycPolicy = entry.KycPolicy;
             existing.DirectoryBadge = entry.DirectoryBadge;
             existing.ReviewsDisabled = entry.ReviewsDisabled;
@@ -824,6 +825,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     Name = d.Name,
                     Link = d.Link,
                     DirectoryStatus = d.DirectoryStatus,
+                    CreateDate = d.CreateDate,
                     SubCategoryId = d.SubCategoryId,
                     SubCategory = d.SubCategory == null ? null : new Subcategory
                     {
@@ -1278,6 +1280,25 @@ namespace DirectoryManager.Data.Repositories.Implementations
             {
                 var liquidities = q.Liquidities;
                 baseQ = baseQ.Where(e => liquidities.Contains(e.Liquidity));
+            }
+
+            // Rate type filter: "Fixed" also matches exchanges offering both, same for "Float".
+            if (q.RateTypes is { Count: > 0 })
+            {
+                var wanted = new List<RateType>();
+                if (q.RateTypes.Contains(RateType.Fixed)) { wanted.Add(RateType.Fixed); wanted.Add(RateType.FixedAndFloat); }
+                if (q.RateTypes.Contains(RateType.Float)) { wanted.Add(RateType.Float); wanted.Add(RateType.FixedAndFloat); }
+                if (q.RateTypes.Contains(RateType.FixedAndFloat)) { wanted.Add(RateType.FixedAndFloat); }
+                baseQ = baseQ.Where(e => wanted.Contains(e.RateType));
+            }
+
+            // Only listings with at least one approved "Valid Order" review.
+            if (q.VerifiedOrders)
+            {
+                baseQ = baseQ.Where(e => this.context.DirectoryEntryReviews.Any(r =>
+                    r.DirectoryEntryId == e.DirectoryEntryId
+                    && r.ModerationStatus == ReviewModerationStatus.Approved
+                    && r.ReviewTags.Any(t => t.ReviewTag.Slug == ReviewTagSlugs.ValidOrder)));
             }
 
             // Has Video
@@ -1775,6 +1796,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 VideoLink = entry.VideoLink,
                 SourceCodeLink = entry.SourceCodeLink,
                 Liquidity = entry.Liquidity,
+                RateType = entry.RateType,
                 CountryCode = entry.CountryCode,
                 FoundedDate = entry.FoundedDate,
                 Description = entry.Description,

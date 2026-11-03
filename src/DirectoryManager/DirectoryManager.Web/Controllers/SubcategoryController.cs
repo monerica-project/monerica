@@ -298,6 +298,7 @@ namespace DirectoryManager.Web.Controllers
                 {
                     item.AverageRating = rs.AvgRating;
                     item.ReviewCount = rs.ReviewCount;
+                    item.VerifiedOrderCount = rs.VerifiedOrderCount;
                 }
                 else
                 {

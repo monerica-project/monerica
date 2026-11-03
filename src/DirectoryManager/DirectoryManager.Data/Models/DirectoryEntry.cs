@@ -7,6 +7,9 @@ namespace DirectoryManager.Data.Models
 {
     public class DirectoryEntry : UserStateInfo, IEquatable<DirectoryEntry>
     {
+        private string? description;
+        private string? note;
+
         [Key] // Primary Key
         public int DirectoryEntryId { get; set; }
 
@@ -79,14 +82,17 @@ namespace DirectoryManager.Data.Models
         /// </summary>
         public Liquidity Liquidity { get; set; }
 
+        /// <summary>Fixed and/or float swap rates (exchanges). Unknown shows nothing publicly.</summary>
+        public RateType RateType { get; set; }
+
         /// <summary>
         /// The two-letter ISO country code.
         /// </summary>
         [MaxLength(2)]
         public string? CountryCode { get; set; }
 
-        [MaxLength(175)]
-        public string? Description { get; set; }
+        [MaxLength(DirectoryManager.Data.Helpers.ListingText.DescriptionMaxLength)]
+        public string? Description { get => this.description; set => this.description = DirectoryManager.Data.Helpers.ListingText.NormalizeLineBreaks(value); }
 
         [MaxLength(255)]
         public string? Location { get; set; }
@@ -94,8 +100,8 @@ namespace DirectoryManager.Data.Models
         [MaxLength(255)]
         public string? Processor { get; set; }
 
-        [MaxLength(250)]
-        public string? Note { get; set; }
+        [MaxLength(DirectoryManager.Data.Helpers.ListingText.NoteMaxLength)]
+        public string? Note { get => this.note; set => this.note = DirectoryManager.Data.Helpers.ListingText.NormalizeLineBreaks(value); }
 
         [MaxLength(255)]
         public string? Email { get; set; }
@@ -172,6 +178,7 @@ namespace DirectoryManager.Data.Models
                 this.DirectoryStatus == other.DirectoryStatus &&
                 this.KycPolicy == other.KycPolicy &&
                 this.Liquidity == other.Liquidity &&
+                this.RateType == other.RateType &&
                 this.Description == other.Description &&
                 this.Location == other.Location &&
                 this.Processor == other.Processor &&

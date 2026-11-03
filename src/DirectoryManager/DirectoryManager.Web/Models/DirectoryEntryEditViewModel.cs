@@ -8,11 +8,14 @@ namespace DirectoryManager.Web.Models
 {
     public class DirectoryEntryEditViewModel : IValidatableObject
     {
+        private string description = string.Empty;
+        private string? note;
+
         // Length limits match the public SubmissionRequest so admin edit and public submit
         // validate identically. Both are editorial caps (well under the DB columns) that keep
         // listing cards compact.
-        public const int DescriptionMaxLength = 175;   // editorial limit (mirrors SubmissionRequest)
-        public const int NoteMaxLength = 250;          // editorial limit (mirrors SubmissionRequest)
+        public const int DescriptionMaxLength = DirectoryManager.Data.Helpers.ListingText.DescriptionMaxLength;
+        public const int NoteMaxLength = DirectoryManager.Data.Helpers.ListingText.NoteMaxLength;
 
         public int DirectoryEntryId { get; set; }
 
@@ -24,6 +27,9 @@ namespace DirectoryManager.Web.Models
 
         [Display(Name = "Liquidity")]
         public Liquidity Liquidity { get; set; } = Liquidity.NotApplicable;
+
+        [Display(Name = "Rate type")]
+        public RateType RateType { get; set; } = RateType.Unknown;
 
         public List<DirectoryManager.Data.Models.GuaranteeItem> Guarantees { get; set; } = new ();
 
@@ -58,8 +64,9 @@ namespace DirectoryManager.Web.Models
         [UrlOrEmail]
         public string? Social { get; set; }
         [Required(ErrorMessage = "A description is required.")]
-        public string Description { get; set; } = string.Empty;
-        public string? Note { get; set; }
+        public string Description { get => this.description; set => this.description = DirectoryManager.Data.Helpers.ListingText.NormalizeLineBreaks(value) ?? string.Empty; }
+
+        public string? Note { get => this.note; set => this.note = DirectoryManager.Data.Helpers.ListingText.NormalizeLineBreaks(value); }
 
         // ASCII-armored PGP key — exempt from the HTML guard (armored keys can carry
         // angle brackets, e.g. a Comment/UID email); validated below by PgpKeyValidator.

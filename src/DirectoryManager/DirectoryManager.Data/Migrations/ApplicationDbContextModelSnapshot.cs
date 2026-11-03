@@ -17,7 +17,7 @@ namespace DirectoryManager.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.12")
+                .HasAnnotation("ProductVersion", "10.0.14")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -366,6 +366,9 @@ namespace DirectoryManager.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<int>("RateType")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Social")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
@@ -495,6 +498,9 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<string>("ProofLink")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<int>("RateType")
+                        .HasColumnType("integer");
 
                     b.Property<bool>("RequireReviewVerificationDetails")
                         .HasColumnType("boolean");
@@ -743,11 +749,27 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<bool>("HasVideo")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("KycPolicies")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Liquidities")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<int>("Page")
                         .HasColumnType("integer");
 
+                    b.Property<string>("RateTypes")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<string>("SearchTerm")
                         .HasColumnType("text");
+
+                    b.Property<string>("Sort")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("Statuses")
                         .HasColumnType("text");
@@ -757,6 +779,9 @@ namespace DirectoryManager.Data.Migrations
 
                     b.Property<string>("TagIds")
                         .HasColumnType("text");
+
+                    b.Property<bool>("VerifiedOrders")
+                        .HasColumnType("boolean");
 
                     b.HasKey("Id");
 
@@ -1102,6 +1127,26 @@ namespace DirectoryManager.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("ExcludeUserAgents");
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.ListingPageView", b =>
+                {
+                    b.Property<string>("DirectoryEntryKey")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<DateTime>("UpdatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Views30")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Views90")
+                        .HasColumnType("integer");
+
+                    b.HasKey("DirectoryEntryKey");
+
+                    b.ToTable("ListingPageViews");
                 });
 
             modelBuilder.Entity("DirectoryManager.Data.Models.LogEntry", b =>
@@ -1842,6 +1887,38 @@ namespace DirectoryManager.Data.Migrations
                     b.ToTable("SiteCheckStatuses", (string)null);
                 });
 
+            modelBuilder.Entity("DirectoryManager.Data.Models.SponsorInterestLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreateDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DirectoryEntryId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SponsorshipType")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Step")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("TypeId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreateDate");
+
+                    b.HasIndex("DirectoryEntryId", "CreateDate");
+
+                    b.ToTable("SponsorInterestLogs");
+                });
+
             modelBuilder.Entity("DirectoryManager.Data.Models.SponsoredListings.SponsoredListing", b =>
                 {
                     b.Property<int>("SponsoredListingId")
@@ -1959,6 +2036,9 @@ namespace DirectoryManager.Data.Migrations
                         .HasColumnType("text");
 
                     b.Property<bool>("IsReminderSent")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsTest")
                         .HasColumnType("boolean");
 
                     b.Property<decimal?>("OriginalAmount")
@@ -2380,6 +2460,9 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<string>("ProofLink")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<int>("RateType")
+                        .HasColumnType("integer");
 
                     b.Property<string>("RelatedLinksJson")
                         .HasColumnType("text");

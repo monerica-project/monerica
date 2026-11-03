@@ -65,6 +65,7 @@ namespace DirectoryManager.Web.Controllers
                 VideoLink = e.VideoLink,
                 SourceCodeLink = e.SourceCodeLink,
                 Liquidity = e.Liquidity,
+                RateType = e.RateType,
                 ReviewsDisabled = e.ReviewsDisabled,
                 PgpKey = e.PgpKey,
                 CreateDate = e.CreateDate,

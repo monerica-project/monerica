@@ -1,0 +1,116 @@
+@using DirectoryManager.Data.Enums
+@using DirectoryManager.Utilities.Helpers
+@using DirectoryManager.Web.Helpers
+@model DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel
+@inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryReviewRepository reviewRepo
+@*
+    "Trust & safety": the facts that tell someone whether it's safe to use a service, in one place
+    near the top of the listing. Each fact appears ONLY here (the old KYC, liquidity and deposit
+    guarantee sections were moved in, not copied). Everything comes from data that already changes
+    the sitemap (listing edits, approved reviews), so the static mirror stays in step. No JavaScript.
+*@
+@{
+    var reviewsVm = ViewBag.ReviewsVm as DirectoryManager.Web.Models.Reviews.EntryReviewsBlockViewModel;
+    var isScam = Model.DirectoryStatus == DirectoryStatus.Scam;
+    var issues = await reviewRepo.GetIssueTagCountsAsync(Model.DirectoryEntryId);
+
+    var reviewCount = reviewsVm?.ReviewCount ?? 0;
+    var verified = reviewsVm?.VerifiedOrderCount ?? 0;
+    var issueTotal = issues.Values.Sum();
+    var kycPolicyValue = Model.KycPolicy ?? KycPolicy.NotStated;
+    var showKyc = kycPolicyValue != KycPolicy.Unknown;
+    var showLiquidity = Model.Liquidity.IsPubliclyShown();
+    var showRates = Model.RateType != RateType.Unknown;
+    var hasGuarantees = Model.Guarantees is { Count: > 0 };
+    var kycGood = kycPolicyValue == KycPolicy.GuaranteedNoKyc;
+    var kycBad = kycPolicyValue is KycPolicy.MandatoryKyc or KycPolicy.ShotgunKyc;
+
+    // Proof links are evidence/citations (often user-submitted): never pass equity or endorse the target.
+    var gRel = "ugc nofollow noopener";
+}
+
+@if (verified > 0 || issueTotal > 0 || reviewCount > 0 || showKyc || showLiquidity || showRates || hasGuarantees)
+{
+    <section class="glance@(isScam ? " glance--scam" : null)" aria-label="Trust and safety">
+        <div class="glance-head">
+            <span class="glance-title">Trust &amp; safety</span>
+        </div>
+
+        @if (verified > 0 || issueTotal > 0 || reviewCount > 0)
+        {
+            <div class="glance-trust">
+                @* Same chip style as the review tags: one chip per fact, symbol drawn by CSS. *@
+                @if (verified > 0)
+                {
+                    <a class="glance-pill glance-pill--good" href="#reviews" title="Reviews from people whose order was checked by hand">@verified verified order@(verified == 1 ? "" : "s")</a>
+                }
+
+                @if (issueTotal > 0)
+                {
+                    foreach (var issue in issues.OrderByDescending(i => i.Value).ThenBy(i => i.Key))
+                    {
+                        var n = issue.Key.ToLowerInvariant().Replace("kyc", "KYC");
+                        var label = char.ToUpperInvariant(n[0]) + n.Substring(1);
+                        <a class="glance-pill glance-pill--warn" href="#reviews" title="Approved reviews reporting: @label">@label &times;@issue.Value</a>
+                    }
+                }
+                else if (reviewCount > 0)
+                {
+                    <span class="glance-pill glance-pill--good" title="No approved review reports held funds, a KYC demand or misleading fees">No problems reported in @reviewCount review@(reviewCount == 1 ? "" : "s")</span>
+                }
+            </div>
+        }
+
+        @if (showKyc || showLiquidity || showRates || hasGuarantees)
+        {
+            <dl class="glance-grid">
+                @if (showKyc)
+                {
+                    <div class="glance-item">
+                        <dt>KYC policy</dt>
+                        <dd class="@(kycGood ? "glance-good" : kycBad ? "glance-warn" : null)"><a href="~/faq#@(FaqAnchorHelper.KycPolicyAnchor(kycPolicyValue))" title="What this KYC policy means">@EnumHelper.GetDescription(kycPolicyValue)</a></dd>
+                    </div>
+                }
+                @if (showLiquidity)
+                {
+                    <div class="glance-item">
+                        <dt>Liquidity</dt>
+                        <dd><a href="~/faq#@(FaqAnchorHelper.LiquidityAnchor(Model.Liquidity))" title="What this liquidity type means">@EnumHelper.GetDescription(Model.Liquidity)</a></dd>
+                    </div>
+                }
+                @if (showRates)
+                {
+                    <div class="glance-item">
+                        <dt>Rates</dt>
+                        <dd title="Fixed = the rate is locked when you start the swap. Float = it follows the market until your deposit arrives.">@EnumHelper.GetDescription(Model.RateType)</dd>
+                    </div>
+                }
+                @if (hasGuarantees)
+                {
+                    <div class="glance-item glance-item--wide">
+                        <dt>Deposit guarantee@(Model.Guarantees!.Count > 1 ? "s" : "")</dt>
+                        <dd>
+                            @if (Model.Guarantees!.Count == 1)
+                            {
+                                <span>@DirectoryManager.Data.Helpers.DepositGuaranteeHelper.FormatAmount(Model.Guarantees[0].Amount.GetValueOrDefault(), Model.Guarantees[0].Currency)</span>
+                                <a href="@(UrlSchemeGuard.SafeHref(Model.Guarantees[0].Link))" target="_blank" rel="@gRel">@DirectoryManager.Data.Helpers.DepositGuaranteeHelper.ProofLinkLabel(Model.Guarantees[0].Link)</a>
+                            }
+                            else
+                            {
+                                <details class="entry-guarantee-list">
+                                    <summary>@Model.Guarantees.Count deposits, totaling @DirectoryManager.Data.Helpers.DepositGuaranteeHelper.SummarizeByCurrency(Model.Guarantees)</summary>
+                                    <ul>
+                                        @foreach (var g in Model.Guarantees)
+                                        {
+                                            <li>@DirectoryManager.Data.Helpers.DepositGuaranteeHelper.FormatAmount(g.Amount.GetValueOrDefault(), g.Currency) &mdash; <a href="@(UrlSchemeGuard.SafeHref(g.Link))" target="_blank" rel="@gRel">@DirectoryManager.Data.Helpers.DepositGuaranteeHelper.ProofLinkLabel(g.Link)</a></li>
+                                        }
+                                    </ul>
+                                </details>
+                            }
+                        </dd>
+                    </div>
+                }
+            </dl>
+        }
+    </section>
+}

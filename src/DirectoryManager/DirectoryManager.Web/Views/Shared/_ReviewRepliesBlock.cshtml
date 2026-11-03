@@ -69,7 +69,14 @@
                             }
                             else
                             {
-                                @(string.IsNullOrWhiteSpace(c.DisplayName) ? c.AuthorFingerprint : c.DisplayName)
+                                @if (string.IsNullOrWhiteSpace(c.DisplayName))
+                                {
+                                    <span class="review-fp" title="@c.AuthorFingerprint">@DirectoryManager.Web.Helpers.AuthorDisplay.ShortFingerprint(c.AuthorFingerprint)</span>
+                                }
+                                else
+                                {
+                                    @c.DisplayName
+                                }
                             }
                             <span class="ms-1">(posts: @PostsFor(c.AuthorFingerprint))</span>
                         </small>

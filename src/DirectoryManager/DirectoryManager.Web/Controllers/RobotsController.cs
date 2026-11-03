@@ -48,6 +48,9 @@ namespace DirectoryManager.Web.Controllers
 
             sb.AppendLine($"# A plain-text summary of this directory for AI tools: {domain}/llms.txt");
             sb.AppendLine($"# Every listing with key facts: {domain}/llms-full.txt");
+            sb.AppendLine($"# Every listing as structured data (JSON): {domain}/data.json");
+            sb.AppendLine($"# Newest listings (JSON Feed): {domain}/feed.json");
+            sb.AppendLine($"# Where the data lives (RFC 9727): {domain}/.well-known/api-catalog");
             sb.AppendLine();
 
             // Search and AI crawlers are explicitly welcome. Each named group gets the same
@@ -78,6 +81,8 @@ namespace DirectoryManager.Web.Controllers
             sb.AppendLine("Disallow: /category/edit");
             sb.AppendLine("Disallow: /category/index");
             sb.AppendLine("Disallow: /admin/");
+            sb.AppendLine("# Filter result pages: endless parameter combinations, crawlers flooded them");
+            sb.AppendLine("Disallow: /filter");
             sb.AppendLine("Disallow: /sponsoredlisting/create");
             sb.AppendLine("Disallow: /sponsoredlisting/delete/");
             sb.AppendLine("Disallow: /submission/index");

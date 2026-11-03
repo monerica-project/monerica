@@ -48,6 +48,8 @@ namespace DirectoryManager.Data.Extensions
             services.AddScoped<IDirectoryEntryTagRepository, DirectoryEntryTagRepository>();
             services.AddScoped<ISearchLogRepository, SearchLogRepository>();
             services.AddScoped<IDirectoryFilterLogRepository, DirectoryFilterLogRepository>();
+            services.AddScoped<ISponsorInterestLogRepository, SponsorInterestLogRepository>();
+            services.AddScoped<IRevenueOpportunityRepository, RevenueOpportunityRepository>();
             services.AddScoped<IDirectoryEntryReviewRepository, DirectoryEntryReviewRepository>();
             services.AddScoped<IVerificationRequestRepository, VerificationRequestRepository>();
             services.AddScoped<IProblemReportRepository, ProblemReportRepository>();

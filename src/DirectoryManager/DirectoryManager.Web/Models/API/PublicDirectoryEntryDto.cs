@@ -59,6 +59,8 @@ namespace DirectoryManager.Web.Models.API
 
         public Liquidity Liquidity { get; set; }
 
+        public RateType RateType { get; set; }
+
         public List<DirectoryManager.Data.Models.GuaranteeItem> Guarantees { get; set; } = new ();
 
         public bool ReviewsDisabled { get; set; }

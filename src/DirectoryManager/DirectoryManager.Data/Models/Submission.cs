@@ -8,6 +8,9 @@ namespace DirectoryManager.Data.Models
 {
     public class Submission : StateInfo
     {
+        private string? description;
+        private string? note;
+
         [Key] // Primary Key
         public int SubmissionId { get; set; }
 
@@ -39,7 +42,7 @@ namespace DirectoryManager.Data.Models
         public string? SourceCodeLink { get; set; }
 
         [MaxLength(500)]
-        public string? Description { get; set; }
+        public string? Description { get => this.description; set => this.description = DirectoryManager.Data.Helpers.ListingText.NormalizeLineBreaks(value); }
 
         [MaxLength(255)]
         public string? Location { get; set; }
@@ -48,7 +51,7 @@ namespace DirectoryManager.Data.Models
         public string? Processor { get; set; }
 
         [MaxLength(1000)]
-        public string? Note { get; set; }
+        public string? Note { get => this.note; set => this.note = DirectoryManager.Data.Helpers.ListingText.NormalizeLineBreaks(value); }
 
         public string? PgpKey { get; set; }
 
@@ -80,6 +83,8 @@ namespace DirectoryManager.Data.Models
         public KycPolicy? KycPolicy { get; set; }
 
         public Liquidity Liquidity { get; set; }
+
+        public RateType RateType { get; set; }
 
         /// <summary>JSON carrier for the proposed deposit guarantees (see <see cref="Guarantees"/>).</summary>
         public string? GuaranteesJson { get; set; }

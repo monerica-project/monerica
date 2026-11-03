@@ -126,6 +126,7 @@ else
                 <tr>
                     <th class="u-text-left">Listing</th>
                     <th class="u-text-left">Joined (UTC)</th>
+                    <th class="u-text-left">Eligible</th>
                 </tr>
             </thead>
             <tbody>
@@ -143,6 +144,7 @@ else
                             }
                         </td>
                         <td>@row.JoinedUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat)</td>
+                        <td>@if (row.IsEligible) { <span class="text-success">&#9989; Yes</span> } else { <span class="text-danger">&#10060; No</span> @if (!string.IsNullOrEmpty(row.Eligibility)) { <span class="u-opacity-5">&middot; @row.Eligibility</span> } }</td>
                     </tr>
                 }
             </tbody>
