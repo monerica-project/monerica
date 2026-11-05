@@ -14,6 +14,9 @@ namespace DirectoryManager.Web.Models
 
         public int FurthestStepValue { get; set; }
 
+        /// <summary>Got as far as creating a payment (site or video).</summary>
+        public bool StartedPayment { get; set; }
+
         public int Looks { get; set; }
 
         public int Days { get; set; }

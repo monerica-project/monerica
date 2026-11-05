@@ -58,7 +58,21 @@ namespace DirectoryManager.Data.Helpers
             return string.IsNullOrEmpty(host) ? fallback : host;
         }
 
-        /// <summary>Totals the guarantees per currency and renders them, e.g. "15K USD, 1 BTC".</summary>
+        /// <summary>
+        /// The collapsed line for several deposits. One currency: "2 deposits, totaling 15K USD".
+        /// Mixed currencies: "2 deposits: 5K USD + 0.40955328 BTC" (each currency on its own, never
+        /// converted: pages are static, so a combined dollar figure would go stale).
+        /// </summary>
+        public static string SummaryLine(IReadOnlyCollection<GuaranteeItem>? guarantees)
+        {
+            var list = guarantees ?? Array.Empty<GuaranteeItem>();
+            var summary = SummarizeByCurrency(list);
+            var label = list.Count == 1 ? "1 deposit" : $"{list.Count} deposits";
+            var currencies = list.Where(g => g != null && g.Amount.GetValueOrDefault() > 0).Select(g => g.Currency).Distinct().Count();
+            return currencies > 1 ? $"{label}: {summary}" : $"{label}, totaling {summary}";
+        }
+
+        /// <summary>Totals the guarantees per currency and renders them, e.g. "15K USD + 1 BTC".</summary>
         public static string SummarizeByCurrency(IEnumerable<GuaranteeItem>? guarantees)
         {
             var totals = new Dictionary<Currency, decimal>();
@@ -88,7 +102,7 @@ namespace DirectoryManager.Data.Helpers
                 .Where(kv => !Currencies.Contains(kv.Key))
                 .Select(kv => FormatAmount(kv.Value, kv.Key)));
 
-            return string.Join(", ", parts);
+            return string.Join(" + ", parts);
         }
 
         private static string Abbreviate(decimal amount)

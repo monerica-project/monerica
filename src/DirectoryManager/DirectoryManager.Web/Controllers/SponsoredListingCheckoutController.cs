@@ -318,7 +318,7 @@ namespace DirectoryManager.Web.Controllers
                     .ConfigureAwait(false);
             this.ViewBag.RequiresReservationStart = !isExtension && this.ViewBag.ReservationGuid == null;
 
-            await SponsorInterestTracker.LogAsync(this.HttpContext, entry.DirectoryEntryId, sponsorshipType, placementId, SponsorInterestStep.ViewedPrices);
+            SponsorInterestTracker.SetBeacon(this.ViewData, entry.DirectoryEntryId, sponsorshipType, placementId, SponsorInterestStep.ViewedPrices);
 
             // People waiting for this exact spot (shown at the bottom, with a link to the waitlist).
             int? waitlistTypeId = sponsorshipType == SponsorshipType.MainSponsor ? null : placementId;
@@ -558,8 +558,8 @@ namespace DirectoryManager.Web.Controllers
             await this.SetFullPriceViewBagAsync(v.Offer!).ConfigureAwait(false);
             vm.CanCreateSponsoredListing = true;
 
-            await SponsorInterestTracker.LogAsync(
-                this.HttpContext,
+            SponsorInterestTracker.SetBeacon(
+                this.ViewData,
                 v.Entry!.DirectoryEntryId,
                 v.Offer!.SponsorshipType,
                 SponsoredListingCheckoutHelper.ResolveTypeIdForGroup(v.Offer!.SponsorshipType, v.Entry!, null, null),

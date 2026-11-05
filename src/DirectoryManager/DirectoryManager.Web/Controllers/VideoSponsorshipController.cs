@@ -240,6 +240,7 @@ namespace DirectoryManager.Web.Controllers
                 ?? vm.Offers.FirstOrDefault(o => o.RequiresVideoSelection)
                 ?? vm.Offers.FirstOrDefault();
 
+            SponsorInterestTracker.SetBeacon(this.ViewData, entry.DirectoryEntryId, SponsorshipType.Unknown, null, SponsorInterestStep.VideoViewedPrices);
             return this.View(vm);
         }
 
@@ -297,6 +298,7 @@ namespace DirectoryManager.Web.Controllers
                 _ => null,
             };
 
+            SponsorInterestTracker.SetBeacon(this.ViewData, entry.DirectoryEntryId, SponsorshipType.Unknown, offer.VideoSponsorOfferId, SponsorInterestStep.VideoPickedVideos);
             return this.View(vm);
         }
 
@@ -339,6 +341,7 @@ namespace DirectoryManager.Web.Controllers
             vm.Notes = this.TempData[DraftNotesKey] as string ?? vm.Notes;
             vm.RefundAddress = this.TempData[DraftRefundAddressKey] as string ?? vm.RefundAddress;
             vm.Email = this.TempData[DraftEmailKey] as string ?? vm.Email;
+            SponsorInterestTracker.SetBeacon(this.ViewData, directoryEntryId, SponsorshipType.Unknown, offerId, SponsorInterestStep.VideoReviewedOrder);
             return this.View(vm);
         }
 
@@ -553,6 +556,7 @@ namespace DirectoryManager.Web.Controllers
             await this.repository.SetHoldExpiryAsync(
                 order.VideoSponsorOrderId, order.InvoiceExpiresUtc.Value.Add(HoldGraceAfterExpiry), ct);
 
+            await SponsorInterestTracker.LogAsync(this.HttpContext, order.DirectoryEntryId, SponsorshipType.Unknown, order.VideoSponsorOfferId, SponsorInterestStep.VideoStartedPayment);
             return this.RedirectToAction(nameof(this.Invoice), new { orderId = order.InvoiceId });
         }
 

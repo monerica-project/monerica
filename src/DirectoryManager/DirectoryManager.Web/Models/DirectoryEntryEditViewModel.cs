@@ -29,7 +29,7 @@ namespace DirectoryManager.Web.Models
         public Liquidity Liquidity { get; set; } = Liquidity.NotApplicable;
 
         [Display(Name = "Rate type")]
-        public RateType RateType { get; set; } = RateType.Unknown;
+        public RateType RateType { get; set; } = RateType.NotApplicable;
 
         public List<DirectoryManager.Data.Models.GuaranteeItem> Guarantees { get; set; } = new ();
 

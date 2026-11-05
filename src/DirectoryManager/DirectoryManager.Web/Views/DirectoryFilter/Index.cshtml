@@ -547,28 +547,41 @@
         @* ============================ RESULTS ============================ *@
         <section class="filter-results">
 
-            @if (Model?.SubcategorySponsorModel != null)
-            {
-                @await Html.PartialAsync("_SponsoredListingSubCategoryPartial", Model.SubcategorySponsorModel)
+            @{
+                var hasSponsorBox = Model?.SubcategorySponsorModel != null || Model?.CategorySponsorModel != null;
+                var hasPopular = Model!.PopularPicks.Count > 0;
             }
-            else if (Model?.CategorySponsorModel != null)
-            {
-                @await Html.PartialAsync("_SponsoredListingCategoryPartial", Model.CategorySponsorModel)
-            }
+            @* Top row: sponsor box on the left, Popular shortcuts filling the space to its right.
+               Both wrap onto separate rows on narrow screens. *@
+            <div style="display:flex; flex-wrap:wrap; align-items:center; gap:14px 28px; margin:0 0 6px;">
+                @if (hasSponsorBox)
+                {
+                    <div style="flex:1 1 520px; max-width:820px; min-width:0;">
+                        @if (Model?.SubcategorySponsorModel != null)
+                        {
+                            @await Html.PartialAsync("_SponsoredListingSubCategoryPartial", Model.SubcategorySponsorModel)
+                        }
+                        else
+                        {
+                            @await Html.PartialAsync("_SponsoredListingCategoryPartial", Model!.CategorySponsorModel)
+                        }
+                    </div>
+                }
 
-            @if (Model.PopularPicks.Count > 0)
-            {
-                @* One-click shortcuts to what people search for most. *@
-                <nav class="filter-popular" aria-label="Popular">
-                    <span class="filter-popular-label">Popular:</span>
-                    @foreach (var pick in Model.PopularPicks)
-                    {
-                        var pickUrl = pick.SubCategoryId is int psid ? $"/filter?CategoryId={pick.CategoryId}&SubCategoryId={psid}" : $"/filter?CategoryId={pick.CategoryId}";
-                        var active = Model.Query.CategoryId == pick.CategoryId && Model.Query.SubCategoryId == pick.SubCategoryId;
-                        <a class="filter-popular-chip no-app-link@(active ? " active" : null)" href="@pickUrl" rel="nofollow">@pick.Label</a>
-                    }
-                </nav>
-            }
+                @if (hasPopular)
+                {
+                    @* One-click shortcuts to what people search for most. *@
+                    <nav class="filter-popular" aria-label="Popular" style="flex:1 1 300px; min-width:0;">
+                        <span class="filter-popular-label">Popular:</span>
+                        @foreach (var pick in Model.PopularPicks)
+                        {
+                            var pickUrl = pick.SubCategoryId is int psid ? $"/filter?CategoryId={pick.CategoryId}&SubCategoryId={psid}" : $"/filter?CategoryId={pick.CategoryId}";
+                            var active = Model.Query.CategoryId == pick.CategoryId && Model.Query.SubCategoryId == pick.SubCategoryId;
+                            <a class="filter-popular-chip no-app-link@(active ? " active" : null)" href="@pickUrl" rel="nofollow">@pick.Label</a>
+                        }
+                    </nav>
+                }
+            </div>
 
             <div class="results-bar">
                 <span class="results-count">@Model.TotalCount result@(Model.TotalCount == 1 ? "" : "s")</span>
@@ -773,21 +786,25 @@
                                 </div>
                             }
 
-                            @if (!string.IsNullOrWhiteSpace(e.Description) || !string.IsNullOrWhiteSpace(e.Note))
+                            @{
+                                // Cards have a fixed height, so a note under the description used to get
+                                // sliced mid-line. Normal notes stay on the profile page only. A warning note
+                                // (Scam / Questionable) takes the description's place instead, where the
+                                // line clamp ends it cleanly with an ellipsis.
+                                var showWarningNote = (isScam || isQuestionable) && !string.IsNullOrWhiteSpace(e.Note);
+                            }
+                            @if (showWarningNote)
                             {
                                 <div class="dir-body">
-                                    @if (!string.IsNullOrWhiteSpace(e.Description))
-                                    {
-                                        <p class="dir-desc">@e.Description</p>
-                                    }
-
-                                    @if (!string.IsNullOrWhiteSpace(e.Note))
-                                    {
-                                        var noteClass = (isScam || isQuestionable) ? "dir-note is-warning" : "dir-note";
-                                        <p class="@noteClass">
-                                            <span class="dir-note-label">Note:</span> @Html.Raw(ContentSanitizer.Sanitize(e.Note))
-                                        </p>
-                                    }
+                                    <p class="dir-desc dir-note is-warning">
+                                        <span class="dir-note-label">Note:</span> @Html.Raw(ContentSanitizer.Sanitize(e.Note))
+                                    </p>
+                                </div>
+                            }
+                            else if (!string.IsNullOrWhiteSpace(e.Description))
+                            {
+                                <div class="dir-body">
+                                    <p class="dir-desc">@e.Description</p>
                                 </div>
                             }
 

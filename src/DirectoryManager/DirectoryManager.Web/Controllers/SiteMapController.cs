@@ -104,6 +104,15 @@ namespace DirectoryManager.Web.Controllers
                 mostRecentUpdateDate = lastSponsoredListingChange.Value;
             }
 
+            // Any sponsorship change of any type (bought, edited, started, ended) shows on the
+            // /sponsors page and the sponsor ticker on every page, so it advances the site-wide date
+            // and the static mirror re-copies the pages.
+            var lastAnySponsorChange = await this.sponsoredListingRepository.GetLastAnySponsorChangeUtcAsync();
+            if (lastAnySponsorChange.HasValue && lastAnySponsorChange.Value > mostRecentUpdateDate)
+            {
+                mostRecentUpdateDate = lastAnySponsorChange.Value;
+            }
+
             // The Main Sponsors box ("Join Waitlist (N waiting)") is on the homepage and every listing
             // page, so a waitlist join/leave counts as a site-wide change: it moves the newest
             // <lastmod>, which tells the static-site syncer to re-copy the pages.
@@ -602,9 +611,9 @@ namespace DirectoryManager.Web.Controllers
                 ChangeFrequency.Weekly,
                 0.3);
 
-            // Every paid sponsor + unpaid featured pick on one page (static, so the mirror picks it up).
-            // Featured picks are saved on categories/subcategories, so their change dates count too.
-            // Sponsor changes (purchases, expirations) are part of the site-wide date.
+            // Every paid sponsor on one page (static, so the mirror picks it up). Sponsor changes of
+            // every type (bought, edited, started, ended) are part of the site-wide date; category
+            // and subcategory dates count for renames.
             var spotsLastModified = new[]
             {
                 siteWideDate,

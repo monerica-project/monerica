@@ -13,6 +13,9 @@ namespace DirectoryManager.Data.Models.Emails
         public const string SourceLink = "link";
         public const string SourceAdmin = "admin";
 
+        /// <summary>Opted out on the public "enter your email" page (/email-opt-out).</summary>
+        public const string SourceForm = "form";
+
         [Key]
         public int MarketingEmailContactId { get; set; }
 

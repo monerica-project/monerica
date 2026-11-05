@@ -465,7 +465,9 @@ namespace DirectoryManager.Web.Controllers
             return this.View("Lookup", vm);
         }
 
-        [HttpGet("/sponsors")]
+        // The advertiser view (current sponsors, recent payments, pricing). /sponsors is now the
+        // public list of every sponsor (SponsorsAndFeaturedController).
+        [HttpGet("current-sponsors")]
         public async Task<IActionResult> Sponsors()
         {
             var max = CommonConstants.MaxMainSponsoredListings;
@@ -530,7 +532,7 @@ namespace DirectoryManager.Web.Controllers
             var vm = await this.BuildOptionsVmAsync(
                 entry, subscribed);
 
-            await SponsorInterestTracker.LogAsync(this.HttpContext, entry.DirectoryEntryId, SponsorshipType.Unknown, null, SponsorInterestStep.ViewedOptions);
+            SponsorInterestTracker.SetBeacon(this.ViewData, entry.DirectoryEntryId, SponsorshipType.Unknown, null, SponsorInterestStep.ViewedOptions);
 
             return this.View("Options", vm);
         }

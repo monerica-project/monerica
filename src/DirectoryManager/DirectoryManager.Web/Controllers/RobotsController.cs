@@ -75,6 +75,7 @@ namespace DirectoryManager.Web.Controllers
         {
             sb.AppendLine("Allow: /");
             sb.AppendLine("# Admin and management routes");
+            sb.AppendLine("Disallow: /sponsor-interest/");
             sb.AppendLine("Disallow: /directoryentry/");
             sb.AppendLine("Disallow: /subcategory/");
             sb.AppendLine("Disallow: /category/create");

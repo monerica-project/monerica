@@ -14,19 +14,23 @@ using Microsoft.Extensions.Caching.Memory;
 namespace DirectoryManager.Web.Controllers
 {
     /// <summary>
-    /// Public page listing every paid sponsor and every unpaid "Featured" pick, so it is clear
-    /// which is which. A paid sponsor in a spot always overrides that spot's featured pick.
+    /// Public /sponsors page: every paid sponsor in one place, main sponsors first, then each
+    /// category's and subcategory's sponsors.
     /// </summary>
     [AllowAnonymous]
     public class SponsorsAndFeaturedController : BaseController
     {
-        public const string PagePath = "sponsors-and-featured";
+        public const string PagePath = "sponsors";
+
+        /// <summary>The page's old address; kept as a permanent redirect so old links still work.</summary>
+        public const string OldPagePath = "sponsors-and-featured";
 
         private readonly ISponsoredListingRepository sponsoredListingRepository;
         private readonly ICategoryRepository categoryRepository;
         private readonly ISubcategoryRepository subcategoryRepository;
         private readonly IDirectoryEntryRepository directoryEntryRepository;
         private readonly ICacheService cacheService;
+        private readonly IDirectoryEntryReviewRepository reviewRepository;
 
         public SponsorsAndFeaturedController(
             ISponsoredListingRepository sponsoredListingRepository,
@@ -34,6 +38,7 @@ namespace DirectoryManager.Web.Controllers
             ISubcategoryRepository subcategoryRepository,
             IDirectoryEntryRepository directoryEntryRepository,
             ICacheService cacheService,
+            IDirectoryEntryReviewRepository reviewRepository,
             IMemoryCache cache)
             : base(cache)
         {
@@ -42,7 +47,11 @@ namespace DirectoryManager.Web.Controllers
             this.subcategoryRepository = subcategoryRepository;
             this.directoryEntryRepository = directoryEntryRepository;
             this.cacheService = cacheService;
+            this.reviewRepository = reviewRepository;
         }
+
+        [HttpGet(OldPagePath)]
+        public IActionResult OldAddress() => this.RedirectPermanent("/" + PagePath);
 
         [HttpGet(PagePath)]
         public async Task<IActionResult> Index()
@@ -61,17 +70,6 @@ namespace DirectoryManager.Web.Controllers
             var subcategories = (await this.subcategoryRepository.GetAllActiveSubCategoriesAsync())
                 .Where(s => s.IsEnabled)
                 .ToList();
-
-            // Featured picks (only Admitted/Verified listings are shown).
-            var featuredIds = categories.Select(c => c.FeaturedDirectoryEntryId)
-                .Concat(subcategories.Select(s => s.FeaturedDirectoryEntryId))
-                .Where(id => id.HasValue)
-                .Select(id => id!.Value)
-                .Distinct()
-                .ToList();
-            var featuredEntries = (await this.directoryEntryRepository.GetByIdsAsync(featuredIds))
-                .Where(kv => FeaturedListingRules.IsFeaturable(kv.Value.DirectoryStatus))
-                .ToDictionary(kv => kv.Key, kv => kv.Value);
 
             // Spot of each paid sponsorship: the category/subcategory it was bought for.
             var subToCategory = subcategories.ToDictionary(s => s.SubCategoryId, s => s.CategoryId);
@@ -107,9 +105,7 @@ namespace DirectoryManager.Web.Controllers
                     "Category page",
                     group.CategoryPath,
                     isCategorySpot: true,
-                    categorySponsorsById.GetValueOrDefault(category.CategoryId),
-                    category.FeaturedDirectoryEntryId,
-                    featuredEntries);
+                    categorySponsorsById.GetValueOrDefault(category.CategoryId));
                 if (categoryRow != null)
                 {
                     group.Rows.Add(categoryRow);
@@ -121,9 +117,7 @@ namespace DirectoryManager.Web.Controllers
                         sub.Name,
                         $"/{category.CategoryKey}/{sub.SubCategoryKey}",
                         isCategorySpot: false,
-                        subcategorySponsorsById.GetValueOrDefault(sub.SubCategoryId),
-                        sub.FeaturedDirectoryEntryId,
-                        featuredEntries);
+                        subcategorySponsorsById.GetValueOrDefault(sub.SubCategoryId));
                     if (row != null)
                     {
                         group.Rows.Add(row);
@@ -136,24 +130,36 @@ namespace DirectoryManager.Web.Controllers
                 }
             }
 
+            // Profile details for every sponsor: where it's listed, ratings.
+            var subNames = subcategories.ToDictionary(s => s.SubCategoryId, s => s.Name);
+            var catNames = categories.ToDictionary(c => c.CategoryId, c => c.Name);
+            var allListings = vm.MainSponsors.Concat(vm.Categories.SelectMany(c => c.Rows).SelectMany(r => r.Listings)).ToList();
+            var ratings = await this.reviewRepository.GetRatingSummariesAsync(allListings.Select(l => l.DirectoryEntryId).Distinct().ToList());
+            foreach (var l in allListings)
+            {
+                if (l.ListedIn == null && subNames.TryGetValue(l.SubCategoryId, out var sn))
+                {
+                    var catId = subToCategory.GetValueOrDefault(l.SubCategoryId);
+                    l.ListedIn = (catNames.TryGetValue(catId, out var cn) ? cn + " \u203a " : string.Empty) + sn;
+                }
+
+                if (ratings.TryGetValue(l.DirectoryEntryId, out var r) && r.ReviewCount > 0)
+                {
+                    l.AvgRating = r.AvgRating;
+                    l.ReviewCount = r.ReviewCount;
+                    l.VerifiedOrderCount = r.VerifiedOrderCount;
+                }
+            }
+
             var rows = vm.Categories.SelectMany(c => c.Rows).ToList();
-            vm.SponsoredSpotCount = rows.Count(r => r.IsSponsored);
-            vm.FeaturedSpotCount = rows.Count(r => !r.IsSponsored);
+            vm.SponsoredSpotCount = rows.Count;
+            vm.FeaturedSpotCount = 0;
 
             return this.View("SponsorsAndFeatured", vm);
         }
 
-        /// <summary>
-        /// A spot shows its paid sponsor(s) when there are any (they override the featured pick),
-        /// otherwise its featured pick, otherwise nothing (null).
-        /// </summary>
-        private static SpotRow? BuildRow(
-            string spotName,
-            string spotPath,
-            bool isCategorySpot,
-            List<SponsoredListing>? paid,
-            int? featuredId,
-            IReadOnlyDictionary<int, DirectoryEntry> featuredEntries)
+        /// <summary>The paid sponsor(s) of one category or subcategory spot, or null when it has none.</summary>
+        private static SpotRow? BuildRow(string spotName, string spotPath, bool isCategorySpot, List<SponsoredListing>? paid)
         {
             var paidListings = (paid ?? new List<SponsoredListing>())
                 .Where(s => s.DirectoryEntry != null)
@@ -161,24 +167,32 @@ namespace DirectoryManager.Web.Controllers
                 .DistinctBy(l => l.ProfilePath)
                 .ToList();
 
-            if (paidListings.Count > 0)
-            {
-                return new SpotRow { SpotName = spotName, SpotPath = spotPath, IsCategorySpot = isCategorySpot, IsSponsored = true, Listings = paidListings };
-            }
-
-            if (featuredId.HasValue && featuredEntries.TryGetValue(featuredId.Value, out var entry))
-            {
-                return new SpotRow { SpotName = spotName, SpotPath = spotPath, IsCategorySpot = isCategorySpot, IsSponsored = false, Listings = { ToListing(entry) } };
-            }
-
-            return null;
+            return paidListings.Count == 0
+                ? null
+                : new SpotRow { SpotName = spotName, SpotPath = spotPath, IsCategorySpot = isCategorySpot, IsSponsored = true, Listings = paidListings };
         }
 
-        private static SpotListing ToListing(DirectoryEntry e) => new ()
+        private static SpotListing ToListing(DirectoryEntry e)
         {
-            Name = e.Name,
-            ProfilePath = UrlBuilder.ListingPath(e.DirectoryEntryKey),
-            DirectoryStatus = e.DirectoryStatus,
-        };
+            var tor = new[] { e.Link2, e.Link3 }.FirstOrDefault(u => !string.IsNullOrWhiteSpace(u) && u!.Contains(".onion", StringComparison.OrdinalIgnoreCase));
+            return new SpotListing
+            {
+                DirectoryEntryId = e.DirectoryEntryId,
+                SubCategoryId = e.SubCategoryId,
+                Name = e.Name,
+                ProfilePath = UrlBuilder.ListingPath(e.DirectoryEntryKey),
+                DirectoryStatus = e.DirectoryStatus,
+                Description = e.Description,
+                CountryCode = string.IsNullOrWhiteSpace(e.CountryCode) ? null : e.CountryCode,
+                CountryName = string.IsNullOrWhiteSpace(e.CountryCode) ? null : DirectoryManager.Utilities.Helpers.CountryHelper.GetCountryName(e.CountryCode),
+                ListedIn = e.SubCategory?.Category != null ? $"{e.SubCategory.Category.Name} \u203a {e.SubCategory.Name}" : null,
+                KycLabel = e.KycPolicy is KycPolicy k && k != KycPolicy.Unknown && k != KycPolicy.NotStated ? DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(k) : null,
+                LiquidityLabel = e.Liquidity.IsPubliclyShown() ? DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(e.Liquidity) : null,
+                RateLabel = e.RateType.IsShown() ? DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(e.RateType) : null,
+                FoundedYear = e.FoundedDate?.Year,
+                WebsiteUrl = string.IsNullOrWhiteSpace(e.Link) ? null : e.Link,
+                TorUrl = tor,
+            };
+        }
     }
 }

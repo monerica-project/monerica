@@ -20,7 +20,7 @@
     var kycPolicyValue = Model.KycPolicy ?? KycPolicy.NotStated;
     var showKyc = kycPolicyValue != KycPolicy.Unknown;
     var showLiquidity = Model.Liquidity.IsPubliclyShown();
-    var showRates = Model.RateType != RateType.Unknown;
+    var showRates = Model.RateType.IsShown();
     var hasGuarantees = Model.Guarantees is { Count: > 0 };
     var kycGood = kycPolicyValue == KycPolicy.GuaranteedNoKyc;
     var kycBad = kycPolicyValue is KycPolicy.MandatoryKyc or KycPolicy.ShotgunKyc;
@@ -98,7 +98,7 @@
                             else
                             {
                                 <details class="entry-guarantee-list">
-                                    <summary>@Model.Guarantees.Count deposits, totaling @DirectoryManager.Data.Helpers.DepositGuaranteeHelper.SummarizeByCurrency(Model.Guarantees)</summary>
+                                    <summary>@DirectoryManager.Data.Helpers.DepositGuaranteeHelper.SummaryLine(Model.Guarantees)</summary>
                                     <ul>
                                         @foreach (var g in Model.Guarantees)
                                         {

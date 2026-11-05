@@ -231,7 +231,7 @@ else
     <div class="form-group">
         <label for="RateType">Rate type:</label>
         <select id="RateType" name="RateType" class="form-control select-fit">
-            @foreach (var rt in System.Enum.GetValues<DirectoryManager.Data.Enums.RateType>())
+            @foreach (var rt in DirectoryManager.Data.Enums.RateTypeExtensions.FormOrder)
             {
                 <option value="@((int)rt)" selected="@(Model.RateType == rt)">@EnumHelper.GetDescription(rt)</option>
             }

@@ -57,6 +57,13 @@ namespace DirectoryManager.Data.Repositories.Interfaces
 
         Task<DateTime?> GetLastSponsorExpirationDateAsync();
 
+        /// <summary>
+        /// Latest moment any sponsorship (any type) changed what the site shows: created, edited,
+        /// started (pre-paid campaigns starting later) or ended. Never in the future.
+        /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        Task<DateTime?> GetLastAnySponsorChangeUtcAsync();
+
         Task<Dictionary<int, int>> GetActiveSponsorCountByCategoryAsync(SponsorshipType type);
 
         Task<Dictionary<int, int>> GetActiveSponsorCountBySubcategoryAsync(SponsorshipType type);

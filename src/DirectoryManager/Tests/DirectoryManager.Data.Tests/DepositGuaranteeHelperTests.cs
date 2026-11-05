@@ -24,5 +24,33 @@ namespace DirectoryManager.Data.Tests
         {
             Assert.Equal("view proof", DepositGuaranteeHelper.ProofLinkLabel(url));
         }
+
+        private static DirectoryManager.Data.Models.GuaranteeItem G(decimal amount, DirectoryManager.Data.Enums.Currency cur) =>
+            new () { Amount = amount, Currency = cur, Link = "https://example.com" };
+
+        [Fact]
+        public void SummaryLine_MixedCurrencies_ListsEachWithPlus_NoTotal()
+        {
+            var line = DepositGuaranteeHelper.SummaryLine(new[]
+            {
+                G(5000m, DirectoryManager.Data.Enums.Currency.USD),
+                G(0.40955328m, DirectoryManager.Data.Enums.Currency.BTC),
+            });
+            Assert.StartsWith("2 deposits: ", line);
+            Assert.Contains(" + ", line);
+            Assert.DoesNotContain("totaling", line);
+        }
+
+        [Fact]
+        public void SummaryLine_OneCurrency_KeepsTheTotal()
+        {
+            var line = DepositGuaranteeHelper.SummaryLine(new[]
+            {
+                G(5000m, DirectoryManager.Data.Enums.Currency.USD),
+                G(10000m, DirectoryManager.Data.Enums.Currency.USD),
+            });
+            Assert.StartsWith("2 deposits, totaling ", line);
+            Assert.DoesNotContain("+", line);
+        }
     }
 }

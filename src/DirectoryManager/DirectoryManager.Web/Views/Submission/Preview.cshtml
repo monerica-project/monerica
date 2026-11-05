@@ -33,7 +33,7 @@
     <p><b>KYC Policy:</b> @DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(Model.DirectoryEntryViewModel.KycPolicy.Value)</p>
 }
 
-@if (Model.DirectoryEntryViewModel.RateType != DirectoryManager.Data.Enums.RateType.Unknown)
+@if (DirectoryManager.Data.Enums.RateTypeExtensions.IsShown(Model.DirectoryEntryViewModel.RateType))
 {
     <p><b>Rate type:</b> @DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(Model.DirectoryEntryViewModel.RateType)</p>
 }

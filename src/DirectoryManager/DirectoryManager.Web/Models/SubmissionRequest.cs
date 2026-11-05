@@ -160,7 +160,7 @@ namespace DirectoryManager.Web.Models
 
         /// <summary>Fixed and/or float rates (exchanges only; optional).</summary>
         [Display(Name = "Rate type")]
-        public RateType RateType { get; set; } = RateType.Unknown;
+        public RateType RateType { get; set; } = RateType.NotApplicable;
 
         public List<DirectoryManager.Data.Models.GuaranteeItem> Guarantees { get; set; } = new ();
 

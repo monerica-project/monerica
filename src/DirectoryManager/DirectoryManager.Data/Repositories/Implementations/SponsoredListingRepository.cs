@@ -400,6 +400,18 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     : s.DirectoryEntry?.SubCategory?.CategoryId) == categoryId);
         }
 
+        public async Task<DateTime?> GetLastAnySponsorChangeUtcAsync()
+        {
+            var now = DateTime.UtcNow;
+            var rows = this.context.SponsoredListings.AsNoTracking();
+            var created = await rows.MaxAsync(x => (DateTime?)x.CreateDate);
+            var updated = await rows.Where(x => x.UpdateDate != null && x.UpdateDate <= now).MaxAsync(x => x.UpdateDate);
+            var started = await rows.Where(x => x.CampaignStartDate <= now).MaxAsync(x => (DateTime?)x.CampaignStartDate);
+            var ended = await rows.Where(x => x.CampaignEndDate <= now).MaxAsync(x => (DateTime?)x.CampaignEndDate);
+            var all = new[] { created, updated, started, ended }.Where(d => d.HasValue && d.Value <= now).Select(d => d!.Value).ToList();
+            return all.Count == 0 ? null : all.Max();
+        }
+
         public async Task<DateTime?> GetLastSponsorExpirationDateAsync()
         {
             var now = DateTime.UtcNow;

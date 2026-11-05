@@ -4,8 +4,8 @@
 @inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
 
 @{
-    PageMeta.Title = "Sponsored & Featured Listings";
-    PageMeta.MetaDescription = $"Every paid sponsor and every unpaid featured pick on {Model.SiteName}, in one place, clearly marked.";
+    PageMeta.Title = "Sponsors";
+    PageMeta.MetaDescription = $"Every paid sponsor on {Model.SiteName} in one place: main sponsors, then category and subcategory sponsors.";
     Layout = "_LayoutWithNav";
 
     // Links to static pages stay on the root (and relative on Tor); buying is on the app.
@@ -17,7 +17,72 @@
         status == DirectoryStatus.Verified ? "&#9989; " : string.Empty;
 }
 
+@{
+    // One sponsor's profile card: who they are, where they're from, what they do, how they rate.
+    void Card(DirectoryManager.Web.Models.SpotListing l, string? spotLabel = null, string? spotPath = null)
+    {
+        <article class="sp-card">
+            @if (spotLabel != null)
+            {
+                <a class="no-app-link sp-spot-label" href="@Root(spotPath ?? "/")">Sponsor of: @spotLabel</a>
+            }
+            <header class="sp-head">
+                @Html.Raw(StatusIcon(l.DirectoryStatus))<a class="no-app-link sp-name" href="@Root(l.ProfilePath)">@l.Name</a>
+                @if (l.CountryCode != null)
+                {
+                    <span class="sp-country"><span class="country-flag flag flag-@l.CountryCode.ToLowerInvariant()" role="img" aria-label="Flag of @l.CountryName" title="@l.CountryName"></span> @l.CountryName</span>
+                }
+            </header>
+            @if (l.AvgRating.HasValue)
+            {
+                var pct = Math.Round(l.AvgRating.Value / 5.0 * 100, 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                <div class="sp-rating">
+                    <span class="rating-wrapper" aria-label="@l.AvgRating.Value.ToString("0.0") out of 5 from @l.ReviewCount reviews"><span class="stars"><span class="stars-fill" style="width:@(pct)%"></span></span><span class="rating-text"> @l.AvgRating.Value.ToString("0.0")</span></span>
+                    <a class="no-app-link sp-reviews" href="@Root(l.ProfilePath + "#reviews")">@l.ReviewCount review@(l.ReviewCount == 1 ? "" : "s")</a>
+                    @if (l.VerifiedOrderCount > 0)
+                    {
+                        <span class="sp-verified">&#10003; @l.VerifiedOrderCount verified order@(l.VerifiedOrderCount == 1 ? "" : "s")</span>
+                    }
+                </div>
+            }
+            @if (!string.IsNullOrWhiteSpace(l.Description))
+            {
+                <p class="sp-desc">@l.Description</p>
+            }
+            <ul class="sp-facts">
+                @if (l.ListedIn != null) { <li><span>Listed in</span> @l.ListedIn</li> }
+                @if (l.KycLabel != null) { <li><span>KYC</span> @l.KycLabel</li> }
+                @if (l.LiquidityLabel != null) { <li><span>Liquidity</span> @l.LiquidityLabel</li> }
+                @if (l.RateLabel != null) { <li><span>Rates</span> @l.RateLabel</li> }
+                @if (l.FoundedYear.HasValue) { <li><span>Founded</span> @l.FoundedYear</li> }
+            </ul>
+            <footer class="sp-links">
+                @if (l.WebsiteUrl != null) { <a href="@l.WebsiteUrl" target="_blank" rel="sponsored nofollow noopener">Website</a> }
+                @if (l.TorUrl != null) { <a class="sp-tor" href="@l.TorUrl" target="_blank" rel="sponsored nofollow noopener">Tor</a> }
+                <a class="no-app-link" href="@Root(l.ProfilePath)">Full profile &rarr;</a>
+            </footer>
+        </article>
+    }
+}
+
 @section PageContent {
+    <style>
+        .sp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; margin: 8px 0 22px; }
+        .sp-card { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; border: 1px solid var(--orange-line, rgba(255,106,19,.45)); border-radius: 10px; background: var(--bg-card, #15151a); }
+        .sp-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+        .sp-name { font-size: 1.15rem; font-weight: 700; }
+        .sp-country { font-size: .85rem; color: var(--fg-dim, #9aa3af); white-space: nowrap; }
+        .sp-rating { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: .9rem; }
+        .sp-reviews { font-size: .85rem; }
+        .sp-verified { font-size: .78rem; color: #3fb950; border: 1px solid rgba(63,185,80,.5); border-radius: 6px; padding: 1px 7px; }
+        .sp-desc { margin: 0; line-height: 1.5; }
+        .sp-facts { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+        .sp-facts li { font-size: .8rem; padding: 2px 8px; border-radius: 6px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); }
+        .sp-facts li span { color: var(--fg-dim, #9aa3af); margin-right: 3px; }
+        .sp-links { margin-top: auto; display: flex; flex-wrap: wrap; gap: 14px; font-size: .9rem; padding-top: 4px; }
+        .sp-links .sp-tor { color: #b98fe6; }
+        .sp-spot-label { align-self: flex-start; font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--orange, #ff6a13); text-decoration: none; }
+    </style>
     <div class="page-header-bar">
         <h1 class="page-title">@PageMeta.Title</h1>
         @await Html.PartialAsync("_SiteLogo")
@@ -28,17 +93,7 @@
     <hr />
 
     <div class="spots-intro">
-        <p>
-            <span class="spot-badge spot-badge--sponsored">Sponsored</span>
-            listings are <strong>paid placements</strong>. They are not endorsements.
-        </p>
-        <p>
-            <span class="spot-badge spot-badge--featured">Featured</span>
-            listings are <strong>not paid for</strong>. They are our own curated picks, shown in a
-            category or subcategory spot that no one has bought. Some featured picks use affiliate links
-            that may earn @Model.SiteName a commission, and some don&rsquo;t.
-        </p>
-        <p>A paid sponsor always replaces the featured pick in its spot.</p>
+        <p>Every current sponsor, in one place. Sponsors are <strong>paid placements</strong>, not endorsements.</p>
         <p class="u-mt-10px">
             <a class="app-link btn btn-primary btn-cta" href="@UrlResolver.ResolveToApp("/sponsor-options")">Become a Sponsor</a>
         </p>
@@ -46,55 +101,43 @@
 
     <hr />
     <h2>Main Sponsors</h2>
-    <p class="spots-note">Paid placements shown on the homepage and across the site.</p>
+    <p class="spots-note">Shown on the homepage and across the site.</p>
     @if (Model.MainSponsors.Count == 0)
     {
         <p>No main sponsors right now.</p>
     }
     else
     {
-        <ul class="spot-list">
+        <div class="sp-grid">
             @foreach (var l in Model.MainSponsors)
             {
-                <li>
-                    <span class="spot-badge spot-badge--sponsored">Sponsored</span>
-                    @Html.Raw(StatusIcon(l.DirectoryStatus))<a class="no-app-link" href="@Root(l.ProfilePath)">@l.Name</a>
-                </li>
+                Card(l);
             }
-        </ul>
+        </div>
     }
 
     <hr />
-    <h2>Category &amp; Subcategory Spots</h2>
-    <p class="spots-note">
-        @Model.SponsoredSpotCount sponsored and @Model.FeaturedSpotCount featured.
-        Spots with neither aren&rsquo;t listed.
-    </p>
+    <h2>Category &amp; Subcategory Sponsors</h2>
+    @if (Model.Categories.Count == 0)
+    {
+        <p>No category or subcategory sponsors right now.</p>
+    }
+    else
+    {
+        <p class="spots-note">@Model.SponsoredSpotCount sponsored spot@(Model.SponsoredSpotCount == 1 ? "" : "s"), by category.</p>
+    }
 
     @foreach (var group in Model.Categories)
     {
         <h3 class="spots-category"><a class="no-app-link" href="@Root(group.CategoryPath)">@group.CategoryName</a></h3>
-        <ul class="spot-list">
+        <div class="sp-grid">
             @foreach (var row in group.Rows)
             {
-                <li>
-                    @if (row.IsSponsored)
-                    {
-                        <span class="spot-badge spot-badge--sponsored">Sponsored</span>
-                    }
-                    else
-                    {
-                        <span class="spot-badge spot-badge--featured">Featured</span>
-                    }
-                    <a class="no-app-link spot-name@(row.IsCategorySpot ? " spot-name--category" : string.Empty)" href="@Root(row.SpotPath)">@row.SpotName</a>
-                    <span class="spot-arrow">&rarr;</span>
-                    @for (int i = 0; i < row.Listings.Count; i++)
-                    {
-                        var l = row.Listings[i];
-                        @Html.Raw(StatusIcon(l.DirectoryStatus))<a class="no-app-link" href="@Root(l.ProfilePath)">@l.Name</a>@(i < row.Listings.Count - 1 ? ", " : string.Empty)
-                    }
-                </li>
+                foreach (var l in row.Listings)
+                {
+                    Card(l, row.IsCategorySpot ? group.CategoryName + " (category page)" : row.SpotName, row.SpotPath);
+                }
             }
-        </ul>
+        </div>
     }
 }

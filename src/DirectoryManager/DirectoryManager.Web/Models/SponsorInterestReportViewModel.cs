@@ -2,6 +2,9 @@ namespace DirectoryManager.Web.Models
 {
     public class SponsorInterestReportViewModel
     {
+        /// <summary>True = video sponsorship checkout; false = site sponsor placements.</summary>
+        public bool IsVideo { get; set; }
+
         public DateTime StartDate { get; set; }
 
         public DateTime EndDate { get; set; }

@@ -14,7 +14,7 @@
 
     @if (Model == null)
     {
-        <p>This opt-out link isn't recognised. Reply to the email you received and we'll remove you by hand.</p>
+        <p>This opt-out link isn't recognised. You can <a href="~/email-opt-out">opt out by entering your email address</a> instead.</p>
     }
     else if (Model.OptedOutUtc == null)
     {

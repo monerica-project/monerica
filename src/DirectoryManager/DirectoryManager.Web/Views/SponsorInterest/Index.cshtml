@@ -1,6 +1,7 @@
 @model DirectoryManager.Web.Models.SponsorInterestReportViewModel
 @{
     PageMeta.Title = "Sponsor Interest";
+    var kindQs = Model.IsVideo ? "&kind=video" : "";
     Layout = "_CenteredLayout";
     var df = DirectoryManager.Common.Constants.StringConstants.DateFormat;
     Func<DateTime, string> when = d => d.ToString("yyyy-MM-dd HH:mm") + " UTC";
@@ -12,17 +13,41 @@
     @await Html.PartialAsync("_AdminMenu")
 
     <p>
-        Who is looking at sponsoring their listing: the sponsor options page, the prices (duration) page,
-        the confirm page, and starting a payment. Each step counts once per listing and placement per 30 minutes.
-        No IPs or visitor details are stored, and signed-in admins and bots are not counted.
+        Show:
+        @if (Model.IsVideo)
+        {
+            <a href="?start=@Model.StartDate.ToString(df)&end=@Model.EndDate.ToString(df)">Site sponsors</a> <text>|</text> <b>Video sponsorship</b>
+        }
+        else
+        {
+            <b>Site sponsors</b> <text>|</text> <a href="?start=@Model.StartDate.ToString(df)&end=@Model.EndDate.ToString(df)&kind=video">Video sponsorship</a>
+        }
     </p>
+
+    @if (Model.IsVideo)
+    {
+        <p>
+            Who is looking at sponsoring a video: the video types and prices page, picking videos (segments),
+            reviewing the order, and starting a payment. "Paid" = a paid video sponsor order in this range.
+            Each step counts once per listing and video type per 30 minutes.
+            No IPs or visitor details are stored, and signed-in admins and bots are not counted.
+        </p>
+    }
+    else
+    {
+        <p>
+            Who is looking at sponsoring their listing: the sponsor options page, the prices (duration) page,
+            the confirm page, and starting a payment. Each step counts once per listing and placement per 30 minutes.
+            No IPs or visitor details are stored, and signed-in admins and bots are not counted.
+        </p>
+    }
 
     <p>
         Quick range:
-        <a href="?start=@DateTime.UtcNow.AddDays(-7).ToString(df)">7 days</a> |
-        <a href="?start=@DateTime.UtcNow.AddDays(-30).ToString(df)">30 days</a> |
-        <a href="?start=@DateTime.UtcNow.AddDays(-90).ToString(df)">90 days</a> |
-        <a href="?start=@DateTime.UtcNow.AddDays(-365).ToString(df)">1 year</a>
+        <a href="?start=@DateTime.UtcNow.AddDays(-7).ToString(df)@kindQs">7 days</a> |
+        <a href="?start=@DateTime.UtcNow.AddDays(-30).ToString(df)@kindQs">30 days</a> |
+        <a href="?start=@DateTime.UtcNow.AddDays(-90).ToString(df)@kindQs">90 days</a> |
+        <a href="?start=@DateTime.UtcNow.AddDays(-365).ToString(df)@kindQs">1 year</a>
     </p>
 
     <form method="get" class="form-row align-items-end mb-4">
@@ -35,6 +60,10 @@
             <input id="end" name="end" type="date" class="form-control" value="@Model.EndDate.ToString(df)" />
         </div>
         <div class="form-group col-md-2">
+            @if (Model.IsVideo)
+            {
+                <input type="hidden" name="kind" value="video" />
+            }
             <button type="submit" class="btn btn-primary">Run</button>
         </div>
     </form>
@@ -49,7 +78,7 @@
 
     @if (Model.TotalLooks == 0)
     {
-        <p><i>Nothing logged in this range yet. Logging started on 2026-11-03.</i></p>
+        <p><i>Nothing logged in this range yet. Logging started on @(Model.IsVideo ? "2026-11-04" : "2026-11-03").</i></p>
     }
     else
     {
@@ -59,7 +88,7 @@
                 <thead>
                     <tr>
                         <th>Listing</th>
-                        <th>Placements looked at</th>
+                        <th>@(Model.IsVideo ? "Video types" : "Placements looked at")</th>
                         <th>Furthest step</th>
                         <th>Looks</th>
                         <th>Days</th>
@@ -81,10 +110,10 @@
                                 {
                                     @r.Name
                                 }
-                                <br /><small><a href="/sponsorship/options/@r.DirectoryEntryId">options</a> · <a href="/directoryentry/edit/@r.DirectoryEntryId">edit</a></small>
+                                <br /><small><a href="@(Model.IsVideo ? "/video-sponsorship/type/" : "/sponsorship/options/")@r.DirectoryEntryId">options</a> · <a href="/directoryentry/edit/@r.DirectoryEntryId">edit</a></small>
                             </td>
                             <td>@(r.Placements.Count == 0 ? "—" : string.Join(", ", r.Placements))</td>
-                            <td>@(r.FurthestStepValue >= 4 ? Html.Raw("<b>" + r.FurthestStep + "</b>") : Html.Raw(r.FurthestStep))</td>
+                            <td>@if (r.StartedPayment) { <b>@r.FurthestStep</b> } else { @r.FurthestStep }</td>
                             <td>@r.Looks</td>
                             <td>@r.Days</td>
                             <td>@r.FirstSeen.ToString(df)</td>
@@ -115,7 +144,7 @@
 
         <h2>Latest activity</h2>
         <table class="table table-striped table-sm">
-            <thead><tr><th>When</th><th>Listing</th><th>Placement</th><th>Step</th></tr></thead>
+            <thead><tr><th>When</th><th>Listing</th><th>@(Model.IsVideo ? "Video type" : "Placement")</th><th>Step</th></tr></thead>
             <tbody>
                 @foreach (var e in Model.Recent)
                 {

@@ -170,12 +170,12 @@
 </div>
 
 @* Exchange rate type — optional, collapsed unless already set (no JS needed). *@
-<details class="form-group"@(Model.RateType != DirectoryManager.Data.Enums.RateType.Unknown ? " open" : "")>
+<details class="form-group"@(DirectoryManager.Data.Enums.RateTypeExtensions.IsShown(Model.RateType) ? " open" : "")>
     <summary><b>Exchange rates</b> <span class="text-muted">(optional, for exchanges)</span></summary>
     <p class="text-muted"><i>Does the exchange offer fixed rates (locked when you start), float rates (follow the market), or both?</i></p>
     <label for="RateType" class="control-label">Rate type</label>
     <select class="form-control select-fit" id="RateType" name="RateType">
-        @foreach (var rt in System.Enum.GetValues<DirectoryManager.Data.Enums.RateType>())
+        @foreach (var rt in DirectoryManager.Data.Enums.RateTypeExtensions.PublicFormOrder)
             {
                 <option value="@((int)rt)" selected="@(Model.RateType == rt)">@DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(rt)</option>
             }

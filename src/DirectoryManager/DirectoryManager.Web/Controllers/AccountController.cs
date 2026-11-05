@@ -139,6 +139,23 @@ namespace DirectoryManager.Web.Controllers
                 .GetRequiredService<DirectoryManager.Web.Services.Implementations.RevenueOpportunityService>()
                 .GetSummaryAsync();
             this.ViewBag.TotalPendingReviewReviews = pendingReviews;
+
+            // Newest review of any status, so auto-approved ones don't go unnoticed.
+            this.ViewBag.LastReview = await this.directoryEntryReviewRepository
+                .Query()
+                .AsNoTracking()
+                .OrderByDescending(r => r.CreateDate)
+                .Select(r => new DirectoryManager.Web.Models.LastReviewInfo
+                {
+                    ReviewId = r.DirectoryEntryReviewId,
+                    ListingName = r.DirectoryEntry.Name,
+                    ListingKey = r.DirectoryEntry.DirectoryEntryKey,
+                    Rating = r.Rating,
+                    CreatedUtc = r.CreateDate,
+                    Status = r.ModerationStatus,
+                    AutoResult = r.AutoModerationResult,
+                })
+                .FirstOrDefaultAsync();
             this.ViewBag.TotalPendingReviewComments = pendingReviewComments;
             this.ViewBag.TotalPendingVerificationRequests = pendingVerificationRequests;
             this.ViewBag.LastVerificationSubmissionUtc = await this.verificationRequestRepository.GetLastSubmissionUtcAsync();

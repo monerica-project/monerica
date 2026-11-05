@@ -1,0 +1,42 @@
+@using DirectoryManager.Web.Constants
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@model string?
+@{
+    Layout = "_CenteredLayout";
+    var siteName = await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName);
+    PageMeta.Title = "Email opt-out";
+}
+@section PageContent {
+    <div class="page-header-bar">
+        <h1 class="page-title">@PageMeta.Title</h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
+
+    @if (string.IsNullOrWhiteSpace(Model))
+    {
+        <p>Enter your email address to stop marketing email from @siteName (for example, offers to sponsor a video).</p>
+
+        @if (!ViewContext.ModelState.IsValid)
+        {
+            <div class="alert alert-danger">
+                @Html.ValidationSummary()
+            </div>
+        }
+        <form method="post" action="~/email-opt-out">
+            @Html.AntiForgeryToken()
+            <div class="form-group">
+                <input class="form-control input-width" name="formEmail" type="email" placeholder="yourname@email.com" value="@(ViewBag.PrefillEmail as string)" required />
+            </div>
+
+            @await Html.PartialAsync("_CaptchaBlock", DirectoryManager.Web.Controllers.MarketingOptOutController.CaptchaContext)
+
+            <button type="submit" class="btn btn-primary ui-submit btn-cta">Opt out</button>
+        </form>
+        <p><small>Emails about an order or a listing you manage are not affected. To stop the newsletter, use <a href="~/unsubscribe">unsubscribe</a>.</small></p>
+    }
+    else
+    {
+        <p><strong>@Model</strong> is opted out. @siteName won't send marketing email to this address again.</p>
+        <p>Emails about an order or a listing you manage are not affected.</p>
+    }
+}

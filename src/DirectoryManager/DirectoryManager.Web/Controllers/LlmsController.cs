@@ -240,7 +240,7 @@ namespace DirectoryManager.Web.Controllers
                         or Liquidity.OwnAndThirdParty or Liquidity.VariesByProvider
                         ? EnumHelper.GetDescription(e.Liquidity)
                         : null,
-                    rates = e.RateType != RateType.Unknown ? EnumHelper.GetDescription(e.RateType) : null,
+                    rates = e.RateType.IsShown() ? EnumHelper.GetDescription(e.RateType) : null,
                     tags = e.EntryTags?.Where(t => t.Tag != null).Select(t => t.Tag.Name).OrderBy(n => n).ToList() is { Count: > 0 } tg ? tg : null,
                     country = NullIfBlank(e.CountryCode),
                     founded = e.FoundedDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
@@ -379,7 +379,7 @@ namespace DirectoryManager.Web.Controllers
                 facts.Add($"Liquidity: {EnumHelper.GetDescription(entry.Liquidity)}");
             }
 
-            if (entry.RateType != RateType.Unknown)
+            if (entry.RateType.IsShown())
             {
                 facts.Add($"Rates: {EnumHelper.GetDescription(entry.RateType)}");
             }

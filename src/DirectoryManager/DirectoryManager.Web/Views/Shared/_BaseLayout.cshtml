@@ -96,5 +96,9 @@
             <a href="/network">@(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName)) Network</a>
         </div>
     </footer>
+    @if (ViewData[DirectoryManager.Web.Helpers.SponsorInterestTracker.BeaconViewDataKey] is string sponsorInterestBeacon)
+    {
+        <img src="@sponsorInterestBeacon" alt="" width="1" height="1" />
+    }
 </body>
 </html>
