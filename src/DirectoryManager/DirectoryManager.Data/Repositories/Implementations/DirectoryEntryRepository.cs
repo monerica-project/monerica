@@ -99,6 +99,68 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ConfigureAwait(false);
         }
 
+        public async Task<List<DirectoryEntry>> AdminSearchAsync(string query, int take = 200)
+        {
+            var q = NormalizeAdminQuery(query);
+            if (q.Length == 0)
+            {
+                return new List<DirectoryEntry>();
+            }
+
+            int? id = int.TryParse(q, out var n) ? n : null;
+            var matches = await this.BaseQuery()
+                .AsNoTracking()
+                .Where(e =>
+                    (id != null && e.DirectoryEntryId == id) ||
+                    e.Name.ToLower().Contains(q) ||
+                    e.DirectoryEntryKey.ToLower().Contains(q) ||
+                    e.Link.ToLower().Contains(q) ||
+                    (e.Link2 != null && e.Link2.ToLower().Contains(q)) ||
+                    (e.Link3 != null && e.Link3.ToLower().Contains(q)) ||
+                    (e.LinkA != null && e.LinkA.ToLower().Contains(q)) ||
+                    (e.Link2A != null && e.Link2A.ToLower().Contains(q)) ||
+                    (e.Link3A != null && e.Link3A.ToLower().Contains(q)))
+                .Take(Math.Max(take * 3, take))
+                .ToListAsync()
+                .ConfigureAwait(false);
+
+            // Rank: id / exact name, then name starts with it, then name contains it, then link-only matches.
+            int Rank(DirectoryEntry e)
+            {
+                var name = e.Name.ToLowerInvariant();
+                return e.DirectoryEntryId == id || name == q ? 0
+                    : name.StartsWith(q, StringComparison.Ordinal) ? 1
+                    : name.Contains(q, StringComparison.Ordinal) ? 2
+                    : 3;
+            }
+
+            return matches
+                .OrderBy(Rank)
+                .ThenBy(e => e.Name, StringComparer.OrdinalIgnoreCase)
+                .Take(take)
+                .ToList();
+        }
+
+        /// <summary>"https://www.Example.com/" → "example.com"; plain text is just trimmed and lower-cased.</summary>
+        public static string NormalizeAdminQuery(string? query)
+        {
+            var q = (query ?? string.Empty).Trim().ToLowerInvariant();
+            foreach (var prefix in new[] { "https://", "http://" })
+            {
+                if (q.StartsWith(prefix, StringComparison.Ordinal))
+                {
+                    q = q[prefix.Length..];
+                }
+            }
+
+            if (q.StartsWith("www.", StringComparison.Ordinal))
+            {
+                q = q[4..];
+            }
+
+            return q.TrimEnd('/');
+        }
+
         public async Task<DirectoryEntry?> GetByNameAsync(string name)
         {
             return await this.BaseQuery()
@@ -180,7 +242,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
             existing.SourceCodeLink = entry.SourceCodeLink;
             existing.DirectoryStatus = entry.DirectoryStatus;
             existing.Description = entry.Description;
-            existing.Location = entry.Location;
+            existing.StreetAddress = entry.StreetAddress;
+            existing.City = entry.City;
+            existing.StateRegion = entry.StateRegion;
+            existing.PostalCode = entry.PostalCode;
             existing.Processor = entry.Processor;
             existing.Note = entry.Note;
             existing.Email = entry.Email;
@@ -194,6 +259,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             existing.CountryCode = entry.CountryCode;
             existing.Liquidity = entry.Liquidity;
             existing.RateType = entry.RateType;
+            existing.SiteJavaScript = entry.SiteJavaScript;
             existing.KycPolicy = entry.KycPolicy;
             existing.DirectoryBadge = entry.DirectoryBadge;
             existing.ReviewsDisabled = entry.ReviewsDisabled;
@@ -1275,6 +1341,18 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     || (includeNotStated && (e.KycPolicy == null || e.KycPolicy == KycPolicy.NotStated)));
             }
 
+            // Website JavaScript filter (checkbox list — any of the selected answers).
+            if (q.SiteJavaScripts is { Count: > 0 })
+            {
+                var jsValues = q.SiteJavaScripts.Select(v => v.Normalize()).ToList();
+                if (jsValues.Contains(SiteJavaScript.Optional))
+                {
+                    jsValues.Add(SiteJavaScript.NotRequired);
+                }
+
+                baseQ = baseQ.Where(e => jsValues.Contains(e.SiteJavaScript));
+            }
+
             // Liquidity filter (checkbox list — any of the selected liquidity sources).
             if (q.Liquidities is { Count: > 0 })
             {
@@ -1797,10 +1875,14 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 SourceCodeLink = entry.SourceCodeLink,
                 Liquidity = entry.Liquidity,
                 RateType = entry.RateType,
+                SiteJavaScript = entry.SiteJavaScript,
                 CountryCode = entry.CountryCode,
                 FoundedDate = entry.FoundedDate,
                 Description = entry.Description,
-                Location = entry.Location,
+                StreetAddress = entry.StreetAddress,
+                City = entry.City,
+                StateRegion = entry.StateRegion,
+                PostalCode = entry.PostalCode,
                 Processor = entry.Processor,
                 Note = entry.Note,
                 Email = entry.Email,

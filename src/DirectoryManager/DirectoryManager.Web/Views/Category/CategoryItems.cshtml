@@ -25,7 +25,16 @@
   PageMeta.Title = Model.CategoryName;
 
   // Keyword first, at most 60 characters: "Exchanges for Monero (XMR) | Monerica".
-  PageMeta.SeoTitle = SeoTitleBuilder.ForCategory(Model.CategoryName, currencyNameForSeo, siteNameForSeo, Model.CurrentPage);
+  // A hand-written SeoTitle (Categories.SeoTitle) wins; page 2+ gets the same "(Page N)" suffix.
+  PageMeta.SeoTitle = !string.IsNullOrWhiteSpace(Model.SeoTitle)
+      ? SeoTitleBuilder.WithPage(Model.SeoTitle, Model.CurrentPage)
+      : SeoTitleBuilder.ForCategory(Model.CategoryName, currencyNameForSeo, siteNameForSeo, Model.CurrentPage);
+
+  // H1: the hand-written heading, else the generated title without the site name
+  // ("Exchanges for Monero (XMR)"), so the heading names the subject, not just "Exchanges".
+  var pageHeading = !string.IsNullOrWhiteSpace(Model.Heading)
+      ? Model.Heading
+      : SeoTitleBuilder.ForCategory(Model.CategoryName, currencyNameForSeo, null);
   var baseDescription = string.IsNullOrWhiteSpace(Model.MetaDescription)
       ? SeoDescriptionBuilder.ForListPage(Model.CategoryName, Model.PagedEntries?.TotalCount ?? 0, currencyNameForSeo, siteNameForSeo)
       : Model.MetaDescription;
@@ -57,7 +66,7 @@
  @section PageContent {
 
  
-<h1>@Model.CategoryName</h1>
+<h1>@pageHeading</h1>
 
 <hr />
 
@@ -74,7 +83,17 @@
 
 @if (!string.IsNullOrWhiteSpace(Model.Description))
 {
-    <p><span>@Html.Raw(ContentSanitizer.Sanitize(Model.Description))</span></p>
+    // Same rule as subcategory PageDetails: block-level HTML goes in a <div>, plain text in a <p>.
+    var descriptionHtml = ContentSanitizer.Sanitize(Model.Description);
+    if (descriptionHtml.TrimStart().StartsWith("<p", StringComparison.OrdinalIgnoreCase)
+        || descriptionHtml.TrimStart().StartsWith("<ul", StringComparison.OrdinalIgnoreCase))
+    {
+        <div class="page-intro">@Html.Raw(descriptionHtml)</div>
+    }
+    else
+    {
+        <p><span>@Html.Raw(descriptionHtml)</span></p>
+    }
 }
 
 @if (!string.IsNullOrWhiteSpace(Model.Note))

@@ -10,6 +10,12 @@ namespace DirectoryManager.Web.Models
         required public string PageHeader { get; set; }
         public string? Description { get; set; }
         public string? MetaDescription { get; set; }
+
+        /// <summary>Optional hand-written &lt;title&gt; from the subcategory (blank = generated).</summary>
+        public string? SeoTitle { get; set; }
+
+        /// <summary>Optional H1 from the subcategory (blank = generated title without the brand).</summary>
+        public string? Heading { get; set; }
         public string? PageDetails { get; set; }
         public string? Note { get; set; }
         public int SubCategoryId { get; set; }

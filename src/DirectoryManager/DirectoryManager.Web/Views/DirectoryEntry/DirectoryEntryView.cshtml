@@ -368,6 +368,14 @@
                         </tr>
                     }
 
+                    @if (Model.SiteJavaScript.IsShown())
+                    {
+                        <tr>
+                            <th scope="row">JavaScript</th>
+                            <td>@EnumHelper.GetDescription(Model.SiteJavaScript.Normalize()) <abbr class="u-fs-085em u-op-08" title="@Model.SiteJavaScript.Explanation()">(?)</abbr></td>
+                        </tr>
+                    }
+
                     @if (Model.FoundedDate.HasValue)
                     {
                         <tr>

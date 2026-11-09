@@ -45,5 +45,43 @@ namespace DirectoryManager.Data.Tests.RepositoriesTests.ImplementationsTests
                 Assert.Equal("TestCategory", result?.SubCategory?.Category.Name);
             }
         }
-    }
+    
+        [Theory]
+        [InlineData("https://www.Example.com/", "example.com")]
+        [InlineData("  GhostSwap ", "ghostswap")]
+        [InlineData("http://xmr.cards/order/", "xmr.cards/order")]
+        public void NormalizeAdminQuery_StripsSchemeWwwAndSlash(string input, string expected) =>
+            Assert.Equal(expected, DirectoryEntryRepository.NormalizeAdminQuery(input));
+
+        [Fact]
+        public async Task AdminSearchAsync_FindsByPartialNameOrUrl_InAnyStatus()
+        {
+            var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseInMemoryDatabase(databaseName: $"admin-search-{Guid.NewGuid():N}")
+                .Options;
+            using var context = new ApplicationDbContext(options);
+            context.Categories.Add(new Category { CategoryId = 1, Name = "Exchanges", CategoryKey = "exchanges" });
+            context.Subcategories.Add(new Subcategory { SubCategoryId = 1, CategoryId = 1, Name = "Instant Swaps", SubCategoryKey = "instant-swaps" });
+            context.DirectoryEntries.AddRange(
+                new DirectoryEntry { DirectoryEntryId = 10, Name = "GhostSwap", DirectoryEntryKey = "ghostswap", Link = "https://ghostswap.io/", SubCategoryId = 1, DirectoryStatus = DirectoryManager.Data.Enums.DirectoryStatus.Verified },
+                new DirectoryEntry { DirectoryEntryId = 11, Name = "Old Swap", DirectoryEntryKey = "old-swap", Link = "https://oldswap.example/", Link2 = "http://ghostmirror.onion", SubCategoryId = 1, DirectoryStatus = DirectoryManager.Data.Enums.DirectoryStatus.Removed },
+                new DirectoryEntry { DirectoryEntryId = 12, Name = "Scammy", DirectoryEntryKey = "scammy", Link = "https://scammy.example/", SubCategoryId = 1, DirectoryStatus = DirectoryManager.Data.Enums.DirectoryStatus.Scam });
+            await context.SaveChangesAsync();
+            var repository = new DirectoryEntryRepository(context, new Mock<IDirectoryEntriesAuditRepository>().Object);
+
+            var byName = await repository.AdminSearchAsync("ghost");
+            Assert.Equal(new[] { 10, 11 }, byName.Select(e => e.DirectoryEntryId).ToArray());
+
+            var byUrl = await repository.AdminSearchAsync("https://www.oldswap.example/");
+            Assert.Equal(11, Assert.Single(byUrl).DirectoryEntryId);
+
+            var scam = await repository.AdminSearchAsync("SCAMMY.EXAMPLE");
+            Assert.Equal(12, Assert.Single(scam).DirectoryEntryId);
+
+            var byId = await repository.AdminSearchAsync("12");
+            Assert.Equal(12, byId.First().DirectoryEntryId);
+
+            Assert.Empty(await repository.AdminSearchAsync("   "));
+        }
+}
 }

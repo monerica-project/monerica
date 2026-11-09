@@ -10,6 +10,13 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<DirectoryEntry?> GetBySubCategoryAndKeyAsync(int subcategorydId, string directoryEntryKey);
         Task<DirectoryEntry?> GetByLinkAsync(string link);
         Task<DirectoryEntry?> GetByNameAsync(string name);
+
+        /// <summary>
+        /// Admin search: listings of ANY status whose name, key or any of their links contains the
+        /// text (case-insensitive; "https://", "www." and a trailing "/" are ignored), or whose id is
+        /// the number typed. Best matches first.
+        /// </summary>
+        Task<List<DirectoryEntry>> AdminSearchAsync(string query, int take = 200);
         Task<DirectoryEntry?> GetByNameAndSubcategoryAsync(string name, int subcategoryId);
         Task<IEnumerable<DirectoryEntry>> GetAllAsync();
         Task<IEnumerable<DirectoryEntry>> GetAllBySubCategoryIdAsync(int subCategoryId);

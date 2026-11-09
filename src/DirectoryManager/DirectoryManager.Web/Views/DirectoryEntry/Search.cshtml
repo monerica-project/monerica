@@ -1,0 +1,45 @@
+@model List<DirectoryManager.Data.Models.DirectoryEntry>
+@{
+    PageMeta.Title = "Search listings";
+    Layout = "_CenteredLayout";
+    var q = (string)(ViewBag.Query ?? string.Empty);
+}
+
+@section PageContent {
+
+<h1>@PageMeta.Title</h1>
+@await Html.PartialAsync("_AdminMenu")
+
+<form method="get" action="~/directoryentry/search" class="u-search-row">
+    <input class="u-search-input" type="search" name="q" value="@q" placeholder="Name, URL or part of either (e.g. ghostswap, xmr.cards, 2367)" autofocus />
+    <button type="submit" class="btn btn-primary">Search</button>
+</form>
+<p class="u-note-sm">Searches every listing whatever its status (including Removed, Scam and Questionable): name, key, and all links. Click a result to edit it.</p>
+
+@if (q.Length > 0)
+{
+    <p><b>@Model.Count</b> result@(Model.Count == 1 ? "" : "s") for “@q”@(Model.Count >= 200 ? " (first 200)" : "").</p>
+    @if (Model.Count > 0)
+    {
+        <div class="table-wrapper">
+        <table class="table">
+            <thead>
+                <tr><th>Name</th><th>Status</th><th>Subcategory</th><th>Link</th><th>Id</th></tr>
+            </thead>
+            <tbody>
+            @foreach (var e in Model)
+            {
+                <tr>
+                    <td><a href="~/directoryentry/edit/@e.DirectoryEntryId"><b>@e.Name</b></a></td>
+                    <td>@e.DirectoryStatus</td>
+                    <td>@(e.SubCategory?.Category?.Name) &gt; @(e.SubCategory?.Name)</td>
+                    <td class="u-mono-break">@e.Link</td>
+                    <td>@e.DirectoryEntryId</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+        </div>
+    }
+}
+}

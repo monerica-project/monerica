@@ -14,6 +14,9 @@ namespace DirectoryManager.Data.Models.TransferModels
         /// <summary>Rate types to match (Fixed / Float); an exchange offering both matches either.</summary>
         public List<RateType>? RateTypes { get; set; }
 
+        /// <summary>Website JavaScript needs to match (any of them).</summary>
+        public List<SiteJavaScript>? SiteJavaScripts { get; set; }
+
         public string? Country { get; set; } // ISO2, or null/empty = all
 
         public bool HasVideo { get; set; }

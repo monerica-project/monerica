@@ -125,9 +125,10 @@ namespace DirectoryManager.Web.Controllers
                 .Where(s => s.DirectoryEntry != null)
                 .Select(s => s.DirectoryEntry!.DirectoryEntryId);
 
+            // Any active category sponsor is highlighted wherever it appears, not only in the
+            // category it bought (owner's rule, 2026-11-08).
             var categoryIds = categorySponsors
-                .Where(s => s.DirectoryEntry != null &&
-                            s.DirectoryEntry!.SubCategory?.CategoryId == category.CategoryId)
+                .Where(s => s.DirectoryEntry != null)
                 .Select(s => s.DirectoryEntry!.DirectoryEntryId);
 
             // A subcategory sponsorship only highlights the row for the subcategory it was bought
@@ -138,8 +139,14 @@ namespace DirectoryManager.Web.Controllers
                 .Select(s => (s.DirectoryEntryId, s.SubCategoryId ?? s.DirectoryEntry!.SubCategoryId))
                 .ToHashSet();
 
+            // Subcategory sponsors are highlighted on every row they appear in, like other sponsors.
+            var subcategoryIds = subCatSponsors
+                .Where(s => s.DirectoryEntry != null)
+                .Select(s => s.DirectoryEntryId);
+
             var sponsoredDirectoryEntryIds = mainIds
                 .Concat(categoryIds)
+                .Concat(subcategoryIds)
                 .Distinct()
                 .ToHashSet();
 
@@ -152,6 +159,8 @@ namespace DirectoryManager.Web.Controllers
                 Description = category.Description,
                 Note = category.Note,
                 MetaDescription = category.MetaDescription,
+                SeoTitle = category.SeoTitle,
+                Heading = category.Heading,
 
                 SponsoredDirectoryEntryIds = sponsoredDirectoryEntryIds,
                 SponsoredSubcategoryRows = sponsoredSubcategoryRows,
@@ -200,13 +209,9 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            var newKey = StringHelpers.UrlKey(category.Name);
-            if (await this.categoryRepository.KeyExistsAsync(newKey, id))
-            {
-                this.ModelState.AddModelError(string.Empty, DuplicateKeyMessage(newKey));
-                await this.SetFeaturableEntriesAsync(id);
-                return this.View(category);
-            }
+            // The URL key is set once, when the category is created. Renaming a category must
+            // not move its page: on 2026-10-24 renaming "Jobs" to "Jobs & Freelancers" silently
+            // changed /jobs to /jobs-and-freelancers and the old URL (Google position ~5) 404'd.
 
             this.UpdateExistingCategory(existingCategory, category);
 
@@ -256,16 +261,24 @@ namespace DirectoryManager.Web.Controllers
             category.Description = category.Description?.Trim();
             category.Note = category.Note?.Trim();
             category.MetaDescription = category.MetaDescription?.Trim();
+            category.SeoTitle = NullIfBlank(category.SeoTitle);
+            category.Heading = NullIfBlank(category.Heading);
             category.IsEnabled = category.IsEnabled;
         }
+
+        private static string? NullIfBlank(string? text) =>
+            string.IsNullOrWhiteSpace(text) ? null : text.Trim();
 
         private void UpdateExistingCategory(Category existingCategory, Category newCategory)
         {
             existingCategory.Name = newCategory.Name.Trim();
-            existingCategory.CategoryKey = StringHelpers.UrlKey(newCategory.Name);
+
+            // CategoryKey is intentionally NOT regenerated from the new name (see Edit).
             existingCategory.Description = newCategory.Description?.Trim();
             existingCategory.Note = newCategory.Note?.Trim();
             existingCategory.MetaDescription = newCategory.MetaDescription?.Trim();
+            existingCategory.SeoTitle = NullIfBlank(newCategory.SeoTitle);
+            existingCategory.Heading = NullIfBlank(newCategory.Heading);
             existingCategory.IsEnabled = newCategory.IsEnabled;
         }
 

@@ -125,6 +125,22 @@ namespace DirectoryManager.Web.Tests.Seo
         }
 
         [Fact]
+        public void WithPage_LeavesPageOneAloneAndPutsSuffixBeforeBrand()
+        {
+            Assert.Equal("Monero Casinos | Monerica", SeoTitleBuilder.WithPage("Monero Casinos | Monerica", 1));
+            Assert.Equal("Monero Casinos (Page 2) | Monerica", SeoTitleBuilder.WithPage("Monero Casinos | Monerica", 2));
+            Assert.Equal("Monero Casinos (Page 3)", SeoTitleBuilder.WithPage("Monero Casinos", 3));
+        }
+
+        [Fact]
+        public void WithPage_DropsBrandBeforeCuttingWhenTooLong()
+        {
+            var title = SeoTitleBuilder.WithPage("Monero Swap: No-KYC Instant XMR Exchanges | Monerica", 4);
+            Assert.True(title.Length <= SeoTitleBuilder.MaxLength, title);
+            Assert.EndsWith("(Page 4)", title);
+        }
+
+        [Fact]
         public void WithBrand_AddsBrandOnlyWhenItFitsAndIsMissing()
         {
             Assert.Equal("FAQ | Monerica", SeoTitleBuilder.WithBrand("FAQ", Site));

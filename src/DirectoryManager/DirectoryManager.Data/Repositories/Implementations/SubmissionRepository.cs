@@ -147,6 +147,22 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                  .CountAsync();
         }
 
+        public async Task<List<Submission>> ListPendingForReviewAsync(CancellationToken ct = default)
+        {
+            return await this.context.Submissions
+                                 .Include(x => x.SubCategory)
+                                 .ThenInclude(x => x!.Category)
+                                 .Where(x => x.SubmissionStatus == SubmissionStatus.Pending)
+                                 .OrderByDescending(x => x.SubmissionId)
+                                 .ToListAsync(ct);
+        }
+
+        public async Task<int> CountAiReviewsSinceAsync(DateTime sinceUtc, CancellationToken ct = default)
+        {
+            return await this.context.Submissions
+                                 .CountAsync(x => x.ReviewedUtc >= sinceUtc && x.ReviewModel != null, ct);
+        }
+
         public async Task<Submission?> GetByPaymentTokenAsync(Guid token)
         {
             return await this.context.Submissions

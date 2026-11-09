@@ -212,7 +212,7 @@
             </thead>
             <tbody>
                 <tr>
-                    <td class="task-name"><a href="~/submission/index">Submissions</a></td>
+                    <td class="task-name"><a href="~/admin/submission-review">Submissions</a> <span class="u-fs-085em">(@(ViewBag.AiReadyToApprove ?? 0) AI-ready@((ViewBag.AiNeedsAttention ?? 0) > 0 ? $", {ViewBag.AiNeedsAttention} needs a look" : string.Empty)@((ViewBag.AiNotReviewedYet ?? 0) > 0 ? $", {ViewBag.AiNotReviewedYet} not reviewed yet" : string.Empty))</span></td>
                     <td data-label="Waiting">@WaitingCell(pendingSubs)</td>
                     <td data-label="Last paid">@PaidCell(ViewBag.PaySubmission)</td>
                     <td data-label="Newest">@AgoCell(newestSub)</td>
@@ -291,6 +291,8 @@
         <li>
             Submissions
             <ul>
+                <li><a href="~/admin/ai-log"><b>AI activity log</b></a> (every AI call: what it was sent, what it answered, what it did)</li>
+                <li><a href="~/admin/submission-review"><b>AI-reviewed submissions</b></a> (@(ViewBag.AiReadyToApprove ?? 0) ready to approve, @(ViewBag.AiNeedsAttention ?? 0) need attention, @(ViewBag.AiNotReviewedYet ?? 0) not reviewed yet)</li>
                 <li><a href="~/submission/index">Pending submissions (@ViewBag.TotalPendingSubmissions)</a></li>
             </ul>
         </li>
@@ -390,6 +392,7 @@
         <li>
             Directory entries
             <ul>
+                <li><a href="~/directoryentry/search"><b>Search listings</b></a> (name or URL, any status)</li>
                 <li><a href="~/directoryentry/index">All entries</a></li>
                 <li><a href="~/directoryentry/create">Create entry</a></li>
                 <li><a href="~/account/edit">Edit from page</a></li>

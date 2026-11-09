@@ -85,6 +85,9 @@ namespace DirectoryManager.Data.Models
         /// <summary>Fixed and/or float swap rates (exchanges). Unknown shows nothing publicly.</summary>
         public RateType RateType { get; set; }
 
+        /// <summary>Whether the website needs JavaScript. Unknown = Not Stated.</summary>
+        public SiteJavaScript SiteJavaScript { get; set; }
+
         /// <summary>
         /// The two-letter ISO country code.
         /// </summary>
@@ -94,8 +97,19 @@ namespace DirectoryManager.Data.Models
         [MaxLength(DirectoryManager.Data.Helpers.ListingText.DescriptionMaxLength)]
         public string? Description { get => this.description; set => this.description = DirectoryManager.Data.Helpers.ListingText.NormalizeLineBreaks(value); }
 
+        /// <summary>Street address line(s), only for a real physical location (optional).</summary>
         [MaxLength(255)]
-        public string? Location { get; set; }
+        public string? StreetAddress { get; set; }
+
+        [MaxLength(255)]
+        public string? City { get; set; }
+
+        /// <summary>State, province or region (shown as "State/Region"). Not the country: that is CountryCode.</summary>
+        [MaxLength(255)]
+        public string? StateRegion { get; set; }
+
+        [MaxLength(32)]
+        public string? PostalCode { get; set; }
 
         [MaxLength(255)]
         public string? Processor { get; set; }
@@ -179,8 +193,12 @@ namespace DirectoryManager.Data.Models
                 this.KycPolicy == other.KycPolicy &&
                 this.Liquidity == other.Liquidity &&
                 this.RateType == other.RateType &&
+                this.SiteJavaScript == other.SiteJavaScript &&
                 this.Description == other.Description &&
-                this.Location == other.Location &&
+                this.StreetAddress == other.StreetAddress &&
+                this.City == other.City &&
+                this.StateRegion == other.StateRegion &&
+                this.PostalCode == other.PostalCode &&
                 this.Processor == other.Processor &&
                 this.Note == other.Note &&
                 this.Email == other.Email &&

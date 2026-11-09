@@ -125,6 +125,18 @@ namespace DirectoryManager.Web.Controllers
         // Listing reports (charts by date, country, trust) live in ListingReportController.
 
 
+        /// <summary>Admin listing search: name or URL, full or partial, any status. Results link to the edit page.</summary>
+        [HttpGet]
+        [Route("directoryentry/search")]
+        public async Task<IActionResult> Search(string? q)
+        {
+            this.ViewBag.Query = q?.Trim() ?? string.Empty;
+            var results = string.IsNullOrWhiteSpace(q)
+                ? new List<DirectoryEntry>()
+                : await this.directoryEntryRepository.AdminSearchAsync(q, 200);
+            return this.View(results);
+        }
+
         [HttpGet]
         [Route("directoryentry/create")]
         public async Task<IActionResult> Create()
@@ -231,6 +243,7 @@ namespace DirectoryManager.Web.Controllers
                 KycPolicy = vm.KycPolicy,
                 Liquidity = vm.Liquidity,
                 RateType = vm.RateType,
+                SiteJavaScript = vm.SiteJavaScript,
                 FoundedDate = foundedDate,
                 ReviewsDisabled = vm.ReviewsDisabled,
                 RequireReviewVerificationDetails = vm.RequireReviewVerificationDetails,
@@ -304,6 +317,7 @@ namespace DirectoryManager.Web.Controllers
                 KycPolicy = entry.KycPolicy,
                 Liquidity = entry.Liquidity,
                 RateType = entry.RateType,
+                SiteJavaScript = entry.SiteJavaScript,
                 Processor = entry.Processor,
                 Email = entry.Email,
                 Messenger = entry.Messenger,
@@ -408,6 +422,7 @@ namespace DirectoryManager.Web.Controllers
             existingEntry.KycPolicy = vm.KycPolicy;
             existingEntry.Liquidity = vm.Liquidity;
             existingEntry.RateType = vm.RateType;
+            existingEntry.SiteJavaScript = vm.SiteJavaScript;
             existingEntry.PgpKey = vm.PgpKey?.Trim();
             existingEntry.FoundedDate = foundedDate;
             existingEntry.ReviewsDisabled = vm.ReviewsDisabled;
@@ -464,6 +479,7 @@ namespace DirectoryManager.Web.Controllers
                 KycPolicy = directoryEntry.KycPolicy,
                 Liquidity = directoryEntry.Liquidity,
                 RateType = directoryEntry.RateType,
+                SiteJavaScript = directoryEntry.SiteJavaScript,
                 PgpKey = directoryEntry.PgpKey,
                 ProofLink = directoryEntry.ProofLink,
                 VideoLink = directoryEntry.VideoLink,
@@ -1237,6 +1253,7 @@ namespace DirectoryManager.Web.Controllers
                 KycPolicy = entry.KycPolicy,
                 Liquidity = entry.Liquidity,
                 RateType = entry.RateType,
+                SiteJavaScript = entry.SiteJavaScript,
                 Guarantees = guarantees ?? new List<DirectoryManager.Data.Models.GuaranteeItem>(),
                 IsSponsored = isSponsor,
                 SponsorSinceUtc = sponsorSinceUtc,

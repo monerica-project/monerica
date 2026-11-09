@@ -20,6 +20,21 @@ namespace DirectoryManager.Data.Models
         [MaxLength(160)]
         public string? MetaDescription { get; set; }
 
+        /// <summary>
+        /// Optional hand-written &lt;title&gt; for this page (keep it to 60 characters). When blank,
+        /// the title is built by SeoTitleBuilder. Lets a few high-traffic pages match how people
+        /// actually search (e.g. "Monero Casinos" for Gambling) without renaming the category.
+        /// </summary>
+        [MaxLength(70)]
+        public string? SeoTitle { get; set; }
+
+        /// <summary>
+        /// Optional page heading (H1). When blank, the page uses the generated title without the
+        /// site name. Changing it never changes the URL.
+        /// </summary>
+        [MaxLength(100)]
+        public string? Heading { get; set; }
+
         [MaxLength(2000)]
         public string? PageDetails { get; set; }
 

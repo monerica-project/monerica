@@ -171,6 +171,11 @@ namespace DirectoryManager.Web.Helpers
                 AddDifference("Rate type", EnumHelper.GetDescription(entry.RateType), EnumHelper.GetDescription(submission.RateType));
             }
 
+            if (entry.SiteJavaScript != submission.SiteJavaScript)
+            {
+                AddDifference("JavaScript", EnumHelper.GetDescription(entry.SiteJavaScript), EnumHelper.GetDescription(submission.SiteJavaScript));
+            }
+
             if (NotEqualTrimmed(entry.VideoLink, submission.VideoLink))
             {
                 AddDifference("VideoLink", entry.VideoLink, submission.VideoLink);

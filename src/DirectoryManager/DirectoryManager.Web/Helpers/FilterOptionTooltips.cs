@@ -29,6 +29,12 @@ namespace DirectoryManager.Web.Helpers
             _ => string.Empty,
         };
 
+        public static string For(SiteJavaScript js) => js switch
+        {
+            SiteJavaScript.Unknown => "The listing has not said whether its website needs JavaScript.",
+            _ => js.Explanation(),
+        };
+
         public static string For(Liquidity liquidity) => liquidity switch
         {
             Liquidity.Own => "The provider fills every swap with its own funds, under its own control.",

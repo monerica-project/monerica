@@ -129,6 +129,17 @@ namespace DirectoryManager.Web.Controllers
                 await this.verificationRequestRepository.CountByStatusAsync(Data.Enums.VerificationRequestStatus.Pending);
 
             this.ViewBag.TotalPendingSubmissions = totalPendingSubmissions;
+
+            // Automated reviewer: how many pending submissions are ready to approve vs need a person.
+            var reviewStates = (await this.submissionRepository.ListPendingForReviewAsync())
+                .Select(x => x.ReviewState)
+                .ToList();
+            this.ViewBag.AiReadyToApprove = reviewStates.Count(x => x == Data.Enums.SubmissionReviewState.AiApproveCandidate);
+            this.ViewBag.AiNeedsAttention = reviewStates.Count(x => x is Data.Enums.SubmissionReviewState.Flagged
+                or Data.Enums.SubmissionReviewState.AiRejectCandidate
+                or Data.Enums.SubmissionReviewState.AutoRejected
+                or Data.Enums.SubmissionReviewState.Skipped);
+            this.ViewBag.AiNotReviewedYet = reviewStates.Count(x => x == Data.Enums.SubmissionReviewState.Pending);
             this.ViewBag.LastSubmissionUtc = await this.submissionRepository.GetLastSubmissionUtcAsync();
             this.ViewBag.LastSubmissionPaidUtc = await this.submissionRepository.GetLastPaidUtcAsync();
             this.ViewBag.TotalPendingReviews = totalPendingReviewItems;

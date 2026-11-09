@@ -66,6 +66,7 @@ namespace DirectoryManager.Web.Controllers
                 SourceCodeLink = e.SourceCodeLink,
                 Liquidity = e.Liquidity,
                 RateType = e.RateType,
+                SiteJavaScript = e.SiteJavaScript,
                 ReviewsDisabled = e.ReviewsDisabled,
                 PgpKey = e.PgpKey,
                 CreateDate = e.CreateDate,

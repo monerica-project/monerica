@@ -92,6 +92,8 @@ namespace DirectoryManager.Web.Controllers
             subCategory.Note = subCategory.Note?.Trim();
             subCategory.MetaDescription = subCategory.MetaDescription?.Trim();
             subCategory.PageDetails = subCategory.PageDetails?.Trim();
+            subCategory.SeoTitle = string.IsNullOrWhiteSpace(subCategory.SeoTitle) ? null : subCategory.SeoTitle.Trim();
+            subCategory.Heading = string.IsNullOrWhiteSpace(subCategory.Heading) ? null : subCategory.Heading.Trim();
 
             // (SubCategoryKey, CategoryId) is unique: pre-check so a duplicate is a validation
             // error on the form rather than a failed insert.
@@ -144,23 +146,27 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            var newKey = StringHelpers.UrlKey(subCategory.Name.Trim());
-            if (await this.subcategoryRepository.KeyExistsAsync(subCategory.CategoryId, newKey, existingSubCategory.SubCategoryId))
+            // The URL key is set once, at creation; a rename keeps the existing URL (a renamed
+            // subcategory used to get a new key and its old, indexed URL 404'd). Only a move to
+            // another category can collide, so check the existing key in the target category.
+            var key = existingSubCategory.SubCategoryKey;
+            if (await this.subcategoryRepository.KeyExistsAsync(subCategory.CategoryId, key, existingSubCategory.SubCategoryId))
             {
-                this.ModelState.AddModelError(string.Empty, DuplicateKeyMessage(newKey));
+                this.ModelState.AddModelError(string.Empty, DuplicateKeyMessage(key));
                 this.ViewBag.Categories = await this.categoryRepository.GetAllAsync();
                 await this.SetFeaturableEntriesAsync(existingSubCategory.SubCategoryId);
                 return this.View(subCategory);
             }
 
             existingSubCategory.Name = subCategory.Name.Trim();
-            existingSubCategory.SubCategoryKey = StringHelpers.UrlKey(existingSubCategory.Name);
             existingSubCategory.CategoryId = subCategory.CategoryId;
             existingSubCategory.Description = subCategory.Description?.Trim();
             existingSubCategory.Note = subCategory.Note?.Trim();
             existingSubCategory.UpdatedByUserId = this.userManager.GetUserId(this.User);
             existingSubCategory.MetaDescription = subCategory.MetaDescription?.Trim();
             existingSubCategory.PageDetails = subCategory.PageDetails?.Trim();
+            existingSubCategory.SeoTitle = string.IsNullOrWhiteSpace(subCategory.SeoTitle) ? null : subCategory.SeoTitle.Trim();
+            existingSubCategory.Heading = string.IsNullOrWhiteSpace(subCategory.Heading) ? null : subCategory.Heading.Trim();
             existingSubCategory.IsEnabled = subCategory.IsEnabled;
             existingSubCategory.RequireReviewVerification = subCategory.RequireReviewVerification;
             existingSubCategory.SponsorshipDisabled = subCategory.SponsorshipDisabled;
@@ -242,6 +248,8 @@ namespace DirectoryManager.Web.Controllers
                 PageHeader = FormattingHelper.SubcategoryFormatting(category.Name, subCategory.Name),
                 PageTitle = FormattingHelper.SubcategoryFormatting(category.Name, subCategory.Name),
                 MetaDescription = subCategory.MetaDescription,
+                SeoTitle = subCategory.SeoTitle,
+                Heading = subCategory.Heading,
                 PageDetails = subCategory.PageDetails,
                 Note = subCategory.Note,
                 SubCategoryId = subCategory.SubCategoryId,

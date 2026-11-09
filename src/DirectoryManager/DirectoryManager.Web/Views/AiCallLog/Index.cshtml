@@ -1,0 +1,99 @@
+@model DirectoryManager.Web.Models.AiCallLogListViewModel
+@{
+    PageMeta.Title = "AI activity log";
+    Layout = "_CenteredLayout";
+    string Q(int page) => $"?page={page}" + (Model.SubmissionId is int sid ? $"&submissionId={sid}" : string.Empty) + (Model.ErrorsOnly ? "&errors=true" : string.Empty);
+}
+
+@section PageContent {
+    <h1>@PageMeta.Title</h1>
+    @await Html.PartialAsync("_AdminMenu")
+
+    <p class="u-fs-085em">Every call to the AI, newest first: what it was asked, what it answered, and what the job did with it. Open a row to see the exact text sent and received.
+        The AI never publishes or rejects anything on its own; it only saves suggestions for you on the <a href="~/admin/submission-review">submission review</a> page.</p>
+
+    <p>
+        <a href="~/admin/ai-log">All calls</a> |
+        <a href="~/admin/ai-log?errors=true">Errors only</a>
+        @if (Model.SubmissionId is int sid)
+        {
+            <span> | Showing submission #@sid (<a href="~/submission/@sid">open it</a>)</span>
+        }
+    </p>
+
+    @if (Model.Daily.Count > 0)
+    {
+        <details open>
+            <summary><b>Last 30 days</b> (@Model.Daily.Sum(d => d.Calls) calls, @Model.Daily.Sum(d => d.Errors) errors, @Model.Daily.Sum(d => d.InputTokens).ToString("N0") in / @Model.Daily.Sum(d => d.OutputTokens).ToString("N0") out tokens)</summary>
+            <table class="table table-sm">
+                <thead><tr><th>Day (UTC)</th><th>Calls</th><th>Errors</th><th>Tokens in</th><th>Tokens out</th></tr></thead>
+                <tbody>
+                    @foreach (var d in Model.Daily)
+                    {
+                        <tr><td>@d.Day.ToString("yyyy-MM-dd")</td><td>@d.Calls</td><td>@d.Errors</td><td>@d.InputTokens.ToString("N0")</td><td>@d.OutputTokens.ToString("N0")</td></tr>
+                    }
+                </tbody>
+            </table>
+        </details>
+    }
+
+    <p><b>@Model.Total</b> call(s)@(Model.ErrorsOnly ? " with errors" : string.Empty).</p>
+
+    @if (Model.Items.Count == 0)
+    {
+        <p><i>No AI calls recorded yet. Calls are logged from 2026-11-08 onward.</i></p>
+    }
+    else
+    {
+        <table class="table table-sm">
+            <thead>
+                <tr><th>When (UTC)</th><th>What</th><th>Verdict</th><th>Result</th><th>Model / tokens / time</th><th></th></tr>
+            </thead>
+            <tbody>
+                @foreach (var x in Model.Items)
+                {
+                    <tr>
+                        <td class="u-nowrap">@x.CreatedUtc.ToString("yyyy-MM-dd HH:mm")</td>
+                        <td>
+                            @x.Feature
+                            @if (x.SubmissionId is int id)
+                            {
+                                <br /><a href="~/submission/@id">#@id</a> @x.SubjectName
+                            }
+                        </td>
+                        <td>
+                            @if (x.Error != null)
+                            {
+                                <span class="text-danger">Error</span>
+                            }
+                            else
+                            {
+                                @x.Verdict @(x.Confidence is double c ? $"({c:0.00})" : string.Empty)
+                            }
+                            @if (!string.IsNullOrWhiteSpace(x.Summary))
+                            {
+                                <div class="u-fs-085em">@(x.Summary.Length > 220 ? x.Summary[..220] + "…" : x.Summary)</div>
+                            }
+                            @if (x.Error != null)
+                            {
+                                <div class="u-fs-085em text-danger">@(x.Error.Length > 220 ? x.Error[..220] + "…" : x.Error)</div>
+                            }
+                        </td>
+                        <td class="u-fs-085em">@x.Outcome</td>
+                        <td class="u-fs-085em">@x.Model<br />@x.InputTokens.ToString("N0") in / @x.OutputTokens.ToString("N0") out<br />@((x.DurationMs / 1000.0).ToString("0.0"))s@(x.Attempts > 1 ? $", {x.Attempts} tries" : string.Empty)</td>
+                        <td><a href="~/admin/ai-log/@x.Id">Details</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        @if (Model.TotalPages > 1)
+        {
+            <p>
+                @if (Model.Page > 1) { <a href="~/admin/ai-log@(Q(Model.Page - 1))">&larr; Newer</a> }
+                Page @Model.Page of @Model.TotalPages
+                @if (Model.Page < Model.TotalPages) { <a href="~/admin/ai-log@(Q(Model.Page + 1))">Older &rarr;</a> }
+            </p>
+        }
+    }
+}

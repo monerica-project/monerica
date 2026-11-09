@@ -31,6 +31,12 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task DeleteAsync(int submissionId);
         Task<int> GetByStatus(SubmissionStatus pending);
 
+        // Automated-review admin page: every Pending submission (any review state), newest first.
+        Task<List<Submission>> ListPendingForReviewAsync(CancellationToken ct = default);
+
+        // AI reviews done since the given time (bill-protection notice on the review page).
+        Task<int> CountAiReviewsSinceAsync(DateTime sinceUtc, CancellationToken ct = default);
+
         // ---- Optional review-donation flow (mirrors the verification-request flow) ----
         Task<Submission?> GetByPaymentTokenAsync(Guid token);
         Task SetInvoiceIdAsync(int submissionId, string invoiceId);

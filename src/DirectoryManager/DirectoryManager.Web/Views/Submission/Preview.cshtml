@@ -1,7 +1,7 @@
 ﻿@model DirectoryManager.Web.Models.SubmissionPreviewModel
 @using DirectoryManager.Web.Constants;
 @{
-    PageMeta.Title = "Preview";
+    PageMeta.Title = "Preview (not submitted yet)";
 }
 
 @{
@@ -14,8 +14,10 @@
         @await Html.PartialAsync("_SiteLogo")
     </div>
 <hr />
-<div class="submission-guidelines">
-    <p><b class="text-danger">NOT SUBMITTED YET!</b></p>
+<div class="alert-warning" role="alert">
+    <p class="u-m-0"><b>Your listing has NOT been sent yet.</b> This is only a preview (step 2 of 2).</p>
+    <p class="u-m-0">Check the details below, then complete the spam check and press <b>Submit listing</b> at the bottom of this page.</p>
+    <p class="u-m-0"><a href="#submit-listing"><b>Go to the Submit button &darr;</b></a></p>
 </div>
  
 @if (Model.DirectoryEntryViewModel.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Removed)
@@ -33,6 +35,10 @@
     <p><b>KYC Policy:</b> @DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(Model.DirectoryEntryViewModel.KycPolicy.Value)</p>
 }
 
+@if (DirectoryManager.Data.Enums.SiteJavaScriptExtensions.IsShown(Model.DirectoryEntryViewModel.SiteJavaScript))
+{
+    <p><b>JavaScript:</b> @DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(Model.DirectoryEntryViewModel.SiteJavaScript)</p>
+}
 @if (DirectoryManager.Data.Enums.RateTypeExtensions.IsShown(Model.DirectoryEntryViewModel.RateType))
 {
     <p><b>Rate type:</b> @DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(Model.DirectoryEntryViewModel.RateType)</p>
@@ -105,7 +111,7 @@
 
 <br />
 
-<form class="u-m-0" asp-action="Confirm" method="post">
+<form class="u-m-0" asp-action="Confirm" method="post" id="submit-listing">
     @Html.HiddenFor(x => x.SubmissionId)
 
     <div asp-validation-summary="All" class="text-danger"></div>
@@ -115,7 +121,8 @@
         @await Html.PartialAsync("_CaptchaBlock", (string)"submission")
     </div>
 
-    <button type="submit" class="btn btn-primary btn-cta">Submit</button>
+    <p><b>Last step:</b> your listing is only sent for review when you press this button.</p>
+    <button type="submit" class="btn btn-primary btn-cta">Submit listing</button>
 </form>
 <br />
 <a href="~/submit?submissionid=@Model.SubmissionId">Edit submission</a>

@@ -12,6 +12,8 @@ namespace DirectoryManager.Web.Models
         public string? Description { get; set; }
         public string? Note { get; set; }
         public string? MetaDescription { get; set; }
+        public string? SeoTitle { get; set; }
+        public string? Heading { get; set; }
 
         // paging
         public PagedResult<DirectoryEntryViewModel> PagedEntries { get; set; }

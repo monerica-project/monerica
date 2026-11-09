@@ -19,6 +19,10 @@
  
 @section PageContent {
 <h1>@PageMeta.Title</h1>
+@if (ViewBag.UsingProposal == true)
+{
+    <div class="alert-warning" role="alert"><b>Showing the reviewer's suggested version.</b> Edit anything, then set the status to Approved and save. The originally submitted version stays saved on the submission. <a href="~/admin/submission-review#sub-@Model.SubmissionId">Back to the review page</a></div>
+}
 
 <p><b>Submitted:</b> @Model.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat) UTC
 @if (Model.UpdateDate is DateTime updated && updated > Model.CreateDate.AddMinutes(1))
@@ -236,6 +240,17 @@ else
                 <option value="@((int)rt)" selected="@(Model.RateType == rt)">@EnumHelper.GetDescription(rt)</option>
             }
         </select>
+    </div>
+
+    <div class="form-group">
+        <label for="SiteJavaScript">JavaScript:</label>
+        <select id="SiteJavaScript" name="SiteJavaScript" class="form-control select-fit">
+            @foreach (var js in DirectoryManager.Data.Enums.SiteJavaScriptExtensions.FormOrder)
+            {
+                <option value="@((int)js)" selected="@(DirectoryManager.Data.Enums.SiteJavaScriptExtensions.Normalize(Model.SiteJavaScript) == js)">@EnumHelper.GetDescription(js)</option>
+            }
+        </select>
+        <small class="form-text text-muted"><b>None</b>: no JavaScript at all. <b>Optional</b>: the main features work with JavaScript turned off. <b>Required</b>: does not work without JavaScript.</small>
     </div>
 
     <div class="form-group">

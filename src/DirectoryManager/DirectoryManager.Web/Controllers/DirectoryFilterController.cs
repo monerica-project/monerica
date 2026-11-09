@@ -532,6 +532,7 @@ public class DirectoryFilterController : Controller
             KycPolicy = e.KycPolicy,
             Liquidity = e.Liquidity,
             RateType = e.RateType,
+            SiteJavaScript = e.SiteJavaScript,
 
             CountryCode = e.CountryCode,
             Location = e.Location,
@@ -628,6 +629,7 @@ public class DirectoryFilterController : Controller
                 || (q.KycPolicies is { Count: > 0 })
                 || (q.Liquidities is { Count: > 0 })
                 || (q.RateTypes is { Count: > 0 })
+                || (q.SiteJavaScripts is { Count: > 0 })
                 || q.VerifiedOrders;
 
             if (!any)

@@ -25,7 +25,7 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace DirectoryManager.Web.Controllers
 {
-    public class SubmissionController : BaseController
+    public partial class SubmissionController : BaseController
     {
         private const string DraftSessionKey = "SubmissionDrafts";
         private const string DraftNotYoursMessage =
@@ -542,7 +542,7 @@ namespace DirectoryManager.Web.Controllers
 
         [Authorize]
         [HttpGet("submission/{id}")]
-        public async Task<IActionResult> Review(int id, CancellationToken ct)
+        public async Task<IActionResult> Review(int id, CancellationToken ct, bool useProposal = false)
         {
             var submission = await this.submissionRepository.GetByIdAsync(id);
             if (submission == null)
@@ -551,6 +551,15 @@ namespace DirectoryManager.Web.Controllers
             }
 
             await this.RefreshAutomatedSnapshotAsync(submission, ct);
+
+            // "Edit then approve" from the automated-review page: show the reviewer's suggested
+            // version in the form (in memory only; the submitted fields stay as they are until saved,
+            // and OriginalSnapshotJson keeps them even after that).
+            if (useProposal && submission.ReviewModel != null)
+            {
+                submission = WithProposal(submission);
+                this.ViewBag.UsingProposal = true;
+            }
 
             // A fiat-denominated donation already stores its USD amount in PaidAmount. A
             // pay-what-you-want / top-up donation is recorded directly in XMR (PaidCurrency == "XMR",
@@ -784,6 +793,10 @@ namespace DirectoryManager.Web.Controllers
             string? foundedDay,
             CancellationToken ct)
         {
+            // The form doesn't post the id, so a validation error re-rendered the page with
+            // SubmissionId 0 and the next Save/Delete went to /submission/0. Keep the route id.
+            model.SubmissionId = id;
+
             // Guarantees bind to this dedicated parameter, NOT to the Submission's JSON-computed
             // Guarantees property (a computed collection property does not model-bind cleanly and
             // was producing an empty-message ModelState error). Validate the raw rows (catches a
@@ -805,6 +818,16 @@ namespace DirectoryManager.Web.Controllers
                     nameof(model.Note),
                     $"The note is {model.Note!.Length} characters; listings allow {DirectoryManager.Data.Helpers.ListingText.NoteMaxLength}. Please shorten it.");
             }
+
+            // Note to admin: show a clear error rather than failing at the database.
+            if ((model.NoteToAdmin?.Length ?? 0) > Submission.NoteToAdminDbMaxLength)
+            {
+                this.ModelState.Remove(nameof(model.NoteToAdmin));
+                this.ModelState.AddModelError(
+                    nameof(model.NoteToAdmin),
+                    $"The note to admin is {model.NoteToAdmin!.Length} characters; the limit is {Submission.NoteToAdminDbMaxLength}. Please shorten it.");
+            }
+
             model.Guarantees = guaranteeItems ?? new List<GuaranteeItem>();
 
             var normalizedRelated = NormalizeRelatedLinks(relatedLinks, max: 3);
@@ -862,6 +885,9 @@ namespace DirectoryManager.Web.Controllers
 
             var selected = NormalizeSelectedTagIds(selectedTagIds);
 
+            // Keep a copy of what was originally submitted before the admin's edits overwrite it.
+            submission.OriginalSnapshotJson ??= submission.CreateSnapshotJson();
+
             ApplyReviewEditsToSubmission(
                 submission,
                 model,
@@ -878,7 +904,20 @@ namespace DirectoryManager.Web.Controllers
                 submission.KycPolicy = model.KycPolicy;
                 submission.Liquidity = model.Liquidity;
                 submission.RateType = model.RateType;
+                submission.SiteJavaScript = model.SiteJavaScript;
                 submission.Guarantees = model.Guarantees;
+
+                if (model.SubmissionStatus is SubmissionStatus.Approved or SubmissionStatus.Rejected or SubmissionStatus.Spam)
+                {
+                    var newState = model.SubmissionStatus == SubmissionStatus.Approved
+                        ? SubmissionReviewState.Approved
+                        : SubmissionReviewState.Rejected;
+                    if (submission.ReviewState != newState)
+                    {
+                        submission.ReviewState = newState;
+                        submission.AppendReviewLog($"Admin {this.User?.Identity?.Name}: {model.SubmissionStatus} on the review form.");
+                    }
+                }
 
                 await this.submissionRepository.UpdateAsync(submission);
             }
@@ -1564,6 +1603,7 @@ namespace DirectoryManager.Web.Controllers
                 KycPolicy = directoryEntry.KycPolicy,
                 Liquidity = directoryEntry.Liquidity,
                 RateType = directoryEntry.RateType,
+                SiteJavaScript = directoryEntry.SiteJavaScript,
                 CountryCode = directoryEntry.CountryCode,
                 PgpKey = directoryEntry.PgpKey,
                 RelatedLink1 = null,
@@ -1605,6 +1645,7 @@ namespace DirectoryManager.Web.Controllers
                 KycPolicy = submission.KycPolicy,
                 Liquidity = submission.Liquidity,
                 RateType = submission.RateType,
+                SiteJavaScript = submission.SiteJavaScript,
                 Guarantees = submission.Guarantees,
                 PgpKey = submission.PgpKey,
                 RelatedLink1 = related.ElementAtOrDefault(0),
@@ -1715,6 +1756,7 @@ namespace DirectoryManager.Web.Controllers
                     KycPolicy = submission.KycPolicy,
                     Liquidity = submission.Liquidity,
                     RateType = submission.RateType,
+                    SiteJavaScript = submission.SiteJavaScript,
                     Guarantees = submission.Guarantees,
                     FoundedDate = submission.FoundedDate,
                 },
@@ -2167,6 +2209,7 @@ namespace DirectoryManager.Web.Controllers
                 submissionModel.KycPolicy = existingDirectoryEntry.KycPolicy;
                 submissionModel.Liquidity = existingDirectoryEntry.Liquidity;
                 submissionModel.RateType = existingDirectoryEntry.RateType;
+                submissionModel.SiteJavaScript = existingDirectoryEntry.SiteJavaScript;
 
                 var existingGuarantees = await this.guaranteeRepo.GetByDirectoryEntryIdAsync(existingDirectoryEntry.DirectoryEntryId);
                 submissionModel.Guarantees = existingGuarantees
@@ -2198,10 +2241,10 @@ namespace DirectoryManager.Web.Controllers
                 Link = (model.Link ?? string.Empty).Trim(),
                 Link2 = model.Link2?.Trim(),
                 Link3 = model.Link3?.Trim(),
-                Description = model.Description?.Trim(),
+                Description = ListingText.RemoveExclamations(model.Description?.Trim()),
                 Location = model.Location?.Trim(),
                 Processor = model.Processor?.Trim(),
-                Note = model.Note?.Trim(),
+                Note = ListingText.RemoveExclamations(model.Note?.Trim()),
                 Email = model.Email?.Trim(),
                 Messenger = model.Messenger?.Trim(),
                 Social = model.Social?.Trim(),
@@ -2212,6 +2255,7 @@ namespace DirectoryManager.Web.Controllers
                 KycPolicy = model.KycPolicy,
                 Liquidity = model.Liquidity,
                 RateType = model.RateType,
+                SiteJavaScript = model.SiteJavaScript,
                 PgpKey = model.PgpKey?.Trim(),
                 ProofLink = model.ProofLink?.Trim(),
                 VideoLink = model.VideoLink?.Trim(),
@@ -2242,10 +2286,10 @@ namespace DirectoryManager.Web.Controllers
             existing.Link = (model.Link ?? string.Empty).Trim();
             existing.Link2 = model.Link2?.Trim();
             existing.Link3 = model.Link3?.Trim();
-            existing.Description = model.Description?.Trim();
+            existing.Description = ListingText.RemoveExclamations(model.Description?.Trim());
             existing.Location = model.Location?.Trim();
             existing.Processor = model.Processor?.Trim();
-            existing.Note = model.Note?.Trim();
+            existing.Note = ListingText.RemoveExclamations(model.Note?.Trim());
             existing.Email = model.Email?.Trim();
             existing.Messenger = model.Messenger?.Trim();
             existing.Social = model.Social?.Trim();
@@ -2253,6 +2297,7 @@ namespace DirectoryManager.Web.Controllers
             existing.KycPolicy = model.KycPolicy;
             existing.Liquidity = model.Liquidity;
             existing.RateType = model.RateType;
+            existing.SiteJavaScript = model.SiteJavaScript;
             existing.PgpKey = model.PgpKey?.Trim();
             existing.ProofLink = model.ProofLink?.Trim();
             existing.SourceCodeLink = model.SourceCodeLink?.Trim();
@@ -2313,6 +2358,7 @@ namespace DirectoryManager.Web.Controllers
                 KycPolicy = model.KycPolicy,
                 Liquidity = model.Liquidity,
                 RateType = model.RateType,
+                SiteJavaScript = model.SiteJavaScript,
                 Guarantees = model.Guarantees,
                 PgpKey = (model.PgpKey ?? string.Empty).Trim(),
                 SelectedTagIdsCsv = model.SelectedTagIdsCsv,
@@ -2396,6 +2442,7 @@ namespace DirectoryManager.Web.Controllers
             existingSubmission.KycPolicy = submissionModel.KycPolicy;
             existingSubmission.Liquidity = submissionModel.Liquidity;
             existingSubmission.RateType = submissionModel.RateType;
+            existingSubmission.SiteJavaScript = submissionModel.SiteJavaScript;
             existingSubmission.Guarantees = submissionModel.Guarantees;
             existingSubmission.PgpKey = submissionModel.PgpKey;
             existingSubmission.ProofLink = submissionModel.ProofLink;
@@ -2602,6 +2649,11 @@ namespace DirectoryManager.Web.Controllers
             }
 
             if (existingEntry.RateType != model.RateType)
+            {
+                return true;
+            }
+
+            if (existingEntry.SiteJavaScript != model.SiteJavaScript)
             {
                 return true;
             }

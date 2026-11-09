@@ -32,6 +32,10 @@
     var selectedLiquidity = Model.Query.Liquidities is { Count: > 0 }
         ? new HashSet<Liquidity>(Model.Query.Liquidities)
         : new HashSet<Liquidity>();
+    // JavaScript works like KYC: nothing chosen = every box ticked (no filter); untick to exclude.
+    var selectedJs = Model.Query.SiteJavaScripts is { Count: > 0 }
+        ? new HashSet<SiteJavaScript>(Model.Query.SiteJavaScripts.Select(v => v.Normalize()))
+        : new HashSet<SiteJavaScript>(SiteJavaScriptExtensions.Filterable);
     var selectedRates = Model.Query.RateTypes is { Count: > 0 }
         ? new HashSet<RateType>(Model.Query.RateTypes)
         : new HashSet<RateType>();
@@ -161,7 +165,8 @@
             }
 
             if (string.Equals(kv.Key, "Liquidities", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(kv.Key, "RateTypes", StringComparison.OrdinalIgnoreCase))
+                || string.Equals(kv.Key, "RateTypes", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(kv.Key, "SiteJavaScripts", StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
@@ -206,6 +211,14 @@
                 foreach (var lq in Model.Query.Liquidities)
                 {
                     built = QueryHelpers.AddQueryString(built, "Liquidities", lq.ToString());
+                }
+            }
+
+            if (Model.Query.SiteJavaScripts != null && Model.Query.SiteJavaScripts.Count > 0)
+            {
+                foreach (var js in Model.Query.SiteJavaScripts)
+                {
+                    built = QueryHelpers.AddQueryString(built, "SiteJavaScripts", js.ToString());
                 }
             }
 
@@ -385,12 +398,28 @@
                 <!-- KYC Policy -->
                 <fieldset class="ui-fieldset">
                     <legend class="ui-legend">KYC Policy</legend>
+                    <div class="u-fs-085em u-op-08">Untick to hide those listings.</div>
                     <div class="ui-checks ui-checks-stack">
                         @foreach (var kp in Model.AllKycPolicies)
                         {
                             <label class="ui-check has-tip" title="@DirectoryManager.Web.Helpers.FilterOptionTooltips.For(kp)">
                                 <input type="checkbox" name="KycPolicies" value="@kp" checked="@(selectedKyc.Contains(kp) ? "checked" : null)" />
                                 <span>@EnumHelper.GetDescription(kp)</span>
+                            </label>
+                        }
+                    </div>
+                </fieldset>
+
+                <!-- Website JavaScript (applies to every listing) -->
+                <fieldset class="ui-fieldset">
+                    <legend class="ui-legend">JavaScript</legend>
+                    <div class="u-fs-085em u-op-08">Untick to hide those listings.</div>
+                    <div class="ui-checks ui-checks-stack">
+                        @foreach (var js in SiteJavaScriptExtensions.Filterable)
+                        {
+                            <label class="ui-check has-tip" title="@DirectoryManager.Web.Helpers.FilterOptionTooltips.For(js)">
+                                <input type="checkbox" name="SiteJavaScripts" value="@js" checked="@(selectedJs.Contains(js) ? "checked" : null)" />
+                                <span>@EnumHelper.GetDescription(js)</span>
                             </label>
                         }
                     </div>
@@ -403,6 +432,7 @@
                 <!-- Liquidity -->
                 <fieldset class="ui-fieldset">
                     <legend class="ui-legend">Liquidity</legend>
+                    <div class="u-fs-085em u-op-08">Tick to show only these.</div>
                     <div class="ui-checks ui-checks-stack">
                         @foreach (var lq in Model.AllLiquidities)
                         {
@@ -417,6 +447,7 @@
                 <!-- Rate type (exchanges) -->
                 <fieldset class="ui-fieldset">
                     <legend class="ui-legend">Rates</legend>
+                    <div class="u-fs-085em u-op-08">Tick to show only these.</div>
                     <div class="ui-checks ui-checks-stack">
                         <label class="ui-check has-tip" title="The rate is locked when you start the swap (includes exchanges offering both)">
                             <input type="checkbox" name="RateTypes" value="@RateType.Fixed" checked="@(selectedRates.Contains(RateType.Fixed) ? "checked" : null)" />

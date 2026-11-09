@@ -49,11 +49,25 @@ namespace DirectoryManager.Data.Models
 
         public RateType RateType { get; set; }
 
+        /// <summary>Whether the website needs JavaScript. Unknown = Not Stated.</summary>
+        public SiteJavaScript SiteJavaScript { get; set; }
+
         [MaxLength(500)]
         public string? Description { get; set; }
 
+        /// <summary>Street address line(s), only for a real physical location (optional).</summary>
         [MaxLength(255)]
-        public string? Location { get; set; }
+        public string? StreetAddress { get; set; }
+
+        [MaxLength(255)]
+        public string? City { get; set; }
+
+        /// <summary>State, province or region (shown as "State/Region"). Not the country: that is CountryCode.</summary>
+        [MaxLength(255)]
+        public string? StateRegion { get; set; }
+
+        [MaxLength(32)]
+        public string? PostalCode { get; set; }
 
         [MaxLength(255)]
         public string? Processor { get; set; }

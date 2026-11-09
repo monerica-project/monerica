@@ -42,6 +42,9 @@ namespace DirectoryManager.DisplayFormatting.Models
 
         public RateType RateType { get; set; }
 
+        /// <summary>Whether the website needs JavaScript. Unknown = Not Stated.</summary>
+        public SiteJavaScript SiteJavaScript { get; set; }
+
         public List<DirectoryManager.Data.Models.GuaranteeItem> Guarantees { get; set; } = new ();
 
         public DirectoryBadge DirectoryBadge { get; set; } = DirectoryBadge.Unknown;

@@ -419,6 +419,7 @@ Environment=DOTNET_ENVIRONMENT=Production
 Environment=ASPNETCORE_ENVIRONMENT=Production
 Environment=DOTNET_PRINT_TELEMETRY_MESSAGE=false
 Environment=TZ=UTC
+$( [[ -n "${ENVIRONMENT_FILE:-}" ]] && echo "EnvironmentFile=$ENVIRONMENT_FILE" )
 
 # Cap total execution time. For Type=oneshot, TimeoutStartSec is the runtime
 # ceiling (RuntimeMaxSec is silently ignored on oneshot). If the job runs
@@ -531,7 +532,7 @@ deploy_job() {
     # first so a stale value from a previous job's conf doesn't leak into this
     # iteration; jobs/*.conf re-sets NEEDS_EMAIL=1 for the email-using jobs.
     unset NEEDS_EMAIL NEEDS_TOR ON_CALENDAR SCHEDULE_DESCRIPTION MAX_RUNTIME \
-          TEST_SOLUTION_SOURCE_PATH TIMER_PERSISTENT
+          TEST_SOLUTION_SOURCE_PATH TIMER_PERSISTENT ENVIRONMENT_FILE
     # shellcheck disable=SC1090
     source "$conf"
 

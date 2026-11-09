@@ -1,0 +1,250 @@
+@model DirectoryManager.Web.Models.Submissions.SubmissionAiReviewPageModel
+@using DirectoryManager.Data.Enums
+@using DirectoryManager.Data.Models
+@{
+    PageMeta.Title = "Submission review";
+    Layout = "_CenteredLayout";
+
+    var order = new[]
+    {
+        (SubmissionReviewState.AiApproveCandidate, "Ready to approve", "The reviewer found clear evidence. Check the suggested version, then approve."),
+        (SubmissionReviewState.Flagged, "Needs a closer look", "Banned category, unsure verdict, or a review error."),
+        (SubmissionReviewState.AiRejectCandidate, "Reviewer suggests rejecting", "Check the issues before rejecting."),
+        (SubmissionReviewState.AutoRejected, "Auto-rejected (confirm)", "Dead URL, duplicate or spam, found by code checks. Nothing is rejected until you confirm."),
+        (SubmissionReviewState.Pending, "Not reviewed yet", "Waiting for the reviewer (runs every 10 minutes, within the daily cap)."),
+        (SubmissionReviewState.Skipped, "Not handled by the reviewer", "Site-checker status proposals: review them as before."),
+    };
+
+    string[] ListFromJson(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) { return Array.Empty<string>(); }
+        try { return System.Text.Json.JsonSerializer.Deserialize<string[]>(json) ?? Array.Empty<string>(); }
+        catch { return Array.Empty<string>(); }
+    }
+
+    List<(string Field, string Reason)> ChangesFromJson(string? json)
+    {
+        var list = new List<(string, string)>();
+        if (string.IsNullOrWhiteSpace(json)) { return list; }
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            foreach (var e in doc.RootElement.EnumerateArray())
+            {
+                list.Add((e.GetProperty("field").GetString() ?? "", e.GetProperty("reason").GetString() ?? ""));
+            }
+        }
+        catch { }
+        return list;
+    }
+
+    // The ORIGINAL submitted values (from the snapshot when the form has been edited since).
+    Dictionary<string, string?> Original(Submission s)
+    {
+        var d = new Dictionary<string, string?>
+        {
+            ["Name"] = s.Name, ["Description"] = s.Description, ["Note"] = s.Note,
+            ["Subcategory"] = Model.Label(s.SubCategoryId), ["Country"] = s.CountryCode, ["Location"] = s.Location,
+            ["KYC policy"] = s.KycPolicy?.ToString(), ["Liquidity"] = s.Liquidity == Liquidity.Unknown ? null : s.Liquidity.ToString(),
+            ["Rate type"] = s.RateType == RateType.Unknown ? null : s.RateType.ToString(),
+            ["JavaScript"] = s.SiteJavaScript == SiteJavaScript.Unknown ? null : s.SiteJavaScript.ToString(), ["Tags"] = s.Tags,
+        };
+        if (!string.IsNullOrWhiteSpace(s.OriginalSnapshotJson))
+        {
+            try
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(s.OriginalSnapshotJson);
+                var r = doc.RootElement;
+                string? Str(string n) => r.TryGetProperty(n, out var v) && v.ValueKind == System.Text.Json.JsonValueKind.String ? v.GetString() : null;
+                d["Name"] = Str("Name"); d["Description"] = Str("Description"); d["Note"] = Str("Note");
+                d["Country"] = Str("CountryCode"); d["Location"] = Str("Location"); d["KYC policy"] = Str("KycPolicy");
+                d["Liquidity"] = Str("Liquidity") is "Unknown" ? null : Str("Liquidity");
+                d["Rate type"] = Str("RateType") is "Unknown" ? null : Str("RateType");
+                d["JavaScript"] = Str("SiteJavaScript") is "Unknown" ? null : Str("SiteJavaScript"); d["Tags"] = Str("Tags");
+                d["Subcategory"] = r.TryGetProperty("SubCategoryId", out var sc) && sc.ValueKind == System.Text.Json.JsonValueKind.Number ? Model.Label(sc.GetInt32()) : "(none)";
+            }
+            catch { }
+        }
+        return d;
+    }
+
+    Dictionary<string, string?> Proposed(Submission s) => new()
+    {
+        ["Name"] = s.ProposedName, ["Description"] = s.ProposedDescription, ["Note"] = s.ProposedNote,
+        ["Subcategory"] = Model.Label(s.ProposedSubCategoryId), ["Country"] = s.ProposedCountryCode, ["Location"] = s.ProposedLocation,
+        ["KYC policy"] = s.ProposedKycPolicy?.ToString(), ["Liquidity"] = s.ProposedLiquidity?.ToString(),
+        ["Rate type"] = s.ProposedRateType?.ToString(),
+        ["JavaScript"] = s.ProposedSiteJavaScript?.ToString(), ["Tags"] = s.ProposedTags,
+    };
+
+    var readyCount = Model.Submissions.Count(s => s.ReviewState == SubmissionReviewState.AiApproveCandidate);
+    var autoRejectedCount = Model.Submissions.Count(s => s.ReviewState == SubmissionReviewState.AutoRejected);
+    var waitingCount = Model.Submissions.Count(s => s.ReviewState == SubmissionReviewState.Pending);
+}
+
+@section PageContent {
+
+<h1>@PageMeta.Title</h1>
+@await Html.PartialAsync("_AdminMenu")
+
+<p class="u-fs-085em">
+    Pending submissions, sorted by what the automated reviewer found. Approving publishes the <b>suggested</b> version;
+    the submitted version is always kept on the submission. AI reviews today: <b>@Model.AiReviewsToday / @Model.DailyCap</b>.
+    <a href="~/submission/pending">Old pending list</a>
+</p>
+
+@if (Model.AiReviewsToday >= Model.DailyCap && waitingCount > 0)
+{
+    <div class="alert-warning" role="alert"><b>Daily AI review cap reached.</b> @waitingCount submission(s) stay waiting until tomorrow (UTC). Review them by hand or raise SubmissionReviewer:DailyCap.</div>
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.Message))
+{
+    <div class="u-callout-orange">@Model.Message</div>
+}
+
+<div class="u-flex-gap-8px-flexwrap-wrap">
+    @if (readyCount > 0)
+    {
+        <form method="post" action="~/admin/submission-review/approve-all" class="u-m-0">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-primary">Approve all @readyCount ready</button>
+        </form>
+    }
+    @if (autoRejectedCount > 0)
+    {
+        <form method="post" action="~/admin/submission-review/reject-auto" class="u-m-0">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-sm">Reject all @autoRejectedCount auto-rejected</button>
+        </form>
+    }
+</div>
+
+@foreach (var (state, title, help) in order)
+{
+    var group = Model.Submissions.Where(s => s.ReviewState == state).ToList();
+    if (group.Count == 0) { continue; }
+
+    <h2 id="@state">@title (@group.Count)</h2>
+    <p class="u-fs-085em u-op-08">@help</p>
+
+    @foreach (var s in group)
+    {
+        var orig = Original(s);
+        var prop = Proposed(s);
+        var issues = ListFromJson(s.ReviewIssuesJson);
+        var changes = ChangesFromJson(s.ProposedChangesJson);
+        var hasProposal = s.ReviewModel != null && s.ProposedName != null;
+
+        <div class="u-callout" id="sub-@s.SubmissionId">
+            <div class="u-flex-justify-space-between-gap-12px-flexwrap-wrap">
+                <div>
+                    <b>#@s.SubmissionId @s.Name</b>
+                    @if (s.DirectoryEntryId != null) { <span class="u-fs-085em"> (edit of listing #@s.DirectoryEntryId)</span> }
+                    <br /><a href="@s.Link" target="_blank" rel="noopener nofollow">@s.Link</a>
+                </div>
+                <div class="u-fs-085em">
+                    @if (s.ReviewVerdict != null) { <span>Verdict: <b>@s.ReviewVerdict</b> @(s.ReviewConfidence?.ToString("0.00"))</span><br /> }
+                    @if (s.ReviewMoneroEvidence != null) { <span>Monero evidence: <b>@s.ReviewMoneroEvidence</b></span><br /> }
+                    @if (s.ReviewBannedCategory == true) { <span class="text-danger"><b>Banned sponsorship category</b></span><br /> }
+                    @if (s.PaidUtc != null) { <span>💰 donation paid</span> }
+                </div>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(s.ReviewSummary)) { <p class="u-m-6px-0-0"><b>Summary:</b> @s.ReviewSummary</p> }
+            @if (!string.IsNullOrWhiteSpace(s.ReviewPrefilterReason)) { <p class="u-m-6px-0-0 u-fs-085em"><b>Checks:</b> @s.ReviewPrefilterReason</p> }
+            @if (!string.IsNullOrWhiteSpace(s.ReviewDuplicateOf)) { <p class="u-m-6px-0-0"><b>Possible duplicate of:</b> @s.ReviewDuplicateOf</p> }
+            @if (!string.IsNullOrWhiteSpace(s.ReviewError)) { <p class="u-m-6px-0-0 text-danger"><b>Error:</b> @s.ReviewError</p> }
+            @if (issues.Length > 0)
+            {
+                <ul class="u-m-6px-0-0">
+                    @foreach (var i in issues) { <li>@i</li> }
+                </ul>
+            }
+
+            @if (hasProposal)
+            {
+                <div class="table-wrapper">
+                <table class="table">
+                    <thead><tr><th>Field</th><th>Submitted</th><th>Suggested</th></tr></thead>
+                    <tbody>
+                    @foreach (var key in prop.Keys)
+                    {
+                        var o = orig.GetValueOrDefault(key);
+                        var p = prop[key];
+                        if (string.IsNullOrWhiteSpace(o) && string.IsNullOrWhiteSpace(p)) { continue; }
+                        var changed = !string.Equals((o ?? "").Trim(), (p ?? "").Trim(), StringComparison.Ordinal);
+                        <tr>
+                            <td>@key@(key == "Description" && p != null ? $" ({p.Length}/175)" : "")</td>
+                            <td class="u-prewrap-break">@o</td>
+                            <td class="u-prewrap-break">@if (changed) { <mark>@(string.IsNullOrWhiteSpace(p) ? "(removed)" : p)</mark> } else { @p }</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(s.ProposedOtherSubcategories))
+                {
+                    <p class="u-m-6px-0-0"><b>Also fits (add by hand if you want):</b> @s.ProposedOtherSubcategories</p>
+                }
+                @if (changes.Count > 0)
+                {
+                    <details><summary class="u-fs-085em">Why these changes</summary>
+                        <ul>@foreach (var c in changes) { <li><b>@c.Field</b>: @c.Reason</li> }</ul>
+                    </details>
+                }
+            }
+
+            @if (!string.IsNullOrWhiteSpace(s.ReviewDossier))
+            {
+                <a class="u-fs-085em" href="~/admin/ai-log?submissionId=@s.SubmissionId">AI calls for this submission</a>
+                <details><summary class="u-fs-085em">What the reviewer saw (@s.ReviewModel, @s.ReviewTokensIn in / @s.ReviewTokensOut out tokens)</summary>
+                    <pre class="u-prewrap-break u-fs-085em">@s.ReviewDossier</pre>
+                </details>
+            }
+            @if (!string.IsNullOrWhiteSpace(s.ReviewLog))
+            {
+                <details><summary class="u-fs-085em">History</summary><pre class="u-prewrap-break u-fs-085em">@s.ReviewLog</pre></details>
+            }
+
+            <div class="u-flex-gap-8px-flexwrap-wrap u-mt-05rem">
+                @if (hasProposal)
+                {
+                    <form method="post" action="~/admin/submission-review/@s.SubmissionId/approve" class="u-m-0">
+                        @Html.AntiForgeryToken()
+                        @if (state == SubmissionReviewState.AiApproveCandidate)
+                        {
+                            <button type="submit" class="btn btn-primary btn-sm">Approve suggested</button>
+                        }
+                        else
+                        {
+                            <button type="submit" class="btn btn-sm" title="The reviewer did NOT mark this ready. Read its issues first.">Approve anyway</button>
+                        }
+                    </form>
+                    <a class="btn btn-sm" href="~/submission/@s.SubmissionId?useProposal=true">Edit then approve</a>
+                }
+                else
+                {
+                    <a class="btn btn-sm" href="~/submission/@s.SubmissionId">Open review form</a>
+                }
+                <form method="post" action="~/admin/submission-review/@s.SubmissionId/reject" class="u-m-0">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-sm">Reject</button>
+                </form>
+                @if (state != SubmissionReviewState.Pending)
+                {
+                    <form method="post" action="~/admin/submission-review/@s.SubmissionId/rerun" class="u-m-0">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-sm">Re-run review</button>
+                    </form>
+                }
+            </div>
+        </div>
+    }
+}
+
+@if (Model.Submissions.Count == 0)
+{
+    <p>No pending submissions.</p>
+}
+}

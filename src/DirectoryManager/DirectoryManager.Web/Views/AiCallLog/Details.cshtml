@@ -1,0 +1,66 @@
+@model DirectoryManager.Data.Models.AiCallLog
+@{
+    PageMeta.Title = $"AI call #{Model.Id}";
+    Layout = "_CenteredLayout";
+    string Pretty(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) { return string.Empty; }
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            return System.Text.Json.JsonSerializer.Serialize(doc.RootElement, new System.Text.Json.JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return json;
+        }
+    }
+}
+
+@section PageContent {
+    <h1>@PageMeta.Title</h1>
+    @await Html.PartialAsync("_AdminMenu")
+    <p><a href="~/admin/ai-log">&larr; All AI calls</a>
+        @if (Model.SubmissionId is int sid)
+        {
+            <span> | <a href="~/admin/ai-log?submissionId=@sid">All calls for this submission</a> | <a href="~/submission/@sid">Open submission #@sid</a></span>
+        }
+    </p>
+
+    <table class="table table-sm">
+        <tbody>
+            <tr><th>When (UTC)</th><td>@Model.CreatedUtc.ToString("yyyy-MM-dd HH:mm:ss")</td></tr>
+            <tr><th>Feature</th><td>@Model.Feature</td></tr>
+            <tr><th>Subject</th><td>@(Model.SubmissionId is int id ? $"Submission #{id}" : "-") @Model.SubjectName</td></tr>
+            <tr><th>Model</th><td>@Model.Model</td></tr>
+            <tr><th>Verdict</th><td>@Model.Verdict @(Model.Confidence is double c ? $"(confidence {c:0.00})" : string.Empty)</td></tr>
+            <tr><th>What the job did</th><td>@Model.Outcome</td></tr>
+            @if (Model.Error != null)
+            {
+                <tr><th>Error</th><td class="text-danger">@Model.Error</td></tr>
+            }
+            <tr><th>Tokens</th><td>@Model.InputTokens.ToString("N0") in / @Model.OutputTokens.ToString("N0") out</td></tr>
+            <tr><th>HTTP</th><td>@(Model.HttpStatus?.ToString() ?? "no response"), @Model.Attempts attempt(s), @((Model.DurationMs / 1000.0).ToString("0.0")) s, stop reason: @(Model.StopReason ?? "-")</td></tr>
+            <tr><th>Instructions</th><td>@Model.SystemPromptChars.ToString("N0") characters of fixed reviewer rules (in code: ClaudeReviewService.SystemPrompt)</td></tr>
+        </tbody>
+    </table>
+
+    @if (!string.IsNullOrWhiteSpace(Model.Summary))
+    {
+        <h2>Summary from the AI</h2>
+        <p>@Model.Summary</p>
+    }
+
+    <h2>What it answered</h2>
+    @if (string.IsNullOrWhiteSpace(Model.ResponseText))
+    {
+        <p><i>No answer was received.</i></p>
+    }
+    else
+    {
+        <pre class="u-prewrap-break u-fs-085em">@Pretty(Model.ResponseText)</pre>
+    }
+
+    <h2>What it was sent</h2>
+    <pre class="u-prewrap-break u-fs-085em">@Model.RequestText</pre>
+}

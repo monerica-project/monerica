@@ -100,6 +100,19 @@
     </select>
 </div>
 
+@* Does the website need JavaScript? Default "Not Stated". *@
+<div class="form-group">
+    <label for="SiteJavaScript" class="control-label">JavaScript</label>
+    <p class="text-muted"><i>Does the website need JavaScript to work?</i></p>
+    <select class="form-control select-fit" id="SiteJavaScript" name="SiteJavaScript">
+        @foreach (var js in DirectoryManager.Data.Enums.SiteJavaScriptExtensions.FormOrder)
+            {
+                <option value="@((int)js)" selected="@(DirectoryManager.Data.Enums.SiteJavaScriptExtensions.Normalize(Model.SiteJavaScript) == js)">@DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(js)</option>
+            }
+    </select>
+    <small class="form-text text-muted"><b>None</b>: no JavaScript at all. <b>Optional</b>: the main features work with JavaScript turned off. <b>Required</b>: does not work without JavaScript.</small>
+</div>
+
 @* Exchange rate type — optional, collapsed unless already set (no JS needed). *@
 <details class="form-group"@(DirectoryManager.Data.Enums.RateTypeExtensions.IsShown(Model.RateType) ? " open" : "")>
     <summary><b>Exchange rates</b> <span class="text-muted">(optional, for exchanges)</span></summary>

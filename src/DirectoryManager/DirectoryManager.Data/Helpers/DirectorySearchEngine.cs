@@ -660,7 +660,7 @@ namespace DirectoryManager.Data.Helpers
                 this.descriptionWords = Words(e.Description);
                 this.noteWords = Words(e.Note);
                 this.processorWords = Words(e.Processor);
-                this.locationWords = Words(e.Location);
+                this.locationWords = Words(PostalAddress.Format(e.StreetAddress, e.City, e.StateRegion, e.PostalCode));
 
                 this.hosts = new[] { e.Link, e.Link2, e.Link3, e.ProofLink }
                     .Concat(e.SearchAdditionalLinks ?? new List<string>())
@@ -681,7 +681,7 @@ namespace DirectoryManager.Data.Helpers
                     .Distinct()
                     .ToArray();
 
-                this.textLower = string.Join(' ', new[] { e.Description, e.Location, e.Note }.Where(s => !string.IsNullOrEmpty(s))).ToLowerInvariant();
+                this.textLower = string.Join(' ', new[] { e.Description, PostalAddress.Format(e.StreetAddress, e.City, e.StateRegion, e.PostalCode), e.Note }.Where(s => !string.IsNullOrEmpty(s))).ToLowerInvariant();
             }
 
             public DirectoryEntry Entry { get; }

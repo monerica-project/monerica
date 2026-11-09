@@ -31,6 +31,9 @@ namespace DirectoryManager.Web.Models
         [Display(Name = "Rate type")]
         public RateType RateType { get; set; } = RateType.NotApplicable;
 
+        /// <summary>Whether the website needs JavaScript. Unknown = Not Stated.</summary>
+        public SiteJavaScript SiteJavaScript { get; set; } = SiteJavaScript.Unknown;
+
         public List<DirectoryManager.Data.Models.GuaranteeItem> Guarantees { get; set; } = new ();
 
         [Required]

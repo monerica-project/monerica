@@ -61,6 +61,9 @@ namespace DirectoryManager.Web.Models.API
 
         public RateType RateType { get; set; }
 
+        /// <summary>Whether the website needs JavaScript. Unknown = Not Stated.</summary>
+        public SiteJavaScript SiteJavaScript { get; set; }
+
         public List<DirectoryManager.Data.Models.GuaranteeItem> Guarantees { get; set; } = new ();
 
         public bool ReviewsDisabled { get; set; }

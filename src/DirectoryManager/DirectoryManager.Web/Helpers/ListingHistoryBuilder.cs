@@ -117,6 +117,7 @@ namespace DirectoryManager.Web.Helpers
                 ("Source Code", a => a.SourceCodeLink),
                 ("Liquidity",   a => EnumHelper.GetDescription(a.Liquidity)),
                 ("Rate type",   a => EnumHelper.GetDescription(a.RateType)),
+                ("JavaScript",  a => EnumHelper.GetDescription(a.SiteJavaScript)),
                 ("Subcategory", a => SubcategoryDisplay(a)),
                 ("Location",    a => a.Location),
                 ("Country",     a => CountryDisplay(a.CountryCode)),

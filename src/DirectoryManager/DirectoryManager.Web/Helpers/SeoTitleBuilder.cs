@@ -85,6 +85,28 @@ namespace DirectoryManager.Web.Helpers
         }
 
         /// <summary>
+        /// A hand-written title with the " (Page N)" suffix on page 2+. The suffix goes before a
+        /// trailing " | Brand" ("Monero Casinos | Monerica" -> "Monero Casinos (Page 2) | Monerica")
+        /// so paginated titles stay unique; the result is cut to fit like every other title.
+        /// </summary>
+        public static string WithPage(string? title, int page)
+        {
+            var clean = Clean(title);
+            if (page <= 1 || clean.Length == 0)
+            {
+                return FirstThatFits(clean);
+            }
+
+            var suffix = PageSuffix(page);
+            var bar = clean.LastIndexOf(BrandSeparator, StringComparison.Ordinal);
+            var withPage = bar > 0
+                ? clean.Substring(0, bar) + suffix + clean.Substring(bar)
+                : clean + suffix;
+            var withoutBrand = bar > 0 ? clean.Substring(0, bar) + suffix : withPage;
+            return FirstThatFits(withPage, withoutBrand);
+        }
+
+        /// <summary>
         /// Listing profile title, e.g. "Trocador: Monero Aggregator Reviews | Monerica".
         /// Drops the brand first, then "Reviews", then the currency, then the subcategory.
         /// </summary>

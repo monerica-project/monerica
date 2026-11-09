@@ -49,6 +49,8 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<SearchLog> SearchLogs { get; set; }
         public DbSet<DirectoryFilterLog> DirectoryFilterLogs { get; set; }
 
+        public DbSet<AiCallLog> AiCallLogs { get; set; }
+
         public DbSet<SponsorInterestLog> SponsorInterestLogs { get; set; }
 
         public DbSet<ListingPageView> ListingPageViews { get; set; }

@@ -15,5 +15,21 @@ namespace DirectoryManager.Data.Helpers
 
         public static string? NormalizeLineBreaks(string? value) =>
             value?.Replace("\r\n", "\n").Replace('\r', '\n');
+
+        /// <summary>
+        /// Listings never shout: "Fast swaps!" → "Fast swaps." and "Great!!! Easy" → "Great. Easy".
+        /// A "!" inside a word or URL (e.g. "Yahoo!Mail", "/#!/page") is left alone.
+        /// </summary>
+        public static string? RemoveExclamations(string? value)
+        {
+            if (string.IsNullOrEmpty(value) || !value.Contains('!'))
+            {
+                return value;
+            }
+
+            var s = System.Text.RegularExpressions.Regex.Replace(value, @"[!¡]+(?=\s|$)", ".");
+            s = System.Text.RegularExpressions.Regex.Replace(s, @"([.?])\.+", "$1");
+            return s.Trim();
+        }
     }
 }

@@ -75,6 +75,19 @@ namespace DirectoryManager.Web.Tests.Validation
         }
 
         [Fact]
+        public void Sanitize_KeepsRootRelativeLinksFollowable_ButNofollowsExternal()
+        {
+            var output = ContentSanitizer.Sanitize(
+                "<p><a href=\"/exchanges/aggregators\">a</a><a href=\"https://example.com\">b</a><a href=\"//evil.example\">c</a></p>");
+            var anchors = output.Split("<a ", StringSplitOptions.RemoveEmptyEntries).Skip(1).ToArray();
+
+            Assert.Equal(3, anchors.Length);
+            Assert.DoesNotContain("nofollow", anchors[0]);
+            Assert.Contains("nofollow", anchors[1]);
+            Assert.Contains("nofollow", anchors[2]);
+        }
+
+        [Fact]
         public void Sanitize_HardensBlankTargetLinks_AgainstTabnabbing()
         {
             var output = ContentSanitizer.Sanitize(

@@ -96,18 +96,29 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             // A disallowed tag (e.g. <script>, <img>) is removed together with its contents.
             sanitizer.KeepChildNodes = false;
 
-            // Harden any target="_blank" link against reverse-tabnabbing.
+            // Harden any target="_blank" link against reverse-tabnabbing. Root-relative links
+            // ("/exchanges/aggregators") point at this same site, so they stay followable:
+            // nofollow on our own internal links (category intros, notes) wastes link equity.
             sanitizer.PostProcessNode += (sender, e) =>
             {
                 if (e.Node is IElement element &&
                     string.Equals(element.TagName, "A", StringComparison.OrdinalIgnoreCase))
                 {
-                    element.SetAttribute("rel", "noopener noreferrer nofollow");
+                    element.SetAttribute("rel", IsSameSiteRelative(element.GetAttribute("href"))
+                        ? "noopener"
+                        : "noopener noreferrer nofollow");
                 }
             };
 
             return sanitizer;
         }
+
+        /// <summary>True for a root-relative path ("/wallets"), not a protocol-relative "//host".</summary>
+        internal static bool IsSameSiteRelative(string? href) =>
+            !string.IsNullOrWhiteSpace(href)
+            && href.StartsWith('/')
+            && !href.StartsWith("//", StringComparison.Ordinal)
+            && !href.StartsWith("/\\", StringComparison.Ordinal);
 
         private static HtmlSanitizer BuildTextOnlySanitizer()
         {

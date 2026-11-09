@@ -241,6 +241,7 @@ namespace DirectoryManager.Web.Controllers
                         ? EnumHelper.GetDescription(e.Liquidity)
                         : null,
                     rates = e.RateType.IsShown() ? EnumHelper.GetDescription(e.RateType) : null,
+                    javascript = e.SiteJavaScript.IsShown() ? EnumHelper.GetDescription(e.SiteJavaScript) : null,
                     tags = e.EntryTags?.Where(t => t.Tag != null).Select(t => t.Tag.Name).OrderBy(n => n).ToList() is { Count: > 0 } tg ? tg : null,
                     country = NullIfBlank(e.CountryCode),
                     founded = e.FoundedDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
@@ -382,6 +383,11 @@ namespace DirectoryManager.Web.Controllers
             if (entry.RateType.IsShown())
             {
                 facts.Add($"Rates: {EnumHelper.GetDescription(entry.RateType)}");
+            }
+
+            if (entry.SiteJavaScript.IsShown())
+            {
+                facts.Add($"JavaScript: {EnumHelper.GetDescription(entry.SiteJavaScript)}");
             }
 
             if (!string.IsNullOrWhiteSpace(link2Name))

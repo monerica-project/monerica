@@ -127,6 +127,88 @@ namespace DirectoryManager.Data.Migrations
                     b.ToTable("AffiliateCommissionsEarned");
                 });
 
+            modelBuilder.Entity("DirectoryManager.Data.Models.AiCallLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer");
+
+                    b.Property<double?>("Confidence")
+                        .HasColumnType("double precision");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DurationMs")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Error")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Feature")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int?>("HttpStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("InputTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Outcome")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("OutputTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RequestText")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ResponseText")
+                        .HasColumnType("text");
+
+                    b.Property<string>("StopReason")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("SubjectName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<int?>("SubmissionId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Summary")
+                        .HasColumnType("text");
+
+                    b.Property<int>("SystemPromptChars")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Verdict")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedUtc");
+
+                    b.HasIndex("SubmissionId");
+
+                    b.ToTable("AiCallLogs");
+                });
+
             modelBuilder.Entity("DirectoryManager.Data.Models.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
@@ -226,6 +308,10 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<int?>("FeaturedDirectoryEntryId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Heading")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("boolean");
 
@@ -241,6 +327,10 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<string>("Note")
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("SeoTitle")
+                        .HasMaxLength(70)
+                        .HasColumnType("character varying(70)");
 
                     b.Property<DateTime?>("UpdateDate")
                         .HasColumnType("timestamp with time zone");
@@ -367,6 +457,9 @@ namespace DirectoryManager.Data.Migrations
                         .HasColumnType("character varying(500)");
 
                     b.Property<int>("RateType")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SiteJavaScript")
                         .HasColumnType("integer");
 
                     b.Property<string>("Social")
@@ -513,6 +606,9 @@ namespace DirectoryManager.Data.Migrations
 
                     b.Property<bool>("ReviewsDisabled")
                         .HasColumnType("boolean");
+
+                    b.Property<int>("SiteJavaScript")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Social")
                         .HasMaxLength(255)
@@ -2301,6 +2397,10 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<int?>("FeaturedDirectoryEntryId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Heading")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("boolean");
 
@@ -2323,6 +2423,10 @@ namespace DirectoryManager.Data.Migrations
 
                     b.Property<bool>("RequireReviewVerification")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("SeoTitle")
+                        .HasMaxLength(70)
+                        .HasColumnType("character varying(70)");
 
                     b.Property<bool>("SponsorshipDisabled")
                         .HasColumnType("boolean");
@@ -2429,6 +2533,9 @@ namespace DirectoryManager.Data.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<string>("OriginalSnapshotJson")
+                        .HasColumnType("text");
+
                     b.Property<decimal?>("PaidAmount")
                         .HasColumnType("numeric(18,8)");
 
@@ -2461,15 +2568,125 @@ namespace DirectoryManager.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<string>("ProposedChangesJson")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ProposedCountryCode")
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)");
+
+                    b.Property<string>("ProposedDescription")
+                        .HasMaxLength(175)
+                        .HasColumnType("character varying(175)");
+
+                    b.Property<int?>("ProposedKycPolicy")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ProposedLiquidity")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ProposedLocation")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("ProposedName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("ProposedNote")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("ProposedOtherSubcategories")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int?>("ProposedRateType")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ProposedSiteJavaScript")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ProposedSubCategoryId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ProposedTags")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
                     b.Property<int>("RateType")
                         .HasColumnType("integer");
 
                     b.Property<string>("RelatedLinksJson")
                         .HasColumnType("text");
 
+                    b.Property<int>("ReviewAttempts")
+                        .HasColumnType("integer");
+
+                    b.Property<bool?>("ReviewBannedCategory")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal?>("ReviewConfidence")
+                        .HasColumnType("numeric(4,3)");
+
+                    b.Property<string>("ReviewDossier")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ReviewDuplicateOf")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("ReviewError")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("ReviewIssuesJson")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ReviewLog")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ReviewModel")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("ReviewMoneroEvidence")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("ReviewPrefilterReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("ReviewState")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ReviewSummary")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int?>("ReviewTokensIn")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ReviewTokensOut")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ReviewVerdict")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("ReviewVerdictJson")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("ReviewedUtc")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("SelectedTagIdsCsv")
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
+
+                    b.Property<int>("SiteJavaScript")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Social")
                         .HasMaxLength(255)

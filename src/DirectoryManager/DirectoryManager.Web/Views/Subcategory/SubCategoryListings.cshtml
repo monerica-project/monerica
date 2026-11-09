@@ -23,12 +23,22 @@
     PageMeta.Title = Model.PageTitle;
 
     // Keyword first, at most 60 characters: "Instant Swaps: Monero (XMR) Exchanges | Monerica".
-    PageMeta.SeoTitle = SeoTitleBuilder.ForSubcategory(
-        Model.SubcategoryName,
-        Model.CategoryName,
-        currencyNameForSeo,
-        siteNameForSeo,
-        Model.CurrentPage);
+    // A hand-written SeoTitle (Subcategories.SeoTitle) wins; page 2+ gets "(Page N)".
+    PageMeta.SeoTitle = !string.IsNullOrWhiteSpace(Model.SeoTitle)
+        ? SeoTitleBuilder.WithPage(Model.SeoTitle, Model.CurrentPage)
+        : SeoTitleBuilder.ForSubcategory(
+            Model.SubcategoryName,
+            Model.CategoryName,
+            currencyNameForSeo,
+            siteNameForSeo,
+            Model.CurrentPage);
+
+    // H1: the hand-written heading, else the generated title without the site name
+    // ("Instant Swaps: Monero (XMR) Exchanges") instead of "Exchanges » Instant Swaps"
+    // (the breadcrumb right below already shows the category path).
+    var pageHeading = !string.IsNullOrWhiteSpace(Model.Heading)
+        ? Model.Heading
+        : SeoTitleBuilder.ForSubcategory(Model.SubcategoryName, Model.CategoryName, currencyNameForSeo, null);
     var baseDescription = string.IsNullOrWhiteSpace(Model.MetaDescription)
         ? SeoDescriptionBuilder.ForListPage($"{Model.SubcategoryName} ({Model.CategoryName})", Model.PagedEntries?.TotalCount ?? 0, currencyNameForSeo, siteNameForSeo)
         : Model.MetaDescription;
@@ -68,7 +78,7 @@
 
 
     
-<h1>@Model.PageHeader</h1>
+<h1>@pageHeading</h1>
 
 <hr />
 
@@ -88,7 +98,18 @@
 
 @if (!string.IsNullOrWhiteSpace(Model.PageDetails))
 {
-    <p>@Html.Raw(ContentSanitizer.Sanitize(Model.PageDetails))</p>
+    // Plain text keeps the old single <p>. HTML that brings its own blocks (<p>, <ul>) goes in a
+    // <div>, because a <p> or <ul> nested inside a <p> is invalid and the browser splits it.
+    var pageDetailsHtml = ContentSanitizer.Sanitize(Model.PageDetails);
+    if (pageDetailsHtml.TrimStart().StartsWith("<p", StringComparison.OrdinalIgnoreCase)
+        || pageDetailsHtml.TrimStart().StartsWith("<ul", StringComparison.OrdinalIgnoreCase))
+    {
+        <div class="page-intro">@Html.Raw(pageDetailsHtml)</div>
+    }
+    else
+    {
+        <p>@Html.Raw(pageDetailsHtml)</p>
+    }
 }
 
 @if (!string.IsNullOrWhiteSpace(Model.Note))
@@ -197,20 +218,17 @@
     @await Html.PartialAsync("_SponsoredListingSubCategoryPartial", subCategorySponsorModel)
 
     @{
-        // build highlight set: MainSponsor + CategorySponsor (for THIS category)
+        // Highlight set: every listing with ANY active sponsorship (main, category or subcategory,
+        // for any category/subcategory) is shown as a sponsor wherever it appears (owner's rule, 2026-11-08).
         var mainSponsors = await sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.MainSponsor);
         var categorySponsors = await sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.CategorySponsor);
-        var currentCategoryId = Model.Category.CategoryId;
+        var subcategorySponsors = await sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.SubcategorySponsor);
 
         var highlightIds = new HashSet<int>(
             (mainSponsors ?? Enumerable.Empty<DirectoryManager.Data.Models.SponsoredListings.SponsoredListing>())
-                .Select(s => s.DirectoryEntryId)
-            .Concat(
-                (categorySponsors ?? Enumerable.Empty<DirectoryManager.Data.Models.SponsoredListings.SponsoredListing>())
-                    .Where(s => (s.CategoryId ?? s.DirectoryEntry?.SubCategory?.CategoryId) == currentCategoryId)
-                    .Select(s => s.DirectoryEntryId)
-            )
-        );
+                .Concat(categorySponsors ?? Enumerable.Empty<DirectoryManager.Data.Models.SponsoredListings.SponsoredListing>())
+                .Concat(subcategorySponsors ?? Enumerable.Empty<DirectoryManager.Data.Models.SponsoredListings.SponsoredListing>())
+                .Select(s => s.DirectoryEntryId));
 
         // do not double-highlight the subcategory sponsor that’s already shown above
         int? subSponsorEntryId = subCategorySponsorModel.DirectoryEntry?.DirectoryEntryId;
