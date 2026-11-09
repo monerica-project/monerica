@@ -152,6 +152,7 @@ namespace DirectoryManager.SubmissionReviewer.Review
                 }
 
                 var similar = SubmissionDossierBuilder.MostSimilar(s, listings);
+                var referral = await this.dossiers.FindReferralProgramAsync(pages!.Value.Main, ct);
                 var dossier = SubmissionDossierBuilder.Build(
                     s,
                     s.SubCategoryId is int sc && labelById.TryGetValue(sc, out var lbl) ? lbl : null,
@@ -159,7 +160,8 @@ namespace DirectoryManager.SubmissionReviewer.Review
                     pages.Value.Second,
                     current,
                     similar,
-                    this.options.DossierMaxChars);
+                    this.options.DossierMaxChars,
+                    referral);
                 s.ReviewDossier = dossier;
                 s.ReviewAttempts++;
                 processed++;

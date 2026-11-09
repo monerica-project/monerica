@@ -39,7 +39,13 @@ namespace DirectoryManager.Web.Models.API
 
         public string? Note { get; set; }
 
-        public string? Location { get; set; }
+        public string? StreetAddress { get; set; }
+
+        public string? City { get; set; }
+
+        public string? StateRegion { get; set; }
+
+        public string? PostalCode { get; set; }
 
         public string? Processor { get; set; }
 

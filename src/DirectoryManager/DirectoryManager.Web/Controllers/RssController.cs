@@ -106,7 +106,10 @@ public class RssController : Controller
                     SubCategory = entry.SubCategory,
                     DirectoryStatus = entry.DirectoryStatus,
                     Description = entry.Description,
-                    Location = entry.Location,
+                    StreetAddress = entry.StreetAddress,
+                    City = entry.City,
+                    StateRegion = entry.StateRegion,
+                    PostalCode = entry.PostalCode,
                     Processor = entry.Processor,
                     Note = entry.Note,
                     CreateDate = latestDate, // <- use latestDate, not invoice.CreateDate

@@ -105,9 +105,10 @@ namespace DirectoryManager.Web.Services.Implementations
                 descriptionBuilder.Append(" - Note: ").Append(entry.Note);
             }
 
-            if (!string.IsNullOrWhiteSpace(entry.Location))
+            var address = DirectoryManager.Data.Helpers.PostalAddress.Format(entry.StreetAddress, entry.City, entry.StateRegion, entry.PostalCode);
+            if (!string.IsNullOrWhiteSpace(address))
             {
-                descriptionBuilder.Append(" - Location: ").Append(entry.Location);
+                descriptionBuilder.Append(" - Location: ").Append(address);
             }
 
             if (!string.IsNullOrWhiteSpace(entry.Processor))

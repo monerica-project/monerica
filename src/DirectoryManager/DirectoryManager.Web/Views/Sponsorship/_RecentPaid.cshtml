@@ -24,7 +24,6 @@
                     <th>Listing</th>
                     <th class="u-text-right">Days</th>
                     <th class="u-text-right">Paid</th>
-                    <th class="u-text-right">USD</th>
                     <th class="u-text-right">Expires</th>
                 </tr>
             </thead>
@@ -47,9 +46,9 @@
                         </td>
                         <td class="u-text-right">@item.Days</td>
                         <td class="u-text-right">
-                            @item.PaidAmount.ToString("0.########") @item.PaidCurrency
+                            @item.PaidAmount.ToString("0.########") @item.PaidCurrency<br />
+                            <span class="u-opacity-75">@item.AmountUsd.ToString("C2", usd)</span>
                         </td>
-                        <td class="u-text-right">@item.AmountUsd.ToString("C2", usd)</td>
                         <td class="u-text-right">@item.ExpiresUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
                     </tr>
                 }

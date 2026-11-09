@@ -380,6 +380,10 @@ namespace DirectoryManager.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("DirectoryEntriesAuditId"));
 
+                    b.Property<string>("City")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
                     b.Property<string>("CountryCode")
                         .HasMaxLength(2)
                         .HasColumnType("character varying(2)");
@@ -428,10 +432,6 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<int>("Liquidity")
                         .HasColumnType("integer");
 
-                    b.Property<string>("Location")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
                     b.Property<string>("Messenger")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
@@ -447,6 +447,10 @@ namespace DirectoryManager.Data.Migrations
 
                     b.Property<string>("PgpKey")
                         .HasColumnType("text");
+
+                    b.Property<string>("PostalCode")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
 
                     b.Property<string>("Processor")
                         .HasMaxLength(255)
@@ -469,6 +473,14 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<string>("SourceCodeLink")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<string>("StateRegion")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("StreetAddress")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
 
                     b.Property<int?>("SubCategoryId")
                         .HasColumnType("integer");
@@ -498,6 +510,10 @@ namespace DirectoryManager.Data.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("DirectoryEntryId"));
+
+                    b.Property<string>("City")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
 
                     b.Property<string>("CountryCode")
                         .HasMaxLength(2)
@@ -564,10 +580,6 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<int>("Liquidity")
                         .HasColumnType("integer");
 
-                    b.Property<string>("Location")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
                     b.Property<string>("Messenger")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
@@ -583,6 +595,10 @@ namespace DirectoryManager.Data.Migrations
 
                     b.Property<string>("PgpKey")
                         .HasColumnType("text");
+
+                    b.Property<string>("PostalCode")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
 
                     b.Property<string>("Processor")
                         .HasMaxLength(255)
@@ -617,6 +633,14 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<string>("SourceCodeLink")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<string>("StateRegion")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("StreetAddress")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
 
                     b.Property<int>("SubCategoryId")
                         .HasColumnType("integer");
@@ -2466,6 +2490,10 @@ namespace DirectoryManager.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("City")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
                     b.Property<string>("CountryCode")
                         .HasMaxLength(2)
                         .HasColumnType("character varying(2)");
@@ -2512,10 +2540,6 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<int>("Liquidity")
                         .HasColumnType("integer");
 
-                    b.Property<string>("Location")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
                     b.Property<string>("Messenger")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
@@ -2560,6 +2584,10 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<string>("PgpKey")
                         .HasColumnType("text");
 
+                    b.Property<string>("PostalCode")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
                     b.Property<string>("Processor")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
@@ -2570,6 +2598,10 @@ namespace DirectoryManager.Data.Migrations
 
                     b.Property<string>("ProposedChangesJson")
                         .HasColumnType("text");
+
+                    b.Property<string>("ProposedCity")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
 
                     b.Property<string>("ProposedCountryCode")
                         .HasMaxLength(2)
@@ -2585,10 +2617,6 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<int?>("ProposedLiquidity")
                         .HasColumnType("integer");
 
-                    b.Property<string>("ProposedLocation")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
                     b.Property<string>("ProposedName")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
@@ -2601,11 +2629,23 @@ namespace DirectoryManager.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<string>("ProposedPostalCode")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
                     b.Property<int?>("ProposedRateType")
                         .HasColumnType("integer");
 
                     b.Property<int?>("ProposedSiteJavaScript")
                         .HasColumnType("integer");
+
+                    b.Property<string>("ProposedStateRegion")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("ProposedStreetAddress")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
 
                     b.Property<int?>("ProposedSubCategoryId")
                         .HasColumnType("integer");
@@ -2695,6 +2735,14 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<string>("SourceCodeLink")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<string>("StateRegion")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("StreetAddress")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
 
                     b.Property<int?>("SubCategoryId")
                         .HasColumnType("integer");

@@ -134,16 +134,37 @@
 </div>
 
 <div class="form-group">
-    <label asp-for="Location">City, State/Region</label>
-    <input autocomplete="off" asp-for="Location" class="form-control input-width" />
-    <span asp-validation-for="Location" class="text-danger"></span>
-</div>
-
-<div class="form-group">
     <label asp-for="CountryCode" class="control-label"></label>
     <select asp-for="CountryCode" asp-items="ViewBag.CountryCode" class="form-control select-fit"></select>
     <span asp-validation-for="CountryCode" class="text-danger"></span>
 </div>
+
+@* Physical address: optional, collapsed unless already filled in (no JS needed).
+   Only for a real place (shop, office). The country is the field above, never typed here. *@
+<details class="form-group"@(DirectoryManager.Data.Helpers.PostalAddress.HasAny(Model.StreetAddress, Model.City, Model.StateRegion, Model.PostalCode) ? " open" : "")>
+    <summary><b>Physical address</b> <span class="text-muted">(optional, only for a real location)</span></summary>
+    <p class="text-muted"><i>Only fill this in if the business has a real place people can visit, like a shop or office. Leave it empty for online-only services. Don't type the country here; choose it above.</i></p>
+    <div class="form-group">
+        <label asp-for="StreetAddress">Street Address</label>
+        <input autocomplete="off" asp-for="StreetAddress" class="form-control input-width" />
+        <span asp-validation-for="StreetAddress" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="City">City</label>
+        <input autocomplete="off" asp-for="City" class="form-control input-width" />
+        <span asp-validation-for="City" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="StateRegion">State/Region</label>
+        <input autocomplete="off" asp-for="StateRegion" class="form-control input-width" />
+        <span asp-validation-for="StateRegion" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="PostalCode">Postal Code</label>
+        <input autocomplete="off" asp-for="PostalCode" class="form-control input-width" />
+        <span asp-validation-for="PostalCode" class="text-danger"></span>
+    </div>
+</details>
 
 <div class="form-group">
     <label for="KycPolicy" class="control-label">KYC Policy</label>

@@ -51,6 +51,8 @@ namespace DirectoryManager.Web.Controllers
         private readonly ISubmissionBlockedTermRepository blockedTermRepository;
         private readonly ISubmissionBlockedDomainRepository? blockedDomainRepository;
 
+        private readonly ISubmissionLinkChecker? linkChecker;
+
         public SubmissionController(
             UserManager<ApplicationUser> userManager,
             ISubmissionRepository submissionRepository,
@@ -69,9 +71,11 @@ namespace DirectoryManager.Web.Controllers
             ISubmissionBlockedTermRepository blockedTermRepository,
             IBtcPayServerService btcPay,
             IDirectoryEntryAdditionalSubcategoryRepository? additionalSubcategoryRepo = null,
-            ISubmissionBlockedDomainRepository? blockedDomainRepository = null)
+            ISubmissionBlockedDomainRepository? blockedDomainRepository = null,
+            ISubmissionLinkChecker? linkChecker = null)
             : base(cache)
         {
+            this.linkChecker = linkChecker;
             this.blockedDomainRepository = blockedDomainRepository;
             this.additionalSubcategoryRepo = additionalSubcategoryRepo;
             this.userManager = userManager;
@@ -149,6 +153,16 @@ namespace DirectoryManager.Web.Controllers
                     nameof(model.Link),
                     "The main Link must be a clearnet (http/https) address. Put Tor (.onion) and I2P (.i2p) addresses in the Link 2 / Link 3 fields.");
             }
+            else if (this.linkChecker != null && await this.MainLinkNeedsCheckAsync(model))
+            {
+                // Links that can never load (made-up domains etc.) stop here, before the preview,
+                // so they never reach the review queue. Uncertain results pass.
+                var linkError = await this.linkChecker.CheckAsync(model.Link!, this.HttpContext?.RequestAborted ?? default);
+                if (linkError != null)
+                {
+                    this.ModelState.AddModelError(nameof(model.Link), linkError);
+                }
+            }
 
             // Link2/Link3 are Tor/I2P/alt links (still validate as URLs if supplied)
             if (!string.IsNullOrWhiteSpace(model.Link2) && !UrlHelper.IsValidUrl(model.Link2))
@@ -196,6 +210,25 @@ namespace DirectoryManager.Web.Controllers
             }
 
             GuaranteeValidation.ValidateGuarantees(model.Guarantees, this.ModelState);
+
+            // ---- Every link must be different (proof link may equal the main link) ----
+            foreach (var (field, message) in DirectoryManager.Utilities.Helpers.LinkUniqueness.FindDuplicates(new (string, string, string?)[]
+            {
+                (nameof(model.Link), "Link", model.Link),
+                (nameof(model.Link2), "Link 2", model.Link2),
+                (nameof(model.Link3), "Link 3", model.Link3),
+                (nameof(model.ProofLink), "The proof link", model.ProofLink),
+                (nameof(model.VideoLink), "The video link", model.VideoLink),
+                (nameof(model.SourceCodeLink), "The source code link", model.SourceCodeLink),
+                (nameof(model.Social), "Social", model.Social),
+                (nameof(model.Messenger), "Messenger", model.Messenger),
+                (nameof(model.RelatedLink1), "Related link 1", model.RelatedLink1),
+                (nameof(model.RelatedLink2), "Related link 2", model.RelatedLink2),
+                (nameof(model.RelatedLink3), "Related link 3", model.RelatedLink3),
+            }))
+            {
+                this.ModelState.AddModelError(field, message);
+            }
 
             // ---- No links straight to programs, installers or archives (new listings and edits) ----
             this.ValidateNoFileDownloadLinks(model);
@@ -322,7 +355,10 @@ namespace DirectoryManager.Web.Controllers
                 => string.IsNullOrEmpty(s) ? s : DirectoryManager.Utilities.Validation.UnicodeSanitizer.StripEmoji(s);
             model.Name = StripE(model.Name) ?? string.Empty;
             model.Description = StripE(model.Description) ?? string.Empty;
-            model.Location = StripE(model.Location);
+            model.StreetAddress = StripE(model.StreetAddress);
+            model.City = StripE(model.City);
+            model.StateRegion = StripE(model.StateRegion);
+            model.PostalCode = StripE(model.PostalCode);
             model.Processor = StripE(model.Processor);
             model.Note = StripE(model.Note);
             model.NoteToAdmin = StripE(model.NoteToAdmin);
@@ -1590,7 +1626,10 @@ namespace DirectoryManager.Web.Controllers
                 Link = directoryEntry.Link,
                 Link2 = directoryEntry.Link2 ?? string.Empty,
                 Link3 = directoryEntry.Link3 ?? string.Empty,
-                Location = directoryEntry.Location,
+                StreetAddress = directoryEntry.StreetAddress,
+                City = directoryEntry.City,
+                StateRegion = directoryEntry.StateRegion,
+                PostalCode = directoryEntry.PostalCode,
                 ProofLink = directoryEntry.ProofLink,
                 VideoLink = directoryEntry.VideoLink,
                 SourceCodeLink = directoryEntry.SourceCodeLink,
@@ -1635,7 +1674,10 @@ namespace DirectoryManager.Web.Controllers
                 ProofLink = submission.ProofLink,
                 VideoLink = submission.VideoLink,
                 SourceCodeLink = submission.SourceCodeLink,
-                Location = submission.Location,
+                StreetAddress = submission.StreetAddress,
+                City = submission.City,
+                StateRegion = submission.StateRegion,
+                PostalCode = submission.PostalCode,
                 Name = submission.Name,
                 Note = submission.Note,
                 Processor = submission.Processor,
@@ -1708,6 +1750,20 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.SubCategories = subCategories;
         }
 
+        // New listings always; edits only when the main link was changed (an untouched link on
+        // an existing listing is the site checker's job, not the submitter's).
+        private async Task<bool> MainLinkNeedsCheckAsync(SubmissionRequest model)
+        {
+            if (model.DirectoryEntryId is not int entryId || entryId <= 0)
+            {
+                return true;
+            }
+
+            var entry = await this.directoryEntryRepository.GetByIdAsync(entryId);
+            return entry == null
+                || !string.Equals((entry.Link ?? string.Empty).Trim().TrimEnd('/'), (model.Link ?? string.Empty).Trim().TrimEnd('/'), StringComparison.OrdinalIgnoreCase);
+        }
+
         private async Task<SubmissionPreviewModel> GetSubmissionPreviewAsync(Submission submission)
         {
             var link2Name = await this.cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name);
@@ -1747,7 +1803,10 @@ namespace DirectoryManager.Web.Controllers
                             : submission.DirectoryStatus.Value,
                     Link2 = submission.Link2,
                     Link3 = submission.Link3,
-                    Location = submission.Location,
+                    StreetAddress = submission.StreetAddress,
+                    City = submission.City,
+                    StateRegion = submission.StateRegion,
+                    PostalCode = submission.PostalCode,
                     Note = submission.Note,
                     Processor = submission.Processor,
                     SubCategoryId = submission.SubCategoryId,
@@ -2064,7 +2123,10 @@ namespace DirectoryManager.Web.Controllers
             submission.VideoLink = postedModel.VideoLink;
             submission.SourceCodeLink = postedModel.SourceCodeLink;
             submission.Description = postedModel.Description;
-            submission.Location = postedModel.Location;
+            submission.StreetAddress = postedModel.StreetAddress;
+            submission.City = postedModel.City;
+            submission.StateRegion = postedModel.StateRegion;
+            submission.PostalCode = postedModel.PostalCode;
             submission.Processor = postedModel.Processor;
             submission.Note = postedModel.Note;
             submission.PgpKey = postedModel.PgpKey;
@@ -2242,7 +2304,10 @@ namespace DirectoryManager.Web.Controllers
                 Link2 = model.Link2?.Trim(),
                 Link3 = model.Link3?.Trim(),
                 Description = ListingText.RemoveExclamations(model.Description?.Trim()),
-                Location = model.Location?.Trim(),
+                StreetAddress = PostalAddress.Clean(model.StreetAddress),
+                City = PostalAddress.Clean(model.City),
+                StateRegion = PostalAddress.Clean(model.StateRegion),
+                PostalCode = PostalAddress.Clean(model.PostalCode),
                 Processor = model.Processor?.Trim(),
                 Note = ListingText.RemoveExclamations(model.Note?.Trim()),
                 Email = model.Email?.Trim(),
@@ -2287,7 +2352,10 @@ namespace DirectoryManager.Web.Controllers
             existing.Link2 = model.Link2?.Trim();
             existing.Link3 = model.Link3?.Trim();
             existing.Description = ListingText.RemoveExclamations(model.Description?.Trim());
-            existing.Location = model.Location?.Trim();
+            existing.StreetAddress = PostalAddress.Clean(model.StreetAddress);
+            existing.City = PostalAddress.Clean(model.City);
+            existing.StateRegion = PostalAddress.Clean(model.StateRegion);
+            existing.PostalCode = PostalAddress.Clean(model.PostalCode);
             existing.Processor = model.Processor?.Trim();
             existing.Note = ListingText.RemoveExclamations(model.Note?.Trim());
             existing.Email = model.Email?.Trim();
@@ -2342,7 +2410,10 @@ namespace DirectoryManager.Web.Controllers
                 VideoLink = (model.VideoLink ?? string.Empty).Trim(),
                 SourceCodeLink = (model.SourceCodeLink ?? string.Empty).Trim(),
                 Description = (model.Description ?? string.Empty).Trim(),
-                Location = (model.Location ?? string.Empty).Trim(),
+                StreetAddress = (model.StreetAddress ?? string.Empty).Trim(),
+                City = (model.City ?? string.Empty).Trim(),
+                StateRegion = (model.StateRegion ?? string.Empty).Trim(),
+                PostalCode = (model.PostalCode ?? string.Empty).Trim(),
                 Processor = (model.Processor ?? string.Empty).Trim(),
                 Note = (model.Note ?? string.Empty).Trim(),
                 Email = (model.Email ?? string.Empty).Trim(),
@@ -2422,7 +2493,10 @@ namespace DirectoryManager.Web.Controllers
         private async Task UpdateSubmission(Submission submissionModel, Submission existingSubmission)
         {
             existingSubmission.SubmissionStatus = submissionModel.SubmissionStatus;
-            existingSubmission.Location = submissionModel.Location;
+            existingSubmission.StreetAddress = submissionModel.StreetAddress;
+            existingSubmission.City = submissionModel.City;
+            existingSubmission.StateRegion = submissionModel.StateRegion;
+            existingSubmission.PostalCode = submissionModel.PostalCode;
             existingSubmission.DirectoryStatus = submissionModel.DirectoryStatus;
             existingSubmission.DirectoryEntryId = submissionModel.DirectoryEntryId;
             existingSubmission.Email = submissionModel.Email;
@@ -2598,7 +2672,22 @@ namespace DirectoryManager.Web.Controllers
                 return true;
             }
 
-            if (!string.Equals(Norm(existingEntry.Location), Norm(model.Location), StringComparison.Ordinal))
+            if (!string.Equals(Norm(existingEntry.StreetAddress), Norm(model.StreetAddress), StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            if (!string.Equals(Norm(existingEntry.City), Norm(model.City), StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            if (!string.Equals(Norm(existingEntry.StateRegion), Norm(model.StateRegion), StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            if (!string.Equals(Norm(existingEntry.PostalCode), Norm(model.PostalCode), StringComparison.Ordinal))
             {
                 return true;
             }

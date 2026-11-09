@@ -64,7 +64,7 @@ else
             <th>Name</th>
             <th>Link</th>
             <th>Description</th>
-            <th>Location</th>
+            <th>Address</th>
             <th>Note</th>
             <th>Processor</th>
             <th>Subcategory</th>
@@ -82,7 +82,7 @@ else
                 <td>@audit.Name</td>
                 <td>@audit.Link</td>
                 <td>@audit.Description</td>
-                <td>@audit.Location</td>
+                <td>@DirectoryManager.Data.Helpers.PostalAddress.Format(audit.StreetAddress, audit.City, audit.StateRegion, audit.PostalCode)</td>
                 <td>@audit.Note</td>
                 <td>@audit.Processor</td>
                 <td>@audit.SubCategoryName</td>

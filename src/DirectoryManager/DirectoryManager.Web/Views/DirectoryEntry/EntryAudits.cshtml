@@ -23,7 +23,7 @@
             <th>Link 3</th>
             <th>Status</th>
             <th>Description</th>
-            <th>Location</th>
+            <th>Address</th>
             <th>Note</th>
             <th>Email</th>
             <th>Messenger</th>
@@ -44,7 +44,7 @@
                 <td>@audit.Link3</td>
                 <td>@audit.DirectoryStatus</td>
                 <td>@audit.Description</td>
-                <td>@audit.Location</td>
+                <td>@DirectoryManager.Data.Helpers.PostalAddress.Format(audit.StreetAddress, audit.City, audit.StateRegion, audit.PostalCode)</td>
                 <td>@audit.Note</td>
                 <td>@audit.Email</td>
                 <td>@audit.Messenger</td>

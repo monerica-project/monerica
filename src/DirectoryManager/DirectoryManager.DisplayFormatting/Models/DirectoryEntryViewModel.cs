@@ -53,7 +53,16 @@ namespace DirectoryManager.DisplayFormatting.Models
         public string? Description { get; set; }
 
         [MaxLength(255)]
-        public string? Location { get; set; }
+        public string? StreetAddress { get; set; }
+
+        [MaxLength(255)]
+        public string? City { get; set; }
+
+        [MaxLength(255)]
+        public string? StateRegion { get; set; }
+
+        [MaxLength(32)]
+        public string? PostalCode { get; set; }
 
         [MaxLength(255)]
         public string? Processor { get; set; }

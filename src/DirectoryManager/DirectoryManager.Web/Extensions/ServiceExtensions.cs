@@ -92,6 +92,7 @@ namespace DirectoryManager.Web.Extensions
             services.Configure<CaptchaOptions>(config.GetSection("Captcha"));
             services.AddHttpClient();
             services.AddTransient<ICaptchaService, CaptchaService>();
+            services.AddSingleton<ISubmissionLinkChecker, SubmissionLinkChecker>();
 
             // Lifetimes: CacheService should be Scoped (it uses a repo/DbContext)
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>()

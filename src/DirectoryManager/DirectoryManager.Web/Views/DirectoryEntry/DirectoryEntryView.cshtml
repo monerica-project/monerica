@@ -243,7 +243,7 @@
                     }
 
                     @if (!string.IsNullOrEmpty(Model.ProofLink) &&
-                         !string.Equals(Model.ProofLink.TrimEnd('/'), Model.Link?.TrimEnd('/'), StringComparison.OrdinalIgnoreCase))
+                         !DirectoryManager.Utilities.Helpers.UrlHelper.SameLink(Model.ProofLink, Model.Link))
                     {
                         <tr>
                             <th scope="row">Proof</th>
@@ -324,10 +324,10 @@
                         </tr>
                     }
 
-                    @if (!string.IsNullOrEmpty(Model.Location) || !string.IsNullOrWhiteSpace(Model.CountryCode))
+                    @if (DirectoryManager.Data.Helpers.PostalAddress.HasAny(Model.StreetAddress, Model.City, Model.StateRegion, Model.PostalCode) || !string.IsNullOrWhiteSpace(Model.CountryCode))
                     {
                         <tr>
-                            <th scope="row">Location</th>
+                            <th scope="row">@(string.IsNullOrWhiteSpace(Model.StreetAddress) ? "Location" : "Address")</th>
                             <td>
                                 @Html.Raw(Model.FormattedLocation)
                             </td>

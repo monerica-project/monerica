@@ -134,7 +134,8 @@ namespace DirectoryManager.SubmissionReviewer.Fetching
                 var finalUri = resp.RequestMessage?.RequestUri ?? uri;
                 string? html = null;
                 var type = resp.Content.Headers.ContentType?.MediaType ?? "text/html";
-                if (type.Contains("html", StringComparison.OrdinalIgnoreCase) || type.StartsWith("text/", StringComparison.OrdinalIgnoreCase))
+                if (type.Contains("html", StringComparison.OrdinalIgnoreCase) || type.StartsWith("text/", StringComparison.OrdinalIgnoreCase) ||
+                    type.Contains("javascript", StringComparison.OrdinalIgnoreCase))
                 {
                     html = await ReadCappedAsync(resp.Content, cts.Token);
                 }

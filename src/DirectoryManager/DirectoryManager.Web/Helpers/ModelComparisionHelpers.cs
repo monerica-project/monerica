@@ -111,9 +111,24 @@ namespace DirectoryManager.Web.Helpers
                 AddDifference("Description", entry.Description, submission.Description);
             }
 
-            if (NotEqualTrimmed(entry.Location, submission.Location))
+            if (NotEqualTrimmed(entry.StreetAddress, submission.StreetAddress))
             {
-                AddDifference("Location", entry.Location, submission.Location);
+                AddDifference("Street Address", entry.StreetAddress, submission.StreetAddress);
+            }
+
+            if (NotEqualTrimmed(entry.City, submission.City))
+            {
+                AddDifference("City", entry.City, submission.City);
+            }
+
+            if (NotEqualTrimmed(entry.StateRegion, submission.StateRegion))
+            {
+                AddDifference("State/Region", entry.StateRegion, submission.StateRegion);
+            }
+
+            if (NotEqualTrimmed(entry.PostalCode, submission.PostalCode))
+            {
+                AddDifference("Postal Code", entry.PostalCode, submission.PostalCode);
             }
 
             if (NotEqualTrimmed(entry.CountryCode, submission.CountryCode))

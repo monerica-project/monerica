@@ -27,7 +27,10 @@ namespace DirectoryManager.SubmissionReviewer.Review
             // promotional or rule-breaking submitted note is never carried over by default.
             s.ProposedNote = ListingText.RemoveExclamations(Clean(p.Note, 250));
             s.ProposedCountryCode = Clean(p.CountryCode, 2)?.ToUpperInvariant() ?? s.CountryCode;
-            s.ProposedLocation = Clean(p.Location, 255) ?? s.Location;
+            s.ProposedStreetAddress = AddressPart(p.StreetAddress, s.StreetAddress, 255);
+            s.ProposedCity = AddressPart(p.City, s.City, 255);
+            s.ProposedStateRegion = AddressPart(p.StateRegion, s.StateRegion, 255);
+            s.ProposedPostalCode = AddressPart(p.PostalCode, s.PostalCode, 32);
             s.ProposedTags = Clean(p.Tags, 255) ?? s.Tags;
             s.ProposedKycPolicy = ParseEnum<KycPolicy>(p.KycPolicy) ?? s.KycPolicy;
             s.ProposedLiquidity = ParseEnum<Liquidity>(p.Liquidity) ?? (s.Liquidity == Liquidity.Unknown ? null : s.Liquidity);
@@ -70,6 +73,11 @@ namespace DirectoryManager.SubmissionReviewer.Review
         private static T? ParseEnum<T>(string? value)
             where T : struct, Enum =>
             !string.IsNullOrWhiteSpace(value) && Enum.TryParse<T>(value.Trim(), true, out var e) && Enum.IsDefined(e) ? e : null;
+
+        // null = keep the submitted value; "" = the reviewer cleared it (e.g. a country typed as a city).
+        // Stored as "" when cleared, so "Proposed ?? submitted" readers see the clear.
+        private static string? AddressPart(string? proposed, string? submitted, int max) =>
+            proposed == null ? Clean(submitted, max) : (Clean(proposed, max) ?? string.Empty);
 
         private static string? Clean(string? s, int max)
         {

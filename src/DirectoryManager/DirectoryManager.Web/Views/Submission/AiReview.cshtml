@@ -44,7 +44,7 @@
         var d = new Dictionary<string, string?>
         {
             ["Name"] = s.Name, ["Description"] = s.Description, ["Note"] = s.Note,
-            ["Subcategory"] = Model.Label(s.SubCategoryId), ["Country"] = s.CountryCode, ["Location"] = s.Location,
+            ["Subcategory"] = Model.Label(s.SubCategoryId), ["Country"] = s.CountryCode, ["Address"] = DirectoryManager.Data.Helpers.PostalAddress.Format(s.StreetAddress, s.City, s.StateRegion, s.PostalCode),
             ["KYC policy"] = s.KycPolicy?.ToString(), ["Liquidity"] = s.Liquidity == Liquidity.Unknown ? null : s.Liquidity.ToString(),
             ["Rate type"] = s.RateType == RateType.Unknown ? null : s.RateType.ToString(),
             ["JavaScript"] = s.SiteJavaScript == SiteJavaScript.Unknown ? null : s.SiteJavaScript.ToString(), ["Tags"] = s.Tags,
@@ -57,7 +57,7 @@
                 var r = doc.RootElement;
                 string? Str(string n) => r.TryGetProperty(n, out var v) && v.ValueKind == System.Text.Json.JsonValueKind.String ? v.GetString() : null;
                 d["Name"] = Str("Name"); d["Description"] = Str("Description"); d["Note"] = Str("Note");
-                d["Country"] = Str("CountryCode"); d["Location"] = Str("Location"); d["KYC policy"] = Str("KycPolicy");
+                d["Country"] = Str("CountryCode"); d["Address"] = r.TryGetProperty("StateRegion", out _) || r.TryGetProperty("City", out _) ? DirectoryManager.Data.Helpers.PostalAddress.Format(Str("StreetAddress"), Str("City"), Str("StateRegion"), Str("PostalCode")) : Str("Location"); d["KYC policy"] = Str("KycPolicy");
                 d["Liquidity"] = Str("Liquidity") is "Unknown" ? null : Str("Liquidity");
                 d["Rate type"] = Str("RateType") is "Unknown" ? null : Str("RateType");
                 d["JavaScript"] = Str("SiteJavaScript") is "Unknown" ? null : Str("SiteJavaScript"); d["Tags"] = Str("Tags");
@@ -71,7 +71,7 @@
     Dictionary<string, string?> Proposed(Submission s) => new()
     {
         ["Name"] = s.ProposedName, ["Description"] = s.ProposedDescription, ["Note"] = s.ProposedNote,
-        ["Subcategory"] = Model.Label(s.ProposedSubCategoryId), ["Country"] = s.ProposedCountryCode, ["Location"] = s.ProposedLocation,
+        ["Subcategory"] = Model.Label(s.ProposedSubCategoryId), ["Country"] = s.ProposedCountryCode, ["Address"] = DirectoryManager.Data.Helpers.PostalAddress.Format(s.ProposedStreetAddress ?? s.StreetAddress, s.ProposedCity ?? s.City, s.ProposedStateRegion ?? s.StateRegion, s.ProposedPostalCode ?? s.PostalCode),
         ["KYC policy"] = s.ProposedKycPolicy?.ToString(), ["Liquidity"] = s.ProposedLiquidity?.ToString(),
         ["Rate type"] = s.ProposedRateType?.ToString(),
         ["JavaScript"] = s.ProposedSiteJavaScript?.ToString(), ["Tags"] = s.ProposedTags,

@@ -52,6 +52,37 @@ namespace DirectoryManager.SubmissionReviewer.Review
             return (main, second);
         }
 
+        /// <summary>
+        /// Looks for a referral/affiliate program the plain fetch can't see: links on the page, and
+        /// routes in the site's own script files (menus built by JavaScript). Returns evidence lines.
+        /// </summary>
+        public async Task<IReadOnlyList<string>> FindReferralProgramAsync(FetchResult main, CancellationToken ct)
+        {
+            var found = new List<string>();
+            if (main.Html == null || main.FinalUri == null)
+            {
+                return found;
+            }
+
+            foreach (var link in ReferralScan.LinksInHtml(main.Html, main.FinalUri))
+            {
+                found.Add($"Link on the page: {link}");
+            }
+
+            foreach (var scriptUrl in ReferralScan.ScriptUrls(main.Html, main.FinalUri))
+            {
+                var script = await this.fetcher.FetchAsync(scriptUrl, ct);
+                var routes = ReferralScan.RoutesInScript(script.Html);
+                if (routes.Count > 0)
+                {
+                    found.Add($"The site's own JavaScript (menu/pages a plain fetch doesn't run) has the route(s): {string.Join(", ", routes)}");
+                    break;
+                }
+            }
+
+            return found;
+        }
+
         public static IReadOnlyList<ExistingListing> MostSimilar(Submission s, IEnumerable<ExistingListing> listings, int take = 5)
         {
             var host = UrlNormalizer.Host(s.Link);
@@ -74,7 +105,8 @@ namespace DirectoryManager.SubmissionReviewer.Review
             FetchResult? second,
             CurrentListing? current,
             IReadOnlyList<ExistingListing> similar,
-            int maxChars = 6000)
+            int maxChars = 6000,
+            IReadOnlyList<string>? referralEvidence = null)
         {
             var sb = new StringBuilder();
             sb.AppendLine("## Submission (as submitted)");
@@ -88,7 +120,10 @@ namespace DirectoryManager.SubmissionReviewer.Review
             Field(sb, "Main subcategory", mainSubcategory);
             Field(sb, "Submitter's suggested new subcategory", s.SuggestedSubCategory);
             Field(sb, "Tags typed", s.Tags);
-            Field(sb, "Location", s.Location);
+            Field(sb, "Street address", s.StreetAddress);
+            Field(sb, "City", s.City);
+            Field(sb, "State/Region", s.StateRegion);
+            Field(sb, "Postal code", s.PostalCode);
             Field(sb, "Country code", s.CountryCode);
             Field(sb, "KYC policy", s.KycPolicy?.ToString());
             Field(sb, "Liquidity", s.Liquidity.ToString());
@@ -120,6 +155,16 @@ namespace DirectoryManager.SubmissionReviewer.Review
                 Field(sb, "Status", current.Status);
                 Field(sb, "KYC policy", current.KycPolicy);
                 Field(sb, "Country code", current.CountryCode);
+            }
+
+            if (referralEvidence is { Count: > 0 })
+            {
+                sb.AppendLine();
+                sb.AppendLine("## Referral / affiliate program check");
+                foreach (var line in referralEvidence)
+                {
+                    sb.AppendLine("- " + line);
+                }
             }
 
             var fixedPart = sb.ToString();

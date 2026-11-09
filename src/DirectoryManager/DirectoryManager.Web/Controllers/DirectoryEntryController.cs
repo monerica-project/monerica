@@ -162,6 +162,7 @@ namespace DirectoryManager.Web.Controllers
             this.ValidateAdditionalSubcategories(vm);
 
             var normalizedAdditional = NormalizeAdditionalLinks(vm.AdditionalLinks, IntegerConstants.MaxAdditionalLinks);
+            this.ValidateUniqueLinks(vm, normalizedAdditional);
 
             for (int i = 0; i < normalizedAdditional.Count; i++)
             {
@@ -228,7 +229,10 @@ namespace DirectoryManager.Web.Controllers
                 Email = vm.Email?.Trim(),
                 Messenger = vm.Messenger?.Trim(),
                 Social = vm.Social?.Trim(),
-                Location = vm.Location?.Trim(),
+                StreetAddress = DirectoryManager.Data.Helpers.PostalAddress.Clean(vm.StreetAddress),
+                City = DirectoryManager.Data.Helpers.PostalAddress.Clean(vm.City),
+                StateRegion = DirectoryManager.Data.Helpers.PostalAddress.Clean(vm.StateRegion),
+                PostalCode = DirectoryManager.Data.Helpers.PostalAddress.Clean(vm.PostalCode),
                 Processor = vm.Processor?.Trim(),
                 LinkA = vm.LinkA?.Trim(),
                 Link2 = vm.Link2?.Trim(),
@@ -312,7 +316,10 @@ namespace DirectoryManager.Web.Controllers
                 ProofLink = entry.ProofLink,
                 VideoLink = entry.VideoLink,
                 SourceCodeLink = entry.SourceCodeLink,
-                Location = entry.Location,
+                StreetAddress = entry.StreetAddress,
+                City = entry.City,
+                StateRegion = entry.StateRegion,
+                PostalCode = entry.PostalCode,
                 CountryCode = entry.CountryCode,
                 KycPolicy = entry.KycPolicy,
                 Liquidity = entry.Liquidity,
@@ -372,6 +379,7 @@ namespace DirectoryManager.Web.Controllers
             this.ValidateAdditionalSubcategories(vm);
 
             var normalizedAdditional = NormalizeAdditionalLinks(vm.AdditionalLinks, IntegerConstants.MaxAdditionalLinks);
+            this.ValidateUniqueLinks(vm, normalizedAdditional);
 
             for (int i = 0; i < normalizedAdditional.Count; i++)
             {
@@ -416,7 +424,10 @@ namespace DirectoryManager.Web.Controllers
             existingEntry.Email = vm.Email?.Trim();
             existingEntry.Messenger = vm.Messenger?.Trim();
             existingEntry.Social = vm.Social?.Trim();
-            existingEntry.Location = vm.Location?.Trim();
+            existingEntry.StreetAddress = DirectoryManager.Data.Helpers.PostalAddress.Clean(vm.StreetAddress);
+            existingEntry.City = DirectoryManager.Data.Helpers.PostalAddress.Clean(vm.City);
+            existingEntry.StateRegion = DirectoryManager.Data.Helpers.PostalAddress.Clean(vm.StateRegion);
+            existingEntry.PostalCode = DirectoryManager.Data.Helpers.PostalAddress.Clean(vm.PostalCode);
             existingEntry.Processor = vm.Processor?.Trim();
             existingEntry.CountryCode = vm.CountryCode;
             existingEntry.KycPolicy = vm.KycPolicy;
@@ -471,7 +482,10 @@ namespace DirectoryManager.Web.Controllers
                 DirectoryStatus = directoryEntry.DirectoryStatus,
                 Link2 = directoryEntry.Link2,
                 Link3 = directoryEntry.Link3,
-                Location = directoryEntry.Location,
+                StreetAddress = directoryEntry.StreetAddress,
+                City = directoryEntry.City,
+                StateRegion = directoryEntry.StateRegion,
+                PostalCode = directoryEntry.PostalCode,
                 Note = directoryEntry.Note,
                 Processor = directoryEntry.Processor,
                 SubCategoryId = directoryEntry.SubCategoryId,
@@ -825,6 +839,31 @@ namespace DirectoryManager.Web.Controllers
 
         // Additional subcategories: links must be valid http(s) URLs; the main subcategory and
         // duplicates are rejected so the admin sees why a slot didn't save.
+        // Every link must be different (the proof link may equal the main link).
+        private void ValidateUniqueLinks(DirectoryEntryEditViewModel vm, IReadOnlyList<string> additional)
+        {
+            var fields = new List<(string, string, string?)>
+            {
+                (nameof(vm.Link), "Link", vm.Link),
+                (nameof(vm.Link2), "Link 2", vm.Link2),
+                (nameof(vm.Link3), "Link 3", vm.Link3),
+                (nameof(vm.ProofLink), "The proof link", vm.ProofLink),
+                (nameof(vm.VideoLink), "The video link", vm.VideoLink),
+                (nameof(vm.SourceCodeLink), "The source code link", vm.SourceCodeLink),
+                (nameof(vm.Social), "Social", vm.Social),
+                (nameof(vm.Messenger), "Messenger", vm.Messenger),
+            };
+            for (int i = 0; i < additional.Count; i++)
+            {
+                fields.Add((string.Empty, $"Additional link {i + 1}", additional[i]));
+            }
+
+            foreach (var (field, message) in DirectoryManager.Utilities.Helpers.LinkUniqueness.FindDuplicates(fields))
+            {
+                this.ModelState.AddModelError(field, message);
+            }
+        }
+
         private void ValidateAdditionalSubcategories(DirectoryEntryEditViewModel vm)
         {
             var rows = vm.AdditionalSubcategories ?? new List<AdditionalSubcategoryInput>();
@@ -1234,7 +1273,10 @@ namespace DirectoryManager.Web.Controllers
                 DirectoryStatus = entry.DirectoryStatus,
                 DirectoryBadge = entry.DirectoryBadge,
                 Description = entry.Description,
-                Location = entry.Location,
+                StreetAddress = entry.StreetAddress,
+                City = entry.City,
+                StateRegion = entry.StateRegion,
+                PostalCode = entry.PostalCode,
                 Processor = entry.Processor,
                 Note = entry.Note,
                 Email = entry.Email,
@@ -1262,7 +1304,7 @@ namespace DirectoryManager.Web.Controllers
                 VideoLink = entry.VideoLink,
                 SourceCodeLink = entry.SourceCodeLink,
                 FoundedDate = entry.FoundedDate,
-                FormattedLocation = BuildLocationHtml(entry.Location, entry.CountryCode, this.urlResolver)
+                FormattedLocation = BuildLocationHtml(DirectoryManager.Data.Helpers.PostalAddress.Format(entry.StreetAddress, entry.City, entry.StateRegion, entry.PostalCode), entry.CountryCode, this.urlResolver)
             };
         }
 

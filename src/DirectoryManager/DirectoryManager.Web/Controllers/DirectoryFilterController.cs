@@ -535,7 +535,10 @@ public class DirectoryFilterController : Controller
             SiteJavaScript = e.SiteJavaScript,
 
             CountryCode = e.CountryCode,
-            Location = e.Location,
+            StreetAddress = e.StreetAddress,
+            City = e.City,
+            StateRegion = e.StateRegion,
+            PostalCode = e.PostalCode,
             Note = e.Note,
             Processor = e.Processor,
 

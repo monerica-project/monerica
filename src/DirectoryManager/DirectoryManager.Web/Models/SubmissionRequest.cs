@@ -85,10 +85,27 @@ namespace DirectoryManager.Web.Models
         [UrlOrEmail]
         public string? Social { get; set; }
 
-        [MaxLength(75)]
-        [Display(Name = "Location", Prompt = "City, Region (example: Miami Beach, Florida)")]
+        // Physical address (optional, only for a real place people can visit or mail).
+        // The country is CountryCode; never put the country in these fields.
+        [MaxLength(150)]
+        [Display(Name = "Street Address", Prompt = "Example: 123 Main St, Suite 4")]
         [CleanSingleLine]
-        public string? Location { get; set; }
+        public string? StreetAddress { get; set; }
+
+        [MaxLength(75)]
+        [Display(Name = "City", Prompt = "Example: Miami Beach")]
+        [CleanSingleLine]
+        public string? City { get; set; }
+
+        [MaxLength(75)]
+        [Display(Name = "State/Region", Prompt = "Example: Florida")]
+        [CleanSingleLine]
+        public string? StateRegion { get; set; }
+
+        [MaxLength(20)]
+        [Display(Name = "Postal Code", Prompt = "Example: 33139")]
+        [CleanSingleLine]
+        public string? PostalCode { get; set; }
 
         // 2-letter country code — leave raw.
         [Display(Name = "Country")]

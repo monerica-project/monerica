@@ -17,8 +17,17 @@ namespace DirectoryManager.SubmissionReviewer.Review
         [JsonPropertyName("country_code")]
         public string? CountryCode { get; set; }
 
-        [JsonPropertyName("location")]
-        public string? Location { get; set; }
+        [JsonPropertyName("street_address")]
+        public string? StreetAddress { get; set; }
+
+        [JsonPropertyName("city")]
+        public string? City { get; set; }
+
+        [JsonPropertyName("state_region")]
+        public string? StateRegion { get; set; }
+
+        [JsonPropertyName("postal_code")]
+        public string? PostalCode { get; set; }
 
         [JsonPropertyName("kyc_policy")]
         public string? KycPolicy { get; set; }

@@ -144,7 +144,10 @@ namespace DirectoryManager.Web.Controllers
             p.Note = s.ProposedNote;
             p.SubCategoryId = s.ProposedSubCategoryId ?? s.SubCategoryId;
             p.CountryCode = s.ProposedCountryCode ?? s.CountryCode;
-            p.Location = s.ProposedLocation ?? s.Location;
+            p.StreetAddress = s.ProposedStreetAddress ?? s.StreetAddress;
+            p.City = s.ProposedCity ?? s.City;
+            p.StateRegion = s.ProposedStateRegion ?? s.StateRegion;
+            p.PostalCode = s.ProposedPostalCode ?? s.PostalCode;
             p.KycPolicy = s.ProposedKycPolicy ?? s.KycPolicy;
             p.Liquidity = s.ProposedLiquidity ?? s.Liquidity;
             p.RateType = s.ProposedRateType ?? s.RateType;
