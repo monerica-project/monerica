@@ -306,10 +306,37 @@ namespace DirectoryManager.SubmissionReviewer.Tests
             var p = ClaudeReviewService.SystemPrompt(new ReviewContext(new[] { "Shopping > Gifts" }, new[] { "Open Source" }, new[] { "X — y" }));
             Assert.Contains("do NOT include the site's own name", p);
             Assert.Contains("do NOT say it accepts Monero", p);
+            // Owner rule 2026-11-10: descriptions never mention payment methods, except for exchanges
+            // and when the coin is the product itself.
+            Assert.Contains("do NOT mention payment methods at all", p);
+            // Owner correction 2026-11-10 (goAFK, submission 9401): never claim "no account" without proof.
+            Assert.Contains("Never write \"no account\"", p);
+            Assert.Contains("under \"Exchanges\"", p);
+            Assert.Contains("IS the product or subject", p);
             Assert.Contains("Mixers and tumblers", p);
+            // Owner correction 2026-11-10 (SwapDusk, submission 9403): an on-site "No KYC" statement
+            // is evidence; an API docs link → "API Available"; American spelling only.
+            Assert.Contains("IS the evidence for GuaranteedNoKyc", p);
+            Assert.Contains("never a reason to downgrade a clear on-site statement", p);
+            Assert.Contains("\"API Available\" tag", p);
+            Assert.Contains("American English spelling only", p);
             Assert.Contains("Shopping > Gifts", p);
             Assert.Contains("Open Source", p);
         }
+
+        [Theory]
+        [InlineData("Fees itemised before send.", "Fees itemized before send.")]
+        [InlineData("Colour-coded, centre of town, labelled and licensed.", "Color-coded, center of town, labeled and licensed.")]
+        [InlineData("Organisation programme with a Licence", "Organization program with a License")]
+        [InlineData("A promise to advertise the enterprise.", "A promise to advertise the enterprise.")]
+        [InlineData("Visit colour.com or https://x.io/centre for info", "Visit colour.com or https://x.io/centre for info")]
+        [InlineData("ITEMISED fees", "ITEMIZED fees")]
+        public void ToAmericanSpelling_ConvertsBritishWordsOnly(string input, string expected) =>
+            Assert.Equal(expected, DirectoryManager.Data.Helpers.ListingText.ToAmericanSpelling(input));
+
+        [Fact]
+        public void CleanListingText_RemovesBangAndBritishSpelling() =>
+            Assert.Equal("Fees itemized.", DirectoryManager.Data.Helpers.ListingText.CleanListingText("Fees itemised!"));
 
         [Theory]
         [InlineData("Fast swaps!", "Fast swaps.")]

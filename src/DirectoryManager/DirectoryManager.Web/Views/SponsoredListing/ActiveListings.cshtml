@@ -27,6 +27,7 @@
 
 <!-- Main Sponsor Listings Table -->
 <h2>Main Sponsors</h2>
+<div class="table-wrapper">
 <table class="table">
     <thead>
         <tr>
@@ -48,6 +49,7 @@
         }
     </tbody>
 </table>
+</div>
 
 <br />
 
@@ -56,6 +58,7 @@
 
 @if (Model.CategorySponsorItems.Count > 0)
 {
+<div class="table-wrapper">
 <table class="table">
     <thead>
         <tr>
@@ -79,6 +82,7 @@
         }
     </tbody>
 </table>
+</div>
 }
 else
 {
@@ -92,6 +96,7 @@ else
 
 @if (Model.SubCategorySponsorItems.Count > 0)
 {
+<div class="table-wrapper">
 <table class="table">
     <thead>
         <tr>
@@ -115,6 +120,7 @@ else
         }
     </tbody>
 </table>
+</div>
 }
 else
 {

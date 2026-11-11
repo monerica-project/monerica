@@ -3,6 +3,8 @@ using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Helpers;
 using DirectoryManager.Data.Models;
 
+using DirectoryManager.SubmissionReviewer.Text;
+
 namespace DirectoryManager.SubmissionReviewer.Review
 {
     /// <summary>Writes a verdict onto the submission's review/Proposed* fields. Never touches the submitted fields.</summary>
@@ -22,15 +24,17 @@ namespace DirectoryManager.SubmissionReviewer.Review
         {
             var p = v.Proposal;
             s.ProposedName = Clean(p.Name, 255) ?? s.Name;
-            s.ProposedDescription = ListingText.RemoveExclamations(Clean(p.Description, 175) ?? s.Description);
+            s.ProposedDescription = ListingText.CleanListingText(Clean(p.Description, 175) ?? s.Description);
             // The note is always the reviewer's final public note: null means "no note", so a
             // promotional or rule-breaking submitted note is never carried over by default.
-            s.ProposedNote = ListingText.RemoveExclamations(Clean(p.Note, 250));
+            s.ProposedNote = ListingText.CleanListingText(Clean(p.Note, 250));
             s.ProposedCountryCode = Clean(p.CountryCode, 2)?.ToUpperInvariant() ?? s.CountryCode;
             s.ProposedStreetAddress = AddressPart(p.StreetAddress, s.StreetAddress, 255);
             s.ProposedCity = AddressPart(p.City, s.City, 255);
             s.ProposedStateRegion = AddressPart(p.StateRegion, s.StateRegion, 255);
             s.ProposedPostalCode = AddressPart(p.PostalCode, s.PostalCode, 32);
+            s.ProposedSocial = ContactLink(p.Social, s.Social, s);
+            s.ProposedMessenger = ContactLink(p.Messenger, s.Messenger, s);
             s.ProposedTags = Clean(p.Tags, 255) ?? s.Tags;
             s.ProposedKycPolicy = ParseEnum<KycPolicy>(p.KycPolicy) ?? s.KycPolicy;
             s.ProposedLiquidity = ParseEnum<Liquidity>(p.Liquidity) ?? (s.Liquidity == Liquidity.Unknown ? null : s.Liquidity);
@@ -78,6 +82,21 @@ namespace DirectoryManager.SubmissionReviewer.Review
         // Stored as "" when cleared, so "Proposed ?? submitted" readers see the clear.
         private static string? AddressPart(string? proposed, string? submitted, int max) =>
             proposed == null ? Clean(submitted, max) : (Clean(proposed, max) ?? string.Empty);
+
+        // Like AddressPart (null keep / "" clear), and never the same link as another link field:
+        // a Social/Messenger that just repeats the website (or proof, etc.) is cleared.
+        private static string? ContactLink(string? proposed, string? submitted, Submission s)
+        {
+            var value = AddressPart(proposed, submitted, 255);
+            if (string.IsNullOrEmpty(value) || !value.Contains('.'))
+            {
+                return value;
+            }
+
+            var key = UrlNormalizer.Normalize(value);
+            var others = new[] { s.Link, s.Link2, s.Link3, s.ProofLink, s.VideoLink, s.SourceCodeLink };
+            return others.Any(o => !string.IsNullOrWhiteSpace(o) && UrlNormalizer.Normalize(o) == key) ? string.Empty : value;
+        }
 
         private static string? Clean(string? s, int max)
         {

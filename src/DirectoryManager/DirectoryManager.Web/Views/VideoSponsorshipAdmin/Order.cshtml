@@ -35,6 +35,7 @@
     }
 
     <h2>Order</h2>
+    <div class="u-overflowx-auto">
     <table>
         <tr><td><b>Order ID:</b></td><td>@Model.InvoiceId</td></tr>
         <tr>
@@ -120,6 +121,7 @@
         <tr><td><b>Buyer email:</b></td><td>@(string.IsNullOrWhiteSpace(Model.Email) ? "none given" : Model.Email)</td></tr>
         <tr><td><b>Refund address:</b></td><td class="u-ws-pre-wrap">@Model.RefundAddress</td></tr>
     </table>
+    </div>
 
     <h3>Buyer's notes</h3>
     @if (string.IsNullOrWhiteSpace(Model.Notes))

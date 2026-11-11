@@ -50,6 +50,7 @@
     }
 
     <h2>Order</h2>
+    <div class="u-overflowx-auto">
     <table>
         <tr><td><b>Order ID:</b></td><td>@order.InvoiceId</td></tr>
         <tr><td><b>Listing:</b></td><td>@order.DirectoryEntry?.Name</td></tr>
@@ -75,5 +76,6 @@
         }
         <tr><td><b>Total:</b></td><td>@order.Amount.ToString("C2", usd) USD</td></tr>
     </table>
+    </div>
     <p class="text-muted">Keep your order ID. It is the reference for this sponsorship.</p>
 }

@@ -83,6 +83,99 @@ namespace DirectoryManager.SubmissionReviewer.Review
             return found;
         }
 
+        /// <summary>
+        /// The site's own social / messenger profiles, from page links and its own script files
+        /// (JavaScript-built footers). Returns dossier lines.
+        /// </summary>
+        public async Task<IReadOnlyList<string>> FindSocialLinksAsync(FetchResult main, CancellationToken ct)
+        {
+            var found = new List<string>();
+            if (main.Html == null || main.FinalUri == null)
+            {
+                return found;
+            }
+
+            var contents = new List<string?> { main.Html };
+            foreach (var scriptUrl in ReferralScan.ScriptUrls(main.Html, main.FinalUri))
+            {
+                contents.Add((await this.fetcher.FetchAsync(scriptUrl, ct)).Html);
+            }
+
+            var (social, messenger) = SocialLinkScan.Find(contents.ToArray());
+            if (social.Count > 0)
+            {
+                found.Add("Social profiles: " + string.Join(", ", social));
+            }
+
+            if (messenger.Count > 0)
+            {
+                found.Add("Messenger / chat: " + string.Join(", ", messenger));
+            }
+
+            return found;
+        }
+
+        /// <summary>
+        /// KYC evidence beyond the two fetched pages: the site's own terms / FAQ / AML-KYC pages
+        /// (Link 2/3 first, then legal links on the page) and the KYC/ID sentences on all of them,
+        /// so a "No KYC" line or a "we may freeze funds and ask for ID" clause is never cut off by
+        /// the body-text budget. Returns dossier lines.
+        /// </summary>
+        public async Task<IReadOnlyList<string>> FindKycStatementsAsync(Submission s, FetchResult main, FetchResult? second, CancellationToken ct)
+        {
+            var found = new List<string>();
+            void AddFrom(string label, string? html)
+            {
+                foreach (var line in SiteSignalScan.KycSentences(html))
+                {
+                    found.Add($"{label}: \"{line}\"");
+                }
+            }
+
+            AddFrom(main.FinalUri?.ToString() ?? s.Link, main.Html);
+            if (second?.Html != null)
+            {
+                AddFrom(second.FinalUri?.ToString() ?? second.Url, second.Html);
+            }
+
+            if (main.Html == null || main.FinalUri == null)
+            {
+                return found;
+            }
+
+            var already = new[] { main.FinalUri?.ToString(), second?.FinalUri?.ToString(), second?.Url }
+                .Where(u => u != null).Select(UrlNormalizer.Normalize).ToHashSet(StringComparer.Ordinal);
+            foreach (var url in SiteSignalScan.LegalPages(main.Html, main.FinalUri, new[] { s.Link2, s.Link3 }))
+            {
+                if (already.Contains(UrlNormalizer.Normalize(url)))
+                {
+                    continue;
+                }
+
+                var page = await this.fetcher.FetchAsync(url, ct);
+                if (page.Html == null)
+                {
+                    found.Add($"{url}: (could not be fetched: {page.Error ?? "no HTML"})");
+                    continue;
+                }
+
+                var before = found.Count;
+                AddFrom(page.FinalUri?.ToString() ?? url, page.Html);
+                if (found.Count == before)
+                {
+                    found.Add($"{url}: (fetched; no sentence about KYC, ID checks or holding funds)");
+                }
+            }
+
+            return found.Take(16).ToList();
+        }
+
+        /// <summary>Links on the page to API / developer docs. Returns dossier lines.</summary>
+        public static IReadOnlyList<string> FindApiLinks(FetchResult main) =>
+            main.Html == null || main.FinalUri == null
+                ? Array.Empty<string>()
+                : SiteSignalScan.ApiLinks(main.Html, main.FinalUri).Select(l => "Link on the page: " + l).ToList();
+
         public static IReadOnlyList<ExistingListing> MostSimilar(Submission s, IEnumerable<ExistingListing> listings, int take = 5)
         {
             var host = UrlNormalizer.Host(s.Link);
@@ -106,7 +199,10 @@ namespace DirectoryManager.SubmissionReviewer.Review
             CurrentListing? current,
             IReadOnlyList<ExistingListing> similar,
             int maxChars = 6000,
-            IReadOnlyList<string>? referralEvidence = null)
+            IReadOnlyList<string>? referralEvidence = null,
+            IReadOnlyList<string>? socialLinks = null,
+            IReadOnlyList<string>? kycStatements = null,
+            IReadOnlyList<string>? apiLinks = null)
         {
             var sb = new StringBuilder();
             sb.AppendLine("## Submission (as submitted)");
@@ -165,6 +261,44 @@ namespace DirectoryManager.SubmissionReviewer.Review
                 {
                     sb.AppendLine("- " + line);
                 }
+            }
+
+            sb.AppendLine();
+            sb.AppendLine("## KYC / ID statements on the site's own pages (home, proof page, terms, FAQ, AML/KYC policy)");
+            if (kycStatements is { Count: > 0 })
+            {
+                foreach (var line in kycStatements)
+                {
+                    sb.AppendLine("- " + Trim(line, 420));
+                }
+            }
+            else
+            {
+                sb.AppendLine("(none found)");
+            }
+
+            if (apiLinks is { Count: > 0 })
+            {
+                sb.AppendLine();
+                sb.AppendLine("## API / developer docs check");
+                foreach (var line in apiLinks)
+                {
+                    sb.AppendLine("- " + line);
+                }
+            }
+
+            sb.AppendLine();
+            sb.AppendLine("## Social and messenger links found on the site (its page links and own scripts)");
+            if (socialLinks is { Count: > 0 })
+            {
+                foreach (var line in socialLinks)
+                {
+                    sb.AppendLine("- " + line);
+                }
+            }
+            else
+            {
+                sb.AppendLine("(none found)");
             }
 
             var fixedPart = sb.ToString();

@@ -47,7 +47,7 @@ namespace DirectoryManager.Utilities.Helpers
         public static string? KeyFor(string? value)
         {
             var v = value?.Trim();
-            if (string.IsNullOrEmpty(v) || v.Any(char.IsWhiteSpace) || v.StartsWith('@') || v.Contains('@') && !v.Contains("://", StringComparison.Ordinal))
+            if (string.IsNullOrEmpty(v) || v.Any(char.IsWhiteSpace) || v.StartsWith('@') || (v.Contains('@') && !v.Contains("://", StringComparison.Ordinal)))
             {
                 return null;
             }
@@ -57,7 +57,7 @@ namespace DirectoryManager.Utilities.Helpers
                 return null;
             }
 
-            return UrlHelper.LinkKey(v);
+            return DirectoryManager.Web.Helpers.UrlHelper.LinkKey(v);
         }
 
         private static bool IsAllowedPair(string a, string b) =>

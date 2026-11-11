@@ -224,8 +224,8 @@ namespace DirectoryManager.Web.Controllers
                 Link = linkWithoutSlash,
                 Name = entryName,
                 DirectoryEntryKey = StringHelpers.UrlKey(entryName),
-                Description = vm.Description?.Trim(),
-                Note = vm.Note?.Trim(),
+                Description = DirectoryManager.Data.Helpers.ListingText.ToAmericanSpelling(vm.Description?.Trim()),
+                Note = DirectoryManager.Data.Helpers.ListingText.ToAmericanSpelling(vm.Note?.Trim()),
                 Email = vm.Email?.Trim(),
                 Messenger = vm.Messenger?.Trim(),
                 Social = vm.Social?.Trim(),
@@ -418,8 +418,8 @@ namespace DirectoryManager.Web.Controllers
             existingEntry.SourceCodeLink = vm.SourceCodeLink?.Trim();
             existingEntry.Name = (vm.Name ?? string.Empty).Trim();
             existingEntry.DirectoryEntryKey = StringHelpers.UrlKey(existingEntry.Name);
-            existingEntry.Description = vm.Description?.Trim();
-            existingEntry.Note = vm.Note?.Trim();
+            existingEntry.Description = DirectoryManager.Data.Helpers.ListingText.ToAmericanSpelling(vm.Description?.Trim());
+            existingEntry.Note = DirectoryManager.Data.Helpers.ListingText.ToAmericanSpelling(vm.Note?.Trim());
             existingEntry.DirectoryStatus = vm.DirectoryStatus;
             existingEntry.Email = vm.Email?.Trim();
             existingEntry.Messenger = vm.Messenger?.Trim();

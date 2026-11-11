@@ -153,6 +153,9 @@ namespace DirectoryManager.SubmissionReviewer.Review
 
                 var similar = SubmissionDossierBuilder.MostSimilar(s, listings);
                 var referral = await this.dossiers.FindReferralProgramAsync(pages!.Value.Main, ct);
+                var socialLinks = await this.dossiers.FindSocialLinksAsync(pages.Value.Main, ct);
+                var kycStatements = await this.dossiers.FindKycStatementsAsync(s, pages.Value.Main, pages.Value.Second, ct);
+                var apiLinks = SubmissionDossierBuilder.FindApiLinks(pages.Value.Main);
                 var dossier = SubmissionDossierBuilder.Build(
                     s,
                     s.SubCategoryId is int sc && labelById.TryGetValue(sc, out var lbl) ? lbl : null,
@@ -161,7 +164,10 @@ namespace DirectoryManager.SubmissionReviewer.Review
                     current,
                     similar,
                     this.options.DossierMaxChars,
-                    referral);
+                    referral,
+                    socialLinks,
+                    kycStatements,
+                    apiLinks);
                 s.ReviewDossier = dossier;
                 s.ReviewAttempts++;
                 processed++;

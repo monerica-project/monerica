@@ -25,6 +25,7 @@
     {
         <details open>
             <summary><b>Last 30 days</b> (@Model.Daily.Sum(d => d.Calls) calls, @Model.Daily.Sum(d => d.Errors) errors, @Model.Daily.Sum(d => d.InputTokens).ToString("N0") in / @Model.Daily.Sum(d => d.OutputTokens).ToString("N0") out tokens)</summary>
+            <div class="table-wrapper">
             <table class="table table-sm">
                 <thead><tr><th>Day (UTC)</th><th>Calls</th><th>Errors</th><th>Tokens in</th><th>Tokens out</th></tr></thead>
                 <tbody>
@@ -34,6 +35,7 @@
                     }
                 </tbody>
             </table>
+            </div>
         </details>
     }
 
@@ -45,6 +47,7 @@
     }
     else
     {
+        <div class="table-wrapper">
         <table class="table table-sm">
             <thead>
                 <tr><th>When (UTC)</th><th>What</th><th>Verdict</th><th>Result</th><th>Model / tokens / time</th><th></th></tr>
@@ -86,6 +89,7 @@
                 }
             </tbody>
         </table>
+        </div>
 
         @if (Model.TotalPages > 1)
         {

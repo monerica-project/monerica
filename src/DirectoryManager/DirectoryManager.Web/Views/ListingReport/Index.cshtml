@@ -15,6 +15,7 @@
     @await Html.PartialAsync("_ReportNav", Model)
 
     <h2>Today</h2>
+    <div class="table-wrapper">
     <table class="table">
         <tbody>
             <tr><th>Active listings</th><td class="u-text-right"><strong>@Model.ActiveNow.ToString("n0")</strong></td></tr>
@@ -26,6 +27,7 @@
             <tr><th>Change over the last year</th><td class="u-text-right">@Model.ActiveYearAgo.ToString("n0") &rarr; @Model.ActiveNow.ToString("n0") (@(yearChange >= 0 ? "+" : "")@yearChange)</td></tr>
         </tbody>
     </table>
+    </div>
 
     <h2>Reports</h2>
     <ul>

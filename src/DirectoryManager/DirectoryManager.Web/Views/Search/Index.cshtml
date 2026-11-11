@@ -27,7 +27,7 @@
             @await Html.PartialAsync("_SiteLogo")
         </div>
         <hr />
-        @await Html.PartialAsync("_BackToHome") | <a href="~/filter" rel="nofollow">filter</a>
+        @await Html.PartialAsync("_BackToHome") | <a href="@(string.IsNullOrWhiteSpace(Model.Query) ? Url.Content("~/filter") : Url.Content("~/filter") + "?q=" + Uri.EscapeDataString(Model.Query.Trim().Length > 50 ? Model.Query.Trim().Substring(0, 50) : Model.Query.Trim()))" rel="nofollow">filter</a>
         <hr />
         <div class="u-text-center">
             <form method="get" class="search-form mb-3" action="">

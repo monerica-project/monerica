@@ -41,6 +41,12 @@ namespace DirectoryManager.SubmissionReviewer.Review
         [JsonPropertyName("site_javascript")]
         public string? SiteJavaScript { get; set; }
 
+        [JsonPropertyName("social")]
+        public string? Social { get; set; }
+
+        [JsonPropertyName("messenger")]
+        public string? Messenger { get; set; }
+
         [JsonPropertyName("tags")]
         public string? Tags { get; set; }
 

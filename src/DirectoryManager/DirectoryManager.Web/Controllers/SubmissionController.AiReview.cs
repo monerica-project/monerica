@@ -152,6 +152,8 @@ namespace DirectoryManager.Web.Controllers
             p.Liquidity = s.ProposedLiquidity ?? s.Liquidity;
             p.RateType = s.ProposedRateType ?? s.RateType;
             p.SiteJavaScript = s.ProposedSiteJavaScript ?? s.SiteJavaScript;
+            p.Social = s.ProposedSocial ?? s.Social;
+            p.Messenger = s.ProposedMessenger ?? s.Messenger;
             p.Tags = s.ProposedTags ?? s.Tags;
             return p;
         }

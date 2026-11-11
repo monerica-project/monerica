@@ -2617,6 +2617,10 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<int?>("ProposedLiquidity")
                         .HasColumnType("integer");
 
+                    b.Property<string>("ProposedMessenger")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
                     b.Property<string>("ProposedName")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
@@ -2638,6 +2642,10 @@ namespace DirectoryManager.Data.Migrations
 
                     b.Property<int?>("ProposedSiteJavaScript")
                         .HasColumnType("integer");
+
+                    b.Property<string>("ProposedSocial")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
 
                     b.Property<string>("ProposedStateRegion")
                         .HasMaxLength(255)

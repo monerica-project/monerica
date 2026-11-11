@@ -178,18 +178,6 @@
     </select>
 </div>
 
-@* Liquidity fields — primarily for instant-swap exchanges; all optional. *@
-<div class="form-group">
-    <label for="Liquidity" class="control-label">Liquidity</label>
-    <p class="text-muted"><i>Primarily for exchanges. Leave as "Not Applicable" if it doesn't apply.</i></p>
-    <select class="form-control select-fit" id="Liquidity" name="Liquidity">
-        @foreach (var lq in LiquidityExtensions.Selectable)
-        {
-            <option value="@((int)lq)" selected="@(Model.Liquidity == lq)">@EnumHelper.GetDescription(lq)</option>
-        }
-    </select>
-</div>
-
 @* Does the website need JavaScript? Default "Not Stated". *@
 <div class="form-group">
     <label for="SiteJavaScript" class="control-label">JavaScript</label>
@@ -203,11 +191,22 @@
     <small class="form-text text-muted"><b>None</b>: no JavaScript at all. <b>Optional</b>: the main features work with JavaScript turned off. <b>Required</b>: does not work without JavaScript.</small>
 </div>
 
-@* Exchange rate type — optional, collapsed unless already set (no JS needed). *@
-<details class="form-group"@(DirectoryManager.Data.Enums.RateTypeExtensions.IsShown(Model.RateType) ? " open" : "")>
-    <summary><b>Exchange rates</b> <span class="text-muted">(optional, for exchanges)</span></summary>
-    <p class="text-muted"><i>Does the exchange offer fixed rates (locked when you start), float rates (follow the market), or both?</i></p>
+@* For exchanges: liquidity + rate type together. Optional, collapsed unless one is already set (no JS needed). *@
+<details class="form-group"@((DirectoryManager.Data.Enums.RateTypeExtensions.IsShown(Model.RateType) || (Model.Liquidity != Liquidity.Unknown && Model.Liquidity != Liquidity.NotApplicable)) ? " open" : "")>
+    <summary><b>For exchanges</b> <span class="text-muted">(optional: liquidity and rate type)</span></summary>
+    <p class="text-muted"><i>Only for exchanges and swap services. Skip this section for anything else.</i></p>
+
+    <label for="Liquidity" class="control-label">Liquidity</label>
+    <p class="text-muted"><i>Whose funds fill the trades: the exchange's own, third-party providers, or a mix. Leave as "Not Applicable" if it doesn't apply.</i></p>
+    <select class="form-control select-fit" id="Liquidity" name="Liquidity">
+        @foreach (var lq in LiquidityExtensions.Selectable)
+        {
+            <option value="@((int)lq)" selected="@(Model.Liquidity == lq)">@EnumHelper.GetDescription(lq)</option>
+        }
+    </select>
+
     <label for="RateType" class="control-label">Rate type</label>
+    <p class="text-muted"><i>Does the exchange offer fixed rates (locked when you start), float rates (follow the market), or both?</i></p>
     <select class="form-control select-fit" id="RateType" name="RateType">
         @foreach (var rt in DirectoryManager.Data.Enums.RateTypeExtensions.PublicFormOrder)
             {

@@ -230,8 +230,9 @@
                         @if (ViewBag.LastReview is DirectoryManager.Web.Models.LastReviewInfo lr)
                         {
                             @* Newest review of any status, including auto-approved ones. *@
-                            <a href="~/directory-entry-reviews/@lr.ReviewId">@(lr.Rating.HasValue ? new string('\u2605', lr.Rating.Value) + " " : "")@lr.ListingName</a>
-                            <small class="u-color-888">&nbsp;@FormatAgoCompact(lr.CreatedUtc) &middot; <span class="@(lr.StatusLabel == "pending" || lr.StatusLabel == "flagged" ? "u-color-c0392b" : "")">@lr.StatusLabel</span></small>
+                            @* Compact on purpose: "5★ 2h · approved". The listing name is in the hover title, not the cell. *@
+                            <a href="~/directory-entry-reviews/@lr.ReviewId" title="@lr.ListingName">@(lr.Rating.HasValue ? lr.Rating.Value + "\u2605" : "review")</a>
+                            <small class="u-color-888">@FormatAgoCompact(lr.CreatedUtc) &middot; <span class="@(lr.StatusLabel == "pending" || lr.StatusLabel == "flagged" ? "u-color-c0392b" : "")">@lr.StatusLabel</span></small>
                         }
                         else
                         {

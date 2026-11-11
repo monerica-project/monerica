@@ -126,6 +126,7 @@
         </div>
 
         <h2>By week</h2>
+        <div class="table-wrapper">
         <table class="table table-sm">
             <thead><tr><th>Week of</th><th>Looks</th><th></th><th>Listings</th><th>Started payment</th></tr></thead>
             <tbody>
@@ -141,8 +142,10 @@
                 }
             </tbody>
         </table>
+        </div>
 
         <h2>Latest activity</h2>
+        <div class="table-wrapper">
         <table class="table table-striped table-sm">
             <thead><tr><th>When</th><th>Listing</th><th>@(Model.IsVideo ? "Video type" : "Placement")</th><th>Step</th></tr></thead>
             <tbody>
@@ -157,5 +160,6 @@
                 }
             </tbody>
         </table>
+        </div>
     }
 }

@@ -17,6 +17,7 @@
          src="/directoryentry/report/active-chart?start=@Model.Start.ToString(fmt)&end=@Model.End.ToString(fmt)"
          alt="Active listings from @Model.Start.ToString(fmt) to @Model.End.ToString(fmt)" />
 
+    <div class="table-wrapper">
     <table class="table">
         <tbody>
             <tr><th>Active on @Model.Start.ToString(fmt)</th><td class="u-text-right">@Model.ActiveAtStart.ToString("n0")</td></tr>
@@ -26,6 +27,7 @@
             <tr><th>Removed in range</th><td class="u-text-right">@Model.Removed.Count</td></tr>
         </tbody>
     </table>
+    </div>
 
     @foreach (var (title, rows) in new[] { ("Added in this range", Model.Added), ("Removed in this range", Model.Removed) })
     {
@@ -36,6 +38,7 @@
         }
         else
         {
+            <div class="table-wrapper">
             <table class="table">
                 <thead><tr><th>Listing</th><th>Status now</th></tr></thead>
                 <tbody>
@@ -48,6 +51,7 @@
                     }
                 </tbody>
             </table>
+            </div>
         }
     }
     <p class="u-opacity-8">"Added" means not active at the start of the range but active at the end; "removed" is the reverse. Lists show up to 200 listings each.</p>

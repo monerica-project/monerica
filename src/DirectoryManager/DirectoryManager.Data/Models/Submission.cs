@@ -181,6 +181,12 @@ namespace DirectoryManager.Data.Models
         [MaxLength(32)]
         public string? ProposedPostalCode { get; set; }
 
+        [MaxLength(255)]
+        public string? ProposedSocial { get; set; }
+
+        [MaxLength(255)]
+        public string? ProposedMessenger { get; set; }
+
         public KycPolicy? ProposedKycPolicy { get; set; }
 
         public Liquidity? ProposedLiquidity { get; set; }

@@ -1,6 +1,7 @@
 ﻿@using DirectoryManager.Data.Enums;
 @using DirectoryManager.Data.Models
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingInvoiceRepository sponsorInvoiceRepository
 @model DirectoryEntryEditViewModel
 @using DirectoryManager.Data.Models.TransferModels
 @using DirectoryManager.Utilities.Helpers
@@ -30,6 +31,16 @@
     }
      |
     <a href="@UrlBuilder.ListingPath(Model.DirectoryEntryKey)" target="_blank">View Listing</a>
+    @{
+        // Paid sponsorship invoices for this listing: link to the page that lists them all.
+        var (sponsorInvoices, _) = await sponsorInvoiceRepository.GetInvoicesForDirectoryEntryAsync(Model.DirectoryEntryId, 1, int.MaxValue);
+        var paidSponsorInvoices = sponsorInvoices.Count(i => i.PaymentStatus == PaymentStatus.Paid);
+    }
+    @if (paidSponsorInvoices > 0)
+    {
+        <text> | </text>
+        <a href="@Url.Action("Advertiser", "SponsoredListingInvoice", new { directoryEntryId = Model.DirectoryEntryId })">Sponsor Invoices (@paidSponsorInvoices)</a>
+    }
 
 <div class="mt-2">
     <strong>Review email notifications:</strong>

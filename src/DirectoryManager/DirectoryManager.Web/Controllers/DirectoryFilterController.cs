@@ -63,9 +63,27 @@ public class DirectoryFilterController : Controller
     }
 
     [HttpGet("filter")]
-    public async Task<IActionResult> Index([FromQuery] DirectoryFilterQuery q)
+    public async Task<IActionResult> Index([FromQuery] DirectoryFilterQuery filterQuery)
     {
-        q ??= new DirectoryFilterQuery();
+        // Search text is "?q=" everywhere on the site (search page, admin lists, and here).
+        // Old "?SearchTerm=" filter links 301 to the same address with "q".
+        if (this.Request.Query.ContainsKey("SearchTerm"))
+        {
+            var kept = this.Request.Query
+                .Where(kv => !string.Equals(kv.Key, "SearchTerm", StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(kv.Key, "q", StringComparison.OrdinalIgnoreCase))
+                .SelectMany(kv => kv.Value.Select(v => new KeyValuePair<string, string?>(kv.Key, v)));
+            var legacyTerm = this.Request.Query["SearchTerm"].ToString();
+            var target = Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString(
+                this.Request.Path.ToString(),
+                kept.Append(new KeyValuePair<string, string?>("q", legacyTerm)));
+            return this.RedirectPermanent(target);
+        }
+
+        // (The parameter is not named "q": a query key "q" would then be taken as the model prefix
+        // and every other filter field would stop binding.)
+        var q = filterQuery ?? new DirectoryFilterQuery();
+        q.SearchTerm = this.Request.Query["q"].ToString() is { Length: > 0 } text ? text : null;
 
         NormalizeQuery(q);
 

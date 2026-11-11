@@ -44,7 +44,11 @@
         }
             else
             {
-            <a href="@Urls.ResolveToApp("/filter")"
+            var plainQ = Context.Request.Path.StartsWithSegments("/search", StringComparison.OrdinalIgnoreCase) ? Context.Request.Query["q"].ToString().Trim() : string.Empty;
+            var plainFilterUrl = plainQ.Length > 0
+                ? Urls.ResolveToApp("/filter?q=" + Uri.EscapeDataString(plainQ.Length > 50 ? plainQ.Substring(0, 50) : plainQ))
+                : Urls.ResolveToApp("/filter");
+            <a href="@plainFilterUrl"
                class="btn btn-info search-btn">
                 Filter
             </a>

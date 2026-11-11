@@ -48,6 +48,7 @@
             ["KYC policy"] = s.KycPolicy?.ToString(), ["Liquidity"] = s.Liquidity == Liquidity.Unknown ? null : s.Liquidity.ToString(),
             ["Rate type"] = s.RateType == RateType.Unknown ? null : s.RateType.ToString(),
             ["JavaScript"] = s.SiteJavaScript == SiteJavaScript.Unknown ? null : s.SiteJavaScript.ToString(), ["Tags"] = s.Tags,
+            ["Social"] = s.Social, ["Messenger"] = s.Messenger,
         };
         if (!string.IsNullOrWhiteSpace(s.OriginalSnapshotJson))
         {
@@ -60,7 +61,7 @@
                 d["Country"] = Str("CountryCode"); d["Address"] = r.TryGetProperty("StateRegion", out _) || r.TryGetProperty("City", out _) ? DirectoryManager.Data.Helpers.PostalAddress.Format(Str("StreetAddress"), Str("City"), Str("StateRegion"), Str("PostalCode")) : Str("Location"); d["KYC policy"] = Str("KycPolicy");
                 d["Liquidity"] = Str("Liquidity") is "Unknown" ? null : Str("Liquidity");
                 d["Rate type"] = Str("RateType") is "Unknown" ? null : Str("RateType");
-                d["JavaScript"] = Str("SiteJavaScript") is "Unknown" ? null : Str("SiteJavaScript"); d["Tags"] = Str("Tags");
+                d["JavaScript"] = Str("SiteJavaScript") is "Unknown" ? null : Str("SiteJavaScript"); d["Tags"] = Str("Tags"); d["Social"] = Str("Social"); d["Messenger"] = Str("Messenger");
                 d["Subcategory"] = r.TryGetProperty("SubCategoryId", out var sc) && sc.ValueKind == System.Text.Json.JsonValueKind.Number ? Model.Label(sc.GetInt32()) : "(none)";
             }
             catch { }
@@ -75,6 +76,7 @@
         ["KYC policy"] = s.ProposedKycPolicy?.ToString(), ["Liquidity"] = s.ProposedLiquidity?.ToString(),
         ["Rate type"] = s.ProposedRateType?.ToString(),
         ["JavaScript"] = s.ProposedSiteJavaScript?.ToString(), ["Tags"] = s.ProposedTags,
+        ["Social"] = s.ProposedSocial ?? s.Social, ["Messenger"] = s.ProposedMessenger ?? s.Messenger,
     };
 
     var readyCount = Model.Submissions.Count(s => s.ReviewState == SubmissionReviewState.AiApproveCandidate);

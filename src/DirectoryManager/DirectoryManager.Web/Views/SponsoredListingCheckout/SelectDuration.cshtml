@@ -232,6 +232,9 @@
 
     <hr />
 
+    @* No purchases of this kind in the last 180 days = nothing to plot, so no chart. *@
+    @if (recentMin.HasValue && recentMax.HasValue)
+    {
     <h2 id="price-history">Price history</h2>
     <div class="u-mt-10px u-mb-8px" style="max-width:640px;">
         <p class="u-m-6px-0-12px-0">
@@ -257,6 +260,7 @@
              src="@Url.Action("PricingTrendsChart", "SponsoredListingCheckout", new { sponsorshipType = ViewBag.SponsorshipType, placementId = ViewBag.PlacementId, v = DateTime.UtcNow.ToString(DirectoryManager.Common.Constants.StringConstants.CompactDateFormat) })"
              alt="Today's price for this spot as a dashed line, with purchases from the last 180 days as dots" />
     </div>
+    }
 
     @if (ViewBag.WaitlistCount is int waiting && waiting > 0)
     {

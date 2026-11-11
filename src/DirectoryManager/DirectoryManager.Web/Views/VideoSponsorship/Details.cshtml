@@ -29,6 +29,7 @@
     }
 
     <h2>Your Order</h2>
+    <div class="u-overflowx-auto">
     <table>
         <tr><td><b>Listing:</b></td><td>@Model.ListingName</td></tr>
         <tr><td><b>Video type:</b></td><td>@offer.Name</td></tr>
@@ -67,6 +68,7 @@
         }
         <tr><td><b>Total:</b></td><td><b>@Model.Total.ToString("C2", usd) USD</b>, paid in Monero (XMR)</td></tr>
     </table>
+    </div>
     <p><a href="@backUrl">&larr; Change selection</a></p>
 
     <ul>

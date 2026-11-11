@@ -27,6 +27,7 @@
         }
     </p>
 
+    <div class="table-wrapper">
     <table class="table table-sm">
         <tbody>
             <tr><th>When (UTC)</th><td>@Model.CreatedUtc.ToString("yyyy-MM-dd HH:mm:ss")</td></tr>
@@ -44,6 +45,7 @@
             <tr><th>Instructions</th><td>@Model.SystemPromptChars.ToString("N0") characters of fixed reviewer rules (in code: ClaudeReviewService.SystemPrompt)</td></tr>
         </tbody>
     </table>
+    </div>
 
     @if (!string.IsNullOrWhiteSpace(Model.Summary))
     {

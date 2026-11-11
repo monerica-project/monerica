@@ -195,6 +195,9 @@
         <span class="u-dim-85">Searching your listing above tells you exactly if it qualifies. Already a current sponsor? You can always renew.</span>
     </div>
 
+    @* The chart plots past purchases; with none there is nothing to show. *@
+    @if (Model.RecentPaid?.Items != null && Model.RecentPaid.Items.Any())
+    {
     <hr />
     <h2 class="u-mt-22px">Main Sponsor Price &mdash; Today vs. Past Purchases</h2>
     <p class="u-m-6px-0-12px-0">
@@ -210,6 +213,7 @@
              src="@Url.Action("PricingTrendsChart", "Sponsorship", new { sponsorshipType = SponsorshipType.MainSponsor, v = DateTime.UtcNow.ToString("yyyyMMddHH") })"
              alt="Today's Main Sponsor price, with every Main Sponsor purchase from the last 180 days" />
     </div>
+    }
 
     @if (Model.RecentPaid?.Items != null && Model.RecentPaid.Items.Any())
     {

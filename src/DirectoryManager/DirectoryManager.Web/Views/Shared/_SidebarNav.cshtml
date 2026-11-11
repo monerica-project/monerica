@@ -70,8 +70,24 @@
     int? effectiveCatId = (Model?.FilterCategoryId is > 0) ? Model!.FilterCategoryId : inferredCategoryId;
     int? effectiveSubId = (Model?.FilterSubCategoryId is > 0) ? Model!.FilterSubCategoryId : inferredSubCategoryId;
 
+    // On the search page the Filter button carries the search words into the filter's text box.
+    string? carriedSearchTerm = null;
+    if (Context.Request.Path.StartsWithSegments("/search", StringComparison.OrdinalIgnoreCase))
+    {
+        var rawQ = Context.Request.Query["q"].ToString().Trim();
+        if (rawQ.Length > 0)
+        {
+            carriedSearchTerm = rawQ.Length > 50 ? rawQ.Substring(0, 50) : rawQ;
+        }
+    }
+
     string BuildFilterUrl()
     {
+        if (carriedSearchTerm != null && !(effectiveCatId is > 0))
+        {
+            return Urls.ResolveToApp("/filter?q=" + Uri.EscapeDataString(carriedSearchTerm));
+        }
+
         if (effectiveCatId is > 0)
         {
             var routeVals = new Dictionary<string, object?>
@@ -84,6 +100,11 @@
             if (effectiveSubId is > 0)
             {
                 routeVals["SubCategoryId"] = effectiveSubId.Value;
+            }
+
+            if (carriedSearchTerm != null)
+            {
+                routeVals["q"] = carriedSearchTerm;
             }
 
             return Urls.ResolveToApp(Url.Action("Index", "DirectoryFilter", routeVals) ?? "/filter");
