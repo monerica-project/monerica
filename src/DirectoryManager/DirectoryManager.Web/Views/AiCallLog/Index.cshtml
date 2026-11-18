@@ -1,4 +1,4 @@
-@model DirectoryManager.Web.Models.AiCallLogListViewModel
+﻿@model DirectoryManager.Web.Models.AiCallLogListViewModel
 @{
     PageMeta.Title = "AI activity log";
     Layout = "_CenteredLayout";
@@ -62,6 +62,10 @@
                             @if (x.SubmissionId is int id)
                             {
                                 <br /><a href="~/submission/@id">#@id</a> @x.SubjectName
+                            }
+                            else if (x.DirectoryEntryReviewId is int reviewId)
+                            {
+                                <br /><a href="~/admin/reviews/@reviewId">@x.SubjectName</a>
                             }
                         </td>
                         <td>

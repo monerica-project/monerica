@@ -1,10 +1,13 @@
-﻿using System.Security.Cryptography;
+using DirectoryManager.Web.Extensions;
+using System.Security.Cryptography;
 using System.Text;
 using DirectoryManager.Data.Helpers;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Constants;
+using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models.Reviews;
 using DirectoryManager.Web.Services.Interfaces;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -14,6 +17,7 @@ namespace DirectoryManager.Web.Controllers
     public class MyReviewsController : BaseController
     {
         private const string SessionExpiredMessage = "Session expired. Please start over.";
+        private const string FlowKind = "my-reviews";
         private static readonly char[] CodeAlphabet = StringConstants.CodeAlphabet.ToCharArray();
 
         private readonly IMemoryCache cache;
@@ -22,13 +26,15 @@ namespace DirectoryManager.Web.Controllers
 
         private readonly IDirectoryEntryReviewRepository reviewRepo;
         private readonly IDirectoryEntryReviewCommentRepository commentRepo;
+        private readonly IDataProtectionProvider dataProtection;
 
         public MyReviewsController(
             IMemoryCache cache,
             ICaptchaService captcha,
             IPgpService pgp,
             IDirectoryEntryReviewRepository reviewRepo,
-            IDirectoryEntryReviewCommentRepository commentRepo)
+            IDirectoryEntryReviewCommentRepository commentRepo,
+            IDataProtectionProvider dataProtection)
             : base(cache)
         {
             this.cache = cache;
@@ -36,6 +42,7 @@ namespace DirectoryManager.Web.Controllers
             this.pgp = pgp;
             this.reviewRepo = reviewRepo;
             this.commentRepo = commentRepo;
+            this.dataProtection = dataProtection;
         }
 
         // -----------------------------------------
@@ -53,31 +60,34 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest();
             }
 
-            var flowId = this.CreateFlow();
-            return this.RedirectToAction(nameof(this.Captcha), new { flowId });
+            // No server state yet: the flow is only stored once the captcha is solved.
+            var flowId = Guid.NewGuid();
+            var ticket = PreCaptchaFlowTicket.Issue(this.dataProtection, FlowKind, flowId);
+            return this.RedirectToAction(nameof(this.Captcha), new { flowId, ticket });
         }
 
         // -----------------------------------------
         // Step 1: Captcha
         // -----------------------------------------
         [HttpGet("captcha")]
-        public IActionResult Captcha(Guid flowId)
+        public IActionResult Captcha(Guid flowId, string? ticket)
         {
-            if (!this.TryGetFlow(flowId, out var state))
+            if (!this.TryGetFlowOrTicket(flowId, ticket))
             {
                 return this.BadRequest(SessionExpiredMessage);
             }
 
             this.ViewBag.FlowId = flowId;
+            this.ViewBag.FlowTicket = ticket;
             this.ViewBag.CaptchaPurpose = "myreviews";
             return this.View();
         }
 
         [HttpPost("captcha")]
         [ValidateAntiForgeryToken]
-        public IActionResult CaptchaPost(Guid flowId)
+        public IActionResult CaptchaPost(Guid flowId, string? ticket)
         {
-            if (!this.TryGetFlow(flowId, out var state))
+            if (!this.TryGetFlowOrTicket(flowId, ticket))
             {
                 return this.BadRequest(SessionExpiredMessage);
             }
@@ -86,8 +96,15 @@ namespace DirectoryManager.Web.Controllers
             {
                 this.ModelState.AddModelError(string.Empty, "Captcha failed. Please try again.");
                 this.ViewBag.FlowId = flowId;
+                this.ViewBag.FlowTicket = ticket;
                 this.ViewBag.CaptchaPurpose = "myreviews";
                 return this.View("Captcha");
+            }
+
+            // First server-side state for this flow is created only now, after the captcha.
+            if (!this.TryGetFlow(flowId, out var state))
+            {
+                state = CreateFlow();
             }
 
             state.CaptchaOk = true;
@@ -129,7 +146,9 @@ namespace DirectoryManager.Web.Controllers
                 return this.RedirectToAction(nameof(this.Captcha), new { flowId });
             }
 
-            var fp = this.pgp.GetFingerprint(pgpArmored);
+            var fp = (pgpArmored?.Length ?? 0) > IntegerConstants.MaxPgpArmoredChars
+                ? null
+                : this.pgp.GetFingerprint(pgpArmored);
             if (string.IsNullOrWhiteSpace(fp))
             {
                 this.ModelState.AddModelError(string.Empty, "Invalid PGP public key.");
@@ -139,7 +158,21 @@ namespace DirectoryManager.Web.Controllers
 
             var expectedNormalized = GenerateChallengeCodeNormalized(IntegerConstants.ChallengeLength);
             var plaintextForUser = FormatChallengeCodeForHumans(expectedNormalized);
-            var cipher = this.pgp.EncryptTo(pgpArmored, plaintextForUser);
+            string cipher;
+            try
+            {
+                cipher = this.pgp.EncryptTo(pgpArmored, plaintextForUser);
+            }
+            catch (Exception)
+            {
+                // Sign-only or expired keys can't receive the one-time code: clear error, not a 500.
+                this.ModelState.AddModelError(
+                    string.Empty,
+                    "This PGP key can't be used: it has no usable encryption key (it is sign-only, or its encryption " +
+                    "subkey has expired or been revoked).");
+                this.ViewBag.FlowId = flowId;
+                return this.View("SubmitKey");
+            }
 
             lock (state.Sync)
             {
@@ -350,6 +383,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.RedirectToAction(nameof(this.VerifyCode), new { flowId });
             }
 
+            var deletedEntryId = (await this.reviewRepo.GetByIdAsync(id, ct))?.DirectoryEntryId;
             var ok = await this.reviewRepo.DeleteOwnedAsync(id, state.PgpFingerprint!, ct);
             if (!ok)
             {
@@ -357,6 +391,11 @@ namespace DirectoryManager.Web.Controllers
             }
 
             this.ClearCachedItems();
+            if (deletedEntryId.HasValue)
+            {
+                await this.StaticPublish().EnqueueForEntryAsync(deletedEntryId.Value, "review deleted by its author", null, ct);
+            }
+
             this.TempData["SuccessMessage"] = "Review deleted.";
             return this.RedirectToAction(nameof(this.Index), new { flowId });
         }
@@ -416,6 +455,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.RedirectToAction(nameof(this.VerifyCode), new { flowId });
             }
 
+            var deletedReplyReviewId = (await this.commentRepo.GetByIdAsync(id, ct))?.DirectoryEntryReviewId;
             var ok = await this.commentRepo.DeleteOwnedAsync(id, state.PgpFingerprint!, ct);
             if (!ok)
             {
@@ -423,6 +463,11 @@ namespace DirectoryManager.Web.Controllers
             }
 
             this.ClearCachedItems();
+            if (deletedReplyReviewId.HasValue)
+            {
+                await this.StaticPublish().EnqueueForReviewAsync(deletedReplyReviewId.Value, "reply deleted by its author", ct);
+            }
+
             this.TempData["SuccessMessage"] = "Reply deleted.";
             return this.RedirectToAction(nameof(this.Index), new { flowId });
         }
@@ -432,16 +477,21 @@ namespace DirectoryManager.Web.Controllers
         // -----------------------------------------
         private static string CacheKey(Guid flowId) => $"myreviews-flow:{flowId}";
 
-        private Guid CreateFlow()
+        // Called only after the captcha is solved (the caller stores it).
+        private static MyReviewsFlowState CreateFlow()
         {
-            var id = Guid.NewGuid();
-            var state = new MyReviewsFlowState
+            return new MyReviewsFlowState
             {
                 ExpiresUtc = DateTime.UtcNow.AddMinutes(IntegerConstants.SessinExpiresMinutes)
             };
+        }
 
-            this.cache.Set(CacheKey(id), state, state.ExpiresUtc);
-            return id;
+        // Captcha step: either the flow already exists (back button / re-display) or the visitor
+        // carries the signed pre-captcha ticket minted by Begin.
+        private bool TryGetFlowOrTicket(Guid flowId, string? ticket)
+        {
+            return this.TryGetFlow(flowId, out _) ||
+                   PreCaptchaFlowTicket.TryRead(this.dataProtection, FlowKind, ticket, flowId, out _, out _);
         }
 
         private bool TryGetFlow(Guid flowId, out MyReviewsFlowState state)

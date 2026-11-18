@@ -7,6 +7,8 @@ using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models.VerificationRequests;
 using DirectoryManager.Web.Services.Interfaces;
+using DirectoryManager.Web.Helpers;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -17,6 +19,7 @@ namespace DirectoryManager.Web.Controllers
     public class VerificationRequestsController : BaseController
     {
         private const string CacheKeyPrefix = "verifreq-flow:";
+        private const string FlowKind = "verification-request";
 
         private readonly IMemoryCache cache;
         private readonly ICaptchaService captcha;
@@ -24,6 +27,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly IVerificationRequestRepository requests;
         private readonly IBtcPayServerService btcPay;
         private readonly ICacheService cacheHelper;
+        private readonly IDataProtectionProvider dataProtection;
 
         public VerificationRequestsController(
             IMemoryCache cache,
@@ -31,7 +35,8 @@ namespace DirectoryManager.Web.Controllers
             IDirectoryEntryRepository entries,
             IVerificationRequestRepository requests,
             IBtcPayServerService btcPay,
-            ICacheService cacheHelper)
+            ICacheService cacheHelper,
+            IDataProtectionProvider dataProtection)
             : base(cache)
         {
             this.cache = cache;
@@ -40,6 +45,7 @@ namespace DirectoryManager.Web.Controllers
             this.requests = requests;
             this.btcPay = btcPay;
             this.cacheHelper = cacheHelper;
+            this.dataProtection = dataProtection;
         }
 
         private static string CacheKey(Guid id) => $"{CacheKeyPrefix}{id}";
@@ -62,34 +68,30 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
+            // No server state yet: the flow is only stored once the captcha is solved.
             var id = Guid.NewGuid();
-            var state = new VerificationRequestFlowState
-            {
-                DirectoryEntryId = directoryEntryId,
-                ExpiresUtc = DateTime.UtcNow.AddMinutes(IntegerConstants.ComposeFlowExpiresMinutes)
-            };
-            this.cache.Set(CacheKey(id), state, state.ExpiresUtc);
-
-            return this.RedirectToAction(nameof(this.Captcha), new { flowId = id });
+            var ticket = PreCaptchaFlowTicket.Issue(this.dataProtection, FlowKind, id, directoryEntryId);
+            return this.RedirectToAction(nameof(this.Captcha), new { flowId = id, ticket });
         }
 
         [HttpGet("captcha")]
-        public IActionResult Captcha(Guid flowId)
+        public IActionResult Captcha(Guid flowId, string? ticket)
         {
-            if (!this.TryGetFlow(flowId, out _))
+            if (!this.TryGetFlowOrTicket(flowId, ticket, out _))
             {
                 return this.Redirect("/");
             }
 
             this.ViewBag.FlowId = flowId;
+            this.ViewBag.FlowTicket = ticket;
             return this.View();
         }
 
         [HttpPost("captcha")]
         [ValidateAntiForgeryToken]
-        public IActionResult CaptchaPost(Guid flowId)
+        public IActionResult CaptchaPost(Guid flowId, string? ticket)
         {
-            if (!this.TryGetFlow(flowId, out var state))
+            if (!this.TryGetFlowOrTicket(flowId, ticket, out var directoryEntryId))
             {
                 return this.Redirect("/");
             }
@@ -98,7 +100,18 @@ namespace DirectoryManager.Web.Controllers
             {
                 this.ModelState.AddModelError(string.Empty, "Captcha was incorrect, please try again.");
                 this.ViewBag.FlowId = flowId;
+                this.ViewBag.FlowTicket = ticket;
                 return this.View("Captcha");
+            }
+
+            // First server-side state for this flow is created only now, after the captcha.
+            if (!this.TryGetFlow(flowId, out var state))
+            {
+                state = new VerificationRequestFlowState
+                {
+                    DirectoryEntryId = directoryEntryId,
+                    ExpiresUtc = DateTime.UtcNow.AddMinutes(IntegerConstants.ComposeFlowExpiresMinutes)
+                };
             }
 
             state.CaptchaOk = true;
@@ -353,6 +366,19 @@ namespace DirectoryManager.Web.Controllers
 
             var text = $"{entry.SubCategory?.Name} {entry.SubCategory?.Category?.Name}".ToLowerInvariant();
             return text.Contains("exchange") || text.Contains("swap");
+        }
+
+        // Captcha step: either the flow already exists (back button / re-display) or the visitor
+        // carries the signed pre-captcha ticket minted by Begin.
+        private bool TryGetFlowOrTicket(Guid flowId, string? ticket, out int directoryEntryId)
+        {
+            if (this.TryGetFlow(flowId, out var state))
+            {
+                directoryEntryId = state.DirectoryEntryId;
+                return true;
+            }
+
+            return PreCaptchaFlowTicket.TryRead(this.dataProtection, FlowKind, ticket, flowId, out directoryEntryId, out _);
         }
 
         private bool TryGetFlow(Guid flowId, out VerificationRequestFlowState state)

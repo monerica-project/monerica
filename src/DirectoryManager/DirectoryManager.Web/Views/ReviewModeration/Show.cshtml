@@ -5,6 +5,7 @@
 @using DirectoryManager.Web.Models
 @using DirectoryManager.Web.Models.Reviews
 @model ReviewModerationReviewViewModel
+@inject DirectoryManager.Web.Services.Implementations.MemberKeyDirectory MemberKeys
 
 @inject IDirectoryEntryReviewCommentRepository CommentRepo
 
@@ -43,8 +44,8 @@
         <dt class="col-sm-3">Title</dt>
         <dd class="col-sm-9">@(string.IsNullOrWhiteSpace(r.Title) ? "-" : r.Title)</dd>
 
-        <dt class="col-sm-3">Author Fingerprint</dt>
-        <dd class="col-sm-9"><code>@r.AuthorFingerprint</code></dd>
+        <dt class="col-sm-3">Author (PGP / Member)</dt>
+        <dd class="col-sm-9"><code>@(DirectoryManager.Web.Helpers.MemberAuthor.ForAdmin(r.AuthorFingerprint, r.AuthorUserId, r.AuthorUsername, await MemberKeys.FingerprintForAsync(r.AuthorUserId)))</code></dd>
 
         <dt class="col-sm-3">Created (UTC)</dt>
         <dd class="col-sm-9">@r.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</dd>
@@ -88,6 +89,13 @@
         <a asp-action="Pending">Back to Pending</a> |
         <a asp-action="All">Back to All</a>
     </div>
+
+    @if (TempData["SuccessMessage"] is string aiMsg)
+    {
+        <div class="alert alert-success">@aiMsg</div>
+    }
+
+    <partial name="_AiOrderCheck" model="r" />
 
     <hr />
 
@@ -217,8 +225,7 @@
                         under the chosen review, then <strong>rejects this review</strong>. Its star rating, images and order proof are not carried over.
                         You'll be taken to the new reply to approve it.
                     </p>
-                    <button type="submit" class="btn btn-primary"
-                            onclick="return confirm('Move this review to a reply under the selected review and reject it?');">
+                    <button type="submit" class="btn btn-primary">
                         Move to reply
                     </button>
                 </form>
@@ -231,8 +238,7 @@
               class="mt-3">
             @Html.AntiForgeryToken()
             <button type="submit"
-                    class="btn btn-danger"
-                    onclick="return confirm('Delete this review permanently?');">
+                    class="btn btn-danger">
                 Delete
             </button>
         </form>
@@ -263,7 +269,7 @@
                         <th>Id</th>
                         <th>Status</th>
                         <th>Created (UTC)</th>
-                        <th>Fingerprint</th>
+                        <th>Author (PGP / Member)</th>
                         <th>Excerpt</th>
                         <th class="u-w-260px">Actions</th>
                     </tr>
@@ -275,7 +281,7 @@
                             <td>@c.DirectoryEntryReviewCommentId</td>
                             <td>@c.ModerationStatus</td>
                             <td>@(c.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat))</td>
-                            <td><code>@c.AuthorFingerprint</code></td>
+                            <td><code>@(DirectoryManager.Web.Helpers.MemberAuthor.ForAdmin(c.AuthorFingerprint, c.AuthorUserId, c.AuthorUsername, await MemberKeys.FingerprintForAsync(c.AuthorUserId)))</code></td>
                             <td>
                                 @(string.IsNullOrWhiteSpace(c.Body)
                                                     ? "-"

@@ -209,6 +209,16 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .Select(s => (DateTime?)s.CreateDate)
                 .FirstOrDefaultAsync(ct);
 
+        public Task<List<DirectoryManager.Data.Models.TransferModels.PaidWaitingItem>> ListPaidPendingAsync(CancellationToken ct = default) =>
+            this.context.Submissions.AsNoTracking()
+                .Where(s => s.SubmissionStatus == SubmissionStatus.Pending && s.PaidUtc != null)
+                .OrderByDescending(s => s.PaidUtc)
+                .Select(s => new DirectoryManager.Data.Models.TransferModels.PaidWaitingItem
+                {
+                    Id = s.SubmissionId, Name = s.Name, PaidUtc = s.PaidUtc!.Value, Usd = s.PaidUsd, Xmr = s.PaidXmr, CreateDate = s.CreateDate,
+                })
+                .ToListAsync(ct);
+
         public Task<DateTime?> GetLastPaidUtcAsync(CancellationToken ct = default) =>
             this.context.Submissions.AsNoTracking()
                 .Where(s => s.PaidUtc != null)

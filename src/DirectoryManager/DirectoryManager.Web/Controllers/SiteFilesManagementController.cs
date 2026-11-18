@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 
 namespace DirectoryManager.Web.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = DirectoryManager.Web.Constants.AuthorizationPolicies.AdminOnly)]
     [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public class SiteFilesManagementController : Controller
     {

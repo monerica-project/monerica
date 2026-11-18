@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Web.Extensions;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Models.TransferModels;
@@ -25,6 +26,8 @@ namespace DirectoryManager.Web.Controllers
     public class SponsorshipController : Controller
     {
         private const string CaptchaContextWaitlist = "sponsorship-waitlist";
+
+        private const string OptionsViaButtonKey = "SponsorOptionsViaButton";
 
         // TempData keys read by Views/Sponsorship/Options.cshtml to show a waitlist error
         // and re-fill the email the visitor typed.
@@ -506,8 +509,23 @@ namespace DirectoryManager.Web.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult Select([FromForm] int directoryEntryId)
         {
+            this.TempData[OptionsViaButtonKey] = directoryEntryId;
             return this.RedirectToAction(
                 "Options", new { directoryEntryId });
+        }
+
+        /// <summary>
+        /// The "View sponsorship options" button on listing pages posts here. A plain link was followed
+        /// by crawlers (some load images too), which showed up in the Sponsor Interest report as
+        /// interested listings; nothing but a person presses a form button. No anti-forgery token: the
+        /// button sits on the static mirror, which cannot carry one, and this only redirects.
+        /// </summary>
+        [HttpPost("options/{directoryEntryId:int}")]
+        [IgnoreAntiforgeryToken]
+        public IActionResult OpenOptions(int directoryEntryId)
+        {
+            this.TempData[OptionsViaButtonKey] = directoryEntryId;
+            return this.RedirectToAction("Options", new { directoryEntryId });
         }
 
         [HttpGet("options/{directoryEntryId:int}")]
@@ -532,7 +550,13 @@ namespace DirectoryManager.Web.Controllers
             var vm = await this.BuildOptionsVmAsync(
                 entry, subscribed);
 
-            SponsorInterestTracker.SetBeacon(this.ViewData, entry.DirectoryEntryId, SponsorshipType.Unknown, null, SponsorInterestStep.ViewedOptions);
+            // Counted as interest only when the visitor pressed a button to get here (see OpenOptions).
+            // A direct GET of this URL (crawler, old link) still shows the page but is not counted;
+            // the later steps (prices, confirm, payment) are counted as before.
+            if (this.TempData[OptionsViaButtonKey] is int via && via == entry.DirectoryEntryId)
+            {
+                SponsorInterestTracker.SetBeacon(this.ViewData, entry.DirectoryEntryId, SponsorshipType.Unknown, null, SponsorInterestStep.ViewedOptions);
+            }
 
             return this.View("Options", vm);
         }
@@ -674,6 +698,7 @@ namespace DirectoryManager.Web.Controllers
 
             await this.waitlistRepo.UpsertManyAsync(
                 normalizedEmail, directoryEntryId, new[] { (type, typeId) });
+            await this.StaticPublish().RequestFullCrawlAsync("sponsorship waitlist joined");
 
             return this.Redirect($"{back}&joined=1#join-waitlist");
         }
@@ -730,6 +755,7 @@ namespace DirectoryManager.Web.Controllers
 
             await this.waitlistRepo.UpsertManyAsync(
                 email, entry.DirectoryEntryId, scopes);
+            await this.StaticPublish().RequestFullCrawlAsync("sponsorship waitlist joined");
 
             return this.RedirectToAction("Options", new
             {

@@ -1,0 +1,120 @@
+@using DirectoryManager.Data.Enums
+@using DirectoryManager.Data.Models
+@using DirectoryManager.Web.Constants
+@using DirectoryManager.Web.Models
+@model List<ListingTermsSnapshot>
+@{
+    Layout = "_CenteredLayout";
+    PageMeta.Title = "Terms watch";
+    string show = ViewBag.Show ?? "review";
+    int total = ViewBag.Total ?? 0;
+    int pageNumber = ViewBag.Page ?? 1;
+    int pageSize = ViewBag.PageSize ?? 50;
+    int last = Math.Max(1, (int)Math.Ceiling(total / (double)pageSize));
+    DateTime? lastRun = ViewBag.LastRun as DateTime?;
+    string Label(TermsWatchResult r) => r switch
+    {
+        TermsWatchResult.Flagged => "Listing data may be wrong",
+        TermsWatchResult.ChangedNotReviewed => "Changed, not compared by AI",
+        TermsWatchResult.ChangedNoAction => "Changed, nothing to correct",
+        TermsWatchResult.CouldNotRead => "Could not read the site",
+        TermsWatchResult.Baseline => "First reading",
+        _ => "Unchanged",
+    };
+}
+
+@section PageContent {
+    <h1>@PageMeta.Title</h1>
+    @await Html.PartialAsync("_AdminMenu")
+
+    <p class="text-muted">
+        Once a month every live listing's own pages (home page plus terms, FAQ and AML pages) are re-read and the sentences about
+        ID checks, countries served, VPN/Tor and fees are compared with the month before. Unchanged pages cost nothing. Changed wording is
+        compared with the listing's data by the AI, within a monthly budget. Nothing is ever changed automatically: fix the listing on its edit page, then press Handled.
+    </p>
+    <p>
+        <b>@(ViewBag.NeedsReview ?? 0)</b> to review ·
+        @(ViewBag.Tracked ?? 0) listings tracked ·
+        @(ViewBag.Unreadable ?? 0) could not be read ·
+        last check @(lastRun?.ToString("yyyy-MM-dd HH:mm") ?? "never") UTC ·
+        AI calls this month: @(ViewBag.AiCallsThisMonth ?? 0) · <a href="~/admin/ai-log">AI log</a>
+    </p>
+    <p>
+        <a asp-action="Index">To review</a> |
+        <a asp-action="Index" asp-route-show="changed">Every change</a> |
+        <a asp-action="Index" asp-route-show="unreadable">Could not read</a> |
+        <a asp-action="Index" asp-route-show="all">All tracked</a>
+    </p>
+
+    @if (Model.Count == 0)
+    {
+        <p><i>@(show == "review" ? "Nothing to review." : "Nothing here yet.")</i></p>
+    }
+    else
+    {
+        @foreach (var s in Model)
+        {
+            <div class="border rounded p-2 mb-3">
+                <p class="mb-1">
+                    <b><a href="~/directoryentry/edit/@s.DirectoryEntryId">@s.DirectoryEntry.Name</a></b>
+                    · <a href="@s.DirectoryEntry.Link" target="_blank" rel="noopener noreferrer nofollow">site</a>
+                    · <b class="@(s.Result == TermsWatchResult.Flagged ? "text-danger" : "")">@Label(s.Result)</b>
+                    @if (s.ChangedUtc is { } changed)
+                    {
+                        <span> · changed @changed.ToString("yyyy-MM-dd")</span>
+                    }
+                    <small class="text-muted"> · checked @s.LastCheckedUtc.ToString("yyyy-MM-dd")</small>
+                </p>
+                @if (!string.IsNullOrWhiteSpace(s.Summary))
+                {
+                    <p class="mb-1">@s.Summary</p>
+                }
+                @if (!string.IsNullOrWhiteSpace(s.Suggestion))
+                {
+                    <p class="mb-1"><b>Suggested correction:</b></p>
+                    <pre class="u-ws-pre-wrap mb-1">@s.Suggestion</pre>
+                }
+                <p class="mb-1">
+                    <small>
+                        Listing now: KYC @(s.DirectoryEntry.KycPolicy?.ToString() ?? "not stated") ·
+                        countries @(string.IsNullOrWhiteSpace(s.DirectoryEntry.RestrictedCountries) ? "none recorded" : s.DirectoryEntry.RestrictedCountries) ·
+                        VPN @s.DirectoryEntry.VpnPolicy · Tor @s.DirectoryEntry.TorPolicy
+                    </small>
+                </p>
+                @if (!string.IsNullOrWhiteSpace(s.Diff))
+                {
+                    <details>
+                        <summary>Changed sentences (+ added, - removed)</summary>
+                        <pre class="u-ws-pre-wrap mb-1">@s.Diff</pre>
+                    </details>
+                }
+                @if (!string.IsNullOrWhiteSpace(s.Pages))
+                {
+                    <details>
+                        <summary>Pages read</summary>
+                        <pre class="u-ws-pre-wrap mb-1">@s.Pages</pre>
+                    </details>
+                }
+                @if (s.NeedsReview)
+                {
+                    <form asp-action="Handled" asp-route-id="@s.Id" asp-route-show="@(show == "review" ? null : show)" method="post" class="mt-1">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-sm btn-primary">Handled</button>
+                    </form>
+                }
+            </div>
+        }
+
+        <p>
+            Page @pageNumber of @last (@total)
+            @if (pageNumber > 1)
+            {
+                <span> · </span><a asp-action="Index" asp-route-show="@show" asp-route-page="@(pageNumber - 1)">Prev</a>
+            }
+            @if (pageNumber < last)
+            {
+                <span> · </span><a asp-action="Index" asp-route-show="@show" asp-route-page="@(pageNumber + 1)">Next</a>
+            }
+        </p>
+    }
+}

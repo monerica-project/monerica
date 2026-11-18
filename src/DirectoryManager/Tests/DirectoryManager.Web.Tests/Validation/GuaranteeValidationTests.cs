@@ -25,6 +25,38 @@ namespace DirectoryManager.Web.Tests.Validation
             Assert.True(ms.IsValid);
         }
 
+        [Theory] // SAD: the proof must be on a third-party site, never the listing's own domain.
+        [InlineData("https://example.com/guarantee")]
+        [InlineData("https://www.example.com/proof")]
+        [InlineData("https://status.example.com/deposit")]
+        [InlineData("http://exampleonionaddress.onion/deposit")]
+        public void LinkOnTheListingsOwnDomain_IsInvalid(string guaranteeLink)
+        {
+            var ms = new ModelStateDictionary();
+            GuaranteeValidation.ValidateGuarantees(
+                new[] { new GuaranteeItem { Link = guaranteeLink, Amount = 1000m } },
+                ms,
+                "https://example.com/swap", "http://exampleonionaddress.onion", null);
+
+            Assert.False(ms.IsValid);
+            Assert.Contains("third-party", ms["Guarantees[0].Link"]!.Errors[0].ErrorMessage);
+        }
+
+        [Theory] // HAPPY: third-party sites pass, including look-alike names that are different domains.
+        [InlineData("https://bitcointalk.org/index.php?topic=1")]
+        [InlineData("https://orangefren.com/guarantee")]
+        [InlineData("https://notexample.com/proof")]
+        public void LinkOnAThirdPartySite_IsValid(string guaranteeLink)
+        {
+            var ms = new ModelStateDictionary();
+            GuaranteeValidation.ValidateGuarantees(
+                new[] { new GuaranteeItem { Link = guaranteeLink, Amount = 1000m } },
+                ms,
+                "https://example.com/swap", string.Empty, null);
+
+            Assert.True(ms.IsValid);
+        }
+
         [Fact] // HAPPY: blank rows are ignored (guarantees are optional).
         public void EmptyRows_AreIgnored()
         {

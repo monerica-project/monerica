@@ -23,6 +23,11 @@
         <span asp-validation-for="Password" class="text-danger"></span>
     </div>
     <div class="form-group">
+        <label for="TwoFactorCode">Authenticator code (if enabled)</label>
+        <input id="TwoFactorCode" name="twoFactorCode" class="form-control input-width" autocomplete="one-time-code" maxlength="64" />
+        <small>Leave blank if two-factor login is off. Lost your phone? Enter a recovery code here.</small>
+    </div>
+    <div class="form-group">
         <input asp-for="RememberMe" />
         <label asp-for="RememberMe"></label>
     </div>

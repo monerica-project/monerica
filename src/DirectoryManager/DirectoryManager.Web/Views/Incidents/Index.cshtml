@@ -1,0 +1,224 @@
+@using System.Globalization
+@using DirectoryManager.Data.Enums
+@using DirectoryManager.Data.Helpers
+@using DirectoryManager.DisplayFormatting.Helpers
+@using DirectoryManager.Utilities.Helpers
+@using DirectoryManager.Web.Helpers
+@using DirectoryManager.Web.Models.TrustPages
+@model IncidentsViewModel
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService Urls
+@{
+    var siteName = await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteName);
+    var f = Model.Filter;
+    var dateFormat = DirectoryManager.Common.Constants.StringConstants.DateFormat;
+    var pagePath = "/" + DirectoryManager.Web.Controllers.IncidentsController.PagePath;
+
+    PageMeta.Title = "Incidents";
+    PageMeta.SeoTitle = SeoTitleBuilder.WithBrand("Incidents: Open Issues With Listings", siteName);
+    PageMeta.MetaDescription = SeoDescriptionBuilder.Shorten(
+        $"Listings {siteName} currently marks Scam or Questionable, with the date and reason, and recent reviews that report problems such as funds held or KYC requests.");
+    Layout = "_LayoutWithNav";
+
+    // Filter and paging links go to the app: the static mirror only has the plain page.
+    string FilterUrl(IncidentKind? kind = null, int? page = null) =>
+        Urls.ResolveToApp(pagePath + f.ToQueryString(kind, page));
+    string ListingUrl(string key) => Urls.ResolveToRoot(UrlBuilder.ListingPath(key));
+    string ReviewUrl(string key, int reviewId)
+    {
+        var p = Model.ListingPages.TryGetValue(reviewId, out var lp) ? lp : 1;
+        var path = UrlBuilder.ListingPath(key) + (p > 1 ? $"/page/{p}" : string.Empty);
+        return Urls.ResolveToRoot(path) + "#review-" + reviewId.ToString(CultureInfo.InvariantCulture);
+    }
+
+    string D(DateTime d) => d.ToString(dateFormat, CultureInfo.InvariantCulture);
+
+    bool showStatus = f.Kind != IncidentKind.Reviews;
+    bool showReviews = f.Kind != IncidentKind.Status;
+    string windowText = f.WindowDays.HasValue ? $" in the last {f.WindowDays} days" : string.Empty;
+}
+
+@section PageContent {
+    <div class="page-header-bar">
+        <h1 class="page-title">@PageMeta.Title</h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
+    <hr />
+    @await Html.PartialAsync("_BackToHome")
+    <hr />
+
+    <p>
+        This page lists listings with an open issue. An issue is opened when @siteName marks a listing
+        Questionable or Scam with a reason, and it is closed when the listing is returned to its normal status.
+        Below them, a separate list shows recent reviews that report a problem.
+        <a class="no-app-link" href="@Urls.ResolveToRoot("/" + DirectoryManager.Web.Controllers.HowWeVerifyController.PagePath + "#statuses")">What the statuses mean</a>
+        &middot;
+        <a class="no-app-link" href="@Urls.ResolveToRoot("/" + DirectoryManager.Web.Controllers.PublicReviewsController.PagePath)">All reviews</a>
+    </p>
+
+    <form method="get" action="@Urls.ResolveToApp(pagePath)" class="filter-form ui-form">
+        <fieldset class="ui-fieldset">
+            <legend class="ui-legend">Show</legend>
+            <div class="u-flex-gap-8px-flexwrap-wrap">
+                <span class="ui-select-wrap">
+                    <select name="kind" class="form-control select-fit ui-select ui-select-caret" aria-label="Type">
+                        <option value="" selected="@(f.Kind == IncidentKind.All)">Open issues and reviewer reports</option>
+                        <option value="status" selected="@(f.Kind == IncidentKind.Status)">Open issues only</option>
+                        <option value="reviews" selected="@(f.Kind == IncidentKind.Reviews)">Reviewer reports only</option>
+                    </select>
+                </span>
+                <span class="ui-select-wrap">
+                    <select name="days" class="form-control select-fit ui-select ui-select-caret" aria-label="Reviewer reports from">
+                        @foreach (var d in IncidentFilter.AllowedWindows)
+                        {
+                            <option value="@d" selected="@(f.WindowDays == d)">Reports from the last @d days</option>
+                        }
+                        <option value="all" selected="@(f.WindowDays == null)">Reports from all time</option>
+                    </select>
+                </span>
+                <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+                @if (!f.IsDefault)
+                {
+                    <a class="app-link" href="@Urls.ResolveToApp(pagePath)">Clear</a>
+                }
+            </div>
+        </fieldset>
+    </form>
+
+    @if (showStatus)
+    {
+        <h2 id="open-issues" class="u-mt-18px">Open issues</h2>
+        <p class="text-muted">
+            @Model.OpenIssueTotal.ToString("N0", CultureInfo.InvariantCulture) listing@(Model.OpenIssueTotal == 1 ? " is" : "s are") currently marked Questionable or Scam, newest first.
+        </p>
+
+        @if (Model.OpenIssues.Count == 0)
+        {
+            <p>No open issues.</p>
+        }
+        else
+        {
+            <ul class="list-unstyled">
+                @foreach (var i in Model.OpenIssues)
+                {
+                    <li class="mb-3 pb-3 border-bottom">
+                        <div>
+                            <i><time datetime="@D(i.SinceUtc)">@D(i.SinceUtc)</time></i>
+                            @Html.Raw(DisplayMarkUpHelper.GetDirectoryStausIcon(i.Status))<a class="no-app-link" href="@ListingUrl(i.DirectoryEntryKey)">@i.Name</a>
+                            &mdash;
+                            <strong>@i.Status</strong>
+                        </div>
+                        <div class="mt-2 u-valign-top-ws-normal-wordbreak-break-word">
+                            <span class="text-muted">Reason:</span>
+                            @if (string.IsNullOrWhiteSpace(i.Reason))
+                            {
+                                <span class="text-muted">no note recorded</span>
+                            }
+                            else
+                            {
+                                @StringHelpers.AnonymizeEmailsInText(i.Reason)
+                            }
+                        </div>
+                    </li>
+                }
+            </ul>
+
+            @if (f.Kind == IncidentKind.All && Model.OpenIssueTotal > Model.OpenIssues.Count)
+            {
+                <p><a class="app-link" href="@FilterUrl(IncidentKind.Status, 1)">Show all @Model.OpenIssueTotal.ToString("N0", CultureInfo.InvariantCulture) open issues</a></p>
+            }
+        }
+    }
+
+    @if (showReviews)
+    {
+        var reports = Model.ReviewReports;
+        <h2 id="review-reports" class="u-mt-18px">Reported by reviewers</h2>
+        <p class="text-muted">
+            @reports.TotalCount.ToString("N0", CultureInfo.InvariantCulture) review@(reports.TotalCount == 1 ? "" : "s") with a problem tag@(windowText).
+            Each is one person's account, not a finding by @siteName. A Valid Order tag means a moderator confirmed
+            that the order was real, not that the problem described happened.
+        </p>
+
+        @if (reports.Items.Count == 0)
+        {
+            <p>None@(windowText).</p>
+        }
+        else
+        {
+            <ul class="list-unstyled">
+                @foreach (var r in reports.Items)
+                {
+                    var e = r.DirectoryEntry;
+                    var excerpt = StringHelpers.TruncateAtWord(
+                        StringHelpers.AnonymizeEmailsInText((r.Body ?? string.Empty).ReplaceLineEndings(" ")),
+                        200);
+                    var problemTags = r.ReviewTags
+                        .Select(t => t.ReviewTag)
+                        .Where(t => ProblemTagRule.IsProblemTag(t))
+                        .OrderByDescending(t => t!.Level)
+                        .ThenBy(t => t!.Name)
+                        .ToList();
+
+                    <li class="mb-3 pb-3 border-bottom">
+                        <div>
+                            <i>@D(r.CreateDate)</i>
+                            @Html.Raw(DisplayMarkUpHelper.GetDirectoryStausIcon(e.DirectoryStatus))<a class="no-app-link" href="@ListingUrl(e.DirectoryEntryKey)">@e.Name</a>
+                            <span class="review-tags">
+                                @foreach (var t in problemTags)
+                                {
+                                    <span class="badge @ReviewTagUiHelper.BadgeClass(t!.Level)" title="@t.Description">@t.Name</span>
+                                }
+                                @if (r.ReviewTags.Any(t => t.ReviewTag != null && t.ReviewTag.IsEnabled && t.ReviewTag.Slug == DirectoryManager.Data.Constants.ReviewTagSlugs.ValidOrder))
+                                {
+                                    <span class="badge @ReviewTagUiHelper.BadgeClass(ReviewTagLevel.Verified)">Valid Order</span>
+                                }
+                            </span>
+                            @if (r.Rating.HasValue)
+                            {
+                                <span class="ms-2">@EntryReviewHtmlHelper.RenderSingleReviewStars(r.Rating)</span>
+                            }
+                            @if (r.IsStruckThrough)
+                            {
+                                <small class="text-muted ms-2">(taken back by the author)</small>
+                            }
+                        </div>
+                        <div class="mt-2@(r.IsStruckThrough ? " review-struck" : string.Empty)">@excerpt</div>
+                        <div class="mt-2">
+                            <small>
+                                @if (r.IsOwner)
+                                {
+                                    <span class="text-muted">By the listing owner &middot;</span>
+                                }
+                                <a class="no-app-link" href="@ReviewUrl(e.DirectoryEntryKey, r.DirectoryEntryReviewId)">Read the review and replies</a>
+                            </small>
+                        </div>
+                    </li>
+                }
+            </ul>
+
+            @if (f.Kind == IncidentKind.All && reports.TotalCount > reports.Items.Count)
+            {
+                <p><a class="app-link" href="@FilterUrl(IncidentKind.Reviews, 1)">Show all @reports.TotalCount.ToString("N0", CultureInfo.InvariantCulture) review reports</a></p>
+            }
+        }
+    }
+
+    @if (f.Kind != IncidentKind.All && Model.TotalPages > 1)
+    {
+        var current = Model.Page;
+        <nav aria-label="Pages">
+            <ul class="pagination">
+                @if (current > 1)
+                {
+                    <li class="page-item"><a class="page-link app-link" rel="prev" href="@FilterUrl(null, current - 1)">&lsaquo; Prev</a></li>
+                }
+                <li class="page-item active"><span class="page-link" aria-current="page">Page @current of @Model.TotalPages</span></li>
+                @if (current < Model.TotalPages)
+                {
+                    <li class="page-item"><a class="page-link app-link" rel="next" href="@FilterUrl(null, current + 1)">Next &rsaquo;</a></li>
+                }
+            </ul>
+        </nav>
+    }
+}

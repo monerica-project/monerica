@@ -13,7 +13,7 @@ namespace DirectoryManager.SubmissionReviewer.Text
         private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(2);
 
         // Path segment words that mean a referral/affiliate program page.
-        private const string Words = @"referrals?|refer-a-friend|refer|affiliates?|affiliate-program|affiliate-programme|partner-program|partners-program|invite-friends";
+        private const string Words = @"referrals?|refer-a-friend|refer|affiliates?|affiliate-program|affiliate-programme|invite-friends";
 
         // A quoted app route such as "/referrals" or '/affiliate/dashboard' inside a script.
         private static readonly Regex RouteRx = new Regex(
@@ -30,7 +30,7 @@ namespace DirectoryManager.SubmissionReviewer.Text
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, Timeout);
 
         private static readonly Regex TextWordRx = new Regex(
-            @"\b(?:referral|referrals|refer a friend|affiliate|affiliates|affiliate program|partner program|invite (?:and|&) earn|earn with us)\b",
+            @"\b(?:referral|referrals|refer a friend|affiliate|affiliates|affiliate program|invite (?:and|&) earn)\b",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, Timeout);
 
         /// <summary>Same-site script URLs on the page (at most <paramref name="max"/>, in page order).</summary>

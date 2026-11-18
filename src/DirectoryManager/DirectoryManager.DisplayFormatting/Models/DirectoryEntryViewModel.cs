@@ -45,6 +45,24 @@ namespace DirectoryManager.DisplayFormatting.Models
         /// <summary>Whether the website needs JavaScript. Unknown = Not Stated.</summary>
         public SiteJavaScript SiteJavaScript { get; set; }
 
+        /// <summary>Countries not served (stored ISO code list, e.g. "CU,IR").</summary>
+        public string? RestrictedCountries { get; set; }
+
+        public VpnPolicy VpnPolicy { get; set; }
+
+        public TorPolicy TorPolicy { get; set; }
+
+        public string? OtherRestrictions { get; set; }
+
+        /// <summary>The restrictions blurb for the listing page (empty when nothing is recorded).</summary>
+        public DirectoryManager.Data.Helpers.RestrictionsSummary Restrictions =>
+            DirectoryManager.Data.Helpers.ListingRestrictions.Summarize(
+                this.RestrictedCountries,
+                this.VpnPolicy,
+                this.TorPolicy,
+                this.OtherRestrictions,
+                DirectoryManager.Data.Helpers.ListingRestrictions.HasOnionLink(this.Link, this.Link2, this.Link3));
+
         public List<DirectoryManager.Data.Models.GuaranteeItem> Guarantees { get; set; } = new ();
 
         public DirectoryBadge DirectoryBadge { get; set; } = DirectoryBadge.Unknown;

@@ -1,4 +1,4 @@
-﻿using BtcPayServer.API.Implementations;
+using BtcPayServer.API.Implementations;
 using BtcPayServer.API.Interfaces;
 using BtcPayServer.API.Models;
 using DirectoryManager.Common.Interfaces;
@@ -115,6 +115,17 @@ namespace DirectoryManager.Web.Extensions
 
             // Safety net: records paid donations even when the BTCPay webhook never arrives.
             services.AddHostedService<DonationPaymentReconciler>();
+
+            // Publish on change: queue changed public pages for the static mirror (monerica.com).
+            services.Configure<DirectoryManager.Web.Models.StaticPublishing.StaticPublishOptions>(
+                config.GetSection(DirectoryManager.Web.Models.StaticPublishing.StaticPublishOptions.SectionName));
+            services.AddScoped<IStaticPublishService, StaticPublishService>();
+            services.AddHostedService<StaticPublishBackgroundService>();
+
+            // Email send log: stored message content and its retention (hourly prune).
+            services.Configure<DirectoryManager.Web.Models.Emails.EmailSendLogOptions>(
+                config.GetSection(DirectoryManager.Web.Models.Emails.EmailSendLogOptions.SectionName));
+            services.AddHostedService<EmailSendLogContentPruneService>();
             services.AddScoped(sp => DirectoryManager.Web.Models.PageMetadata.For(
                 sp.GetRequiredService<IHttpContextAccessor>().HttpContext));
             services.AddTransient<IPgpService, PgpService>();
@@ -161,6 +172,10 @@ namespace DirectoryManager.Web.Extensions
                 return new EmailService(sendGridConfig, emailSettings, provider.GetRequiredService<IServiceScopeFactory>(), EmailSendSource.Web);
             });
 
+            // Checks the signed one-click unsubscribe links the email jobs put in List-Unsubscribe.
+            // Same key derivation as EmailService (from the shared SendGrid API key).
+            services.AddSingleton(new UnsubscribeTokenSigner(sendGridConfig.ApiKey));
+
             services.AddScoped<ISearchBlacklistCache, Services.SearchBlacklistCache>();
 
             // NOWPayments + BTCPay Server: settings come from the "PaymentProcessors" configuration
@@ -181,10 +196,16 @@ namespace DirectoryManager.Web.Extensions
             services.AddScoped<IVideoSponsorOrderProcessor, VideoSponsorOrderProcessor>();
             services.AddScoped<ISponsoredListingActivator, SponsoredListingActivator>();
 
+            // Payments that reach BTCPay after the invoice timer ran out: accepted automatically
+            // (webhook + a 5-minute pass) so the owner does not have to mark them settled by hand.
+            services.AddScoped<ISponsorLatePaymentService, SponsorLatePaymentService>();
+            services.AddHostedService<SponsorLatePaymentSweeper>();
+
             services.AddScoped<ISearchBlacklistRepository, SearchBlacklistRepository>();
             services.AddScoped<IMarketingEmailContactRepository, MarketingEmailContactRepository>();
             services.AddScoped<IChurnService, ChurnService>();
             services.AddScoped<IUserContentModerationService, UserContentModerationService>();
+            services.AddScoped<AdminLoginService>(); // admin login: password + optional TOTP 2FA
 
             services.Configure<RouteOptions>(options => options.LowercaseUrls = true);
 
@@ -195,15 +216,17 @@ namespace DirectoryManager.Web.Extensions
                 options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
                 options.Lockout.AllowedForNewUsers = true;
 
-                // Password policy (current Identity defaults made explicit + stronger min length)
+                // Password policy for ADMIN accounts (current Identity defaults made explicit +
+                // stronger min length). Member accounts use MemberAccountRules instead
+                // (MemberAwarePasswordValidator picks the rule by role).
                 options.Password.RequiredLength = 12;
                 options.Password.RequireDigit = true;
                 options.Password.RequireUppercase = true;
                 options.Password.RequireLowercase = true;
                 options.Password.RequireNonAlphanumeric = true;
 
-                // User
-                options.User.RequireUniqueEmail = true;
+                // User. Member accounts have no email at all, so Identity must not demand one.
+                options.User.RequireUniqueEmail = false;
             })
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders();
@@ -218,7 +241,14 @@ namespace DirectoryManager.Web.Extensions
                 options.SlidingExpiration = true;                 // renews on activity, so active use never expires
                 options.LoginPath = "/account/login";
                 options.LogoutPath = "/account/logout";
+
+                // A signed-in account without the Admin role is sent to the admin login (no
+                // AccessDenied page exists).
+                options.AccessDeniedPath = "/account/login";
             });
+
+            // Admin-only policy (+ fail-closed default policy) and the separate member sign-in.
+            services.AddMemberAccounts();
 
             return services;
         }

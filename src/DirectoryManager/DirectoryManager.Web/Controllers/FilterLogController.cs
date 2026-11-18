@@ -1,12 +1,13 @@
 using System.Globalization;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DirectoryManager.Web.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     public class FilterLogController : Controller
     {
         private readonly IDirectoryFilterLogRepository filterLogRepo;

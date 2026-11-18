@@ -58,7 +58,8 @@ namespace DirectoryManager.Web.Charting
         }
 
         // Stacked monthly bars, one color per source.
-        public static byte[] MonthlyStacked(IReadOnlyList<RevenueMonth> months, RevenueBasis basis, bool xmr = false)
+        // averagePerMonth (optional): a dashed line across the bars at the average earned per month.
+        public static byte[] MonthlyStacked(IReadOnlyList<RevenueMonth> months, RevenueBasis basis, bool xmr = false, decimal? averagePerMonth = null, IReadOnlyList<(DateTime Month, decimal Average)>? runningAverage = null)
         {
             var plt = new Plot();
             if (months.Count == 0)
@@ -99,6 +100,33 @@ namespace DirectoryManager.Web.Charting
 
                 var bp = plt.Add.Bars(bars);
                 bp.LegendText = RevenueReportBuilder.Label(source);
+            }
+
+            if (averagePerMonth is decimal avg && avg > 0m)
+            {
+                // From the first bar to the last one (the current month), drawn over the bars.
+                var line = plt.Add.Scatter(new[] { -0.45, months.Count - 0.55 }, new[] { (double)avg, (double)avg });
+                line.Color = Colors.White;
+                line.LinePattern = LinePattern.Dashed;
+                line.LineWidth = 2.5f;
+                line.MarkerSize = 0;
+                line.LegendText = $"Average per month ({RevenueMoney.Format(avg, xmr)})";
+            }
+
+            // The average as it stood at the end of each month: shows whether it is climbing.
+            if (runningAverage != null)
+            {
+                var index = months.Select((m, i) => (m.Month, i)).ToDictionary(x => x.Month, x => x.i);
+                var pts = runningAverage.Where(p => index.ContainsKey(p.Month)).ToList();
+                if (pts.Count > 1)
+                {
+                    var trend = plt.Add.Scatter(pts.Select(p => (double)index[p.Month]).ToArray(), pts.Select(p => (double)p.Average).ToArray());
+                    trend.Color = Color.FromHex("#4dd0e1");
+                    trend.LinePattern = LinePattern.Dashed;
+                    trend.LineWidth = 2.5f;
+                    trend.MarkerSize = 5;
+                    trend.LegendText = "Average so far, month by month";
+                }
             }
 
             MonthTicks(plt, months.Select(m => m.Month).ToList());
@@ -307,7 +335,7 @@ namespace DirectoryManager.Web.Charting
             return plt.GetDarkImageBytes(1100, 450, ImageFormat.Png);
         }
 
-        private static void MonthTicks(Plot plt, IReadOnlyList<DateTime> months)
+        internal static void MonthTicks(Plot plt, IReadOnlyList<DateTime> months)
         {
             int stride = months.Count <= 18 ? 1 : months.Count <= 36 ? 2 : 3;
             var ticks = new List<Tick>();

@@ -1,0 +1,60 @@
+@using DirectoryManager.Common.Constants
+@model DirectoryManager.Web.Models.Members.UserPostsPage
+@{
+    var baseUrl = (string)ViewData["PostsBaseUrl"]!;
+}
+<h3>Posts (@Model.Total)</h3>
+@if (Model.Total == 0)
+{
+    <p class="text-muted">No reviews or replies.</p>
+}
+else
+{
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Type</th>
+                <th>Listing</th>
+                <th>Date (UTC)</th>
+                <th>Rating</th>
+                <th>Status</th>
+                <th>Order proof</th>
+                <th>Excerpt</th>
+                <th>Moderate</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var p in Model.Posts)
+            {
+                <tr>
+                    <td>@(p.IsReply ? "Reply" : "Review")</td>
+                    <td>
+                        @if (!string.IsNullOrEmpty(p.EntryKey)) { <a href="/site/@p.EntryKey">@p.EntryName</a> }
+                        else { @p.EntryName }
+                    </td>
+                    <td>@p.CreateDate.ToString(StringConstants.DateTimeShortFormat)</td>
+                    <td>@(p.Rating?.ToString() ?? "-")</td>
+                    <td>@p.StatusLabel</td>
+                    <td>@(p.IsReply ? "-" : p.HasOrderProof ? "yes" : "no")</td>
+                    <td>@p.Excerpt</td>
+                    <td>
+                        @if (p.IsReply) { <a href="/admin/reviews/reply/@p.Id">reply #@p.Id</a> }
+                        else { <a href="/admin/reviews/@p.Id">review #@p.Id</a> }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    @if (Model.TotalPages > 1)
+    {
+        <p>
+            @for (var i = 1; i <= Model.TotalPages; i++)
+            {
+                if (i == Model.Page) { <b>@i</b> }
+                else { <a href="@(baseUrl)?page=@i">@i</a> }
+                <span> </span>
+            }
+        </p>
+    }
+}

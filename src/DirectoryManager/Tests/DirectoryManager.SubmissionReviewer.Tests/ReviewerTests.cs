@@ -170,6 +170,19 @@ namespace DirectoryManager.SubmissionReviewer.Tests
         }
 
         [Fact]
+        public void Dossier_HasMoneroLogoSection_AndPromptUsesIt()
+        {
+            // Owner request 2026-11-17: a Monero logo on the pages counts as proof for the Monero check.
+            var with = SubmissionDossierBuilder.Build(Sub(), null, Ok(), null, null, Listings, moneroLogos: new[] { "Submitted page (https://newshop.example/): image: alt=\"Monero\"" });
+            Assert.Contains("## Monero logo check", with);
+            Assert.Contains("image: alt=\"Monero\"", with);
+            Assert.Contains("(none found)", SubmissionDossierBuilder.Build(Sub(), null, Ok(), null, null, Listings).Split("## KYC")[0].Split("## Monero logo check")[1]);
+            var p = ClaudeReviewService.SystemPrompt(new ReviewContext(new[] { "Shopping > Gifts" }, Array.Empty<string>(), Array.Empty<string>()));
+            Assert.Contains("\"Monero logo check\" section", p);
+            Assert.Contains("counts as the site visibly showing Monero", p);
+        }
+
+        [Fact]
         public void MostSimilar_FindsNameOrDomainLookalikes()
         {
             var s = Sub(name: "Xeovo", link: "https://xeovo.net");
@@ -303,9 +316,13 @@ namespace DirectoryManager.SubmissionReviewer.Tests
         [Fact]
         public void SystemPrompt_CarriesTheSubmitPageRules()
         {
-            var p = ClaudeReviewService.SystemPrompt(new ReviewContext(new[] { "Shopping > Gifts" }, new[] { "Open Source" }, new[] { "X — y" }));
+            var p = ClaudeReviewService.SystemPrompt(new ReviewContext(new[] { "Shopping > Gifts" }, new[] { "API Available" }, new[] { "X — y" }));
             Assert.Contains("do NOT include the site's own name", p);
             Assert.Contains("do NOT say it accepts Monero", p);
+            // Owner rule 2026-11-11 (#9429 NoctHost): no restricted-country lists in notes/descriptions.
+            Assert.Contains("NEVER list or mention countries", p);
+            // Owner rule 2026-11-11 (NoctHost): partners are not affiliates.
+            Assert.Contains("is NOT an affiliate program", p);
             // Owner rule 2026-11-10: descriptions never mention payment methods, except for exchanges
             // and when the coin is the product itself.
             Assert.Contains("do NOT mention payment methods at all", p);
@@ -321,7 +338,11 @@ namespace DirectoryManager.SubmissionReviewer.Tests
             Assert.Contains("\"API Available\" tag", p);
             Assert.Contains("American English spelling only", p);
             Assert.Contains("Shopping > Gifts", p);
-            Assert.Contains("Open Source", p);
+            Assert.Contains("ONLY names from this list that the dossier supports: API Available", p);
+            // Owner 2026-11-13: the "Open Source" tag is gone; open source = the source code link.
+            Assert.Contains("there is no \"Open Source\" tag", p);
+            Assert.Contains("asking for the source code link to be filled", p);
+            Assert.Contains("the source code link should be that same URL", p);
         }
 
         [Theory]

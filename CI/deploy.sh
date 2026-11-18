@@ -205,7 +205,7 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers HIGH:!aNULL:!MD5;
-    add_header Strict-Transport-Security "max-age=31536000" always;
+    # HSTS is sent by the app itself (max-age=31536000; includeSubDomains) - no nginx copy, avoids a duplicate header.
 
     client_max_body_size 50M;
     proxy_read_timeout 300s;
@@ -462,6 +462,11 @@ task_set_configs() {
     #   Source of truth is deploy-config.sh (NOWPAYMENTS_* / BTCPAY_*); never committed.
     #   A required one that is missing aborts the deploy (checked below).
     #
+    # - StaticPublish (publish on change to the static mirror): YES. Mode (Off|DryRun|On),
+    #   the loopback-only InternalPort and the shared secret the GitSiteSyncer pending worker
+    #   sends. Source of truth is deploy-config.sh (STATIC_PUBLISH_MODE / _INTERNAL_PORT /
+    #   _SECRET); the same secret is in the syncer's server-side appsettings.json.
+    #
     # - Neutrino API: NO. Removed — service is no longer used.
     local required_var
     for required_var in NOWPAYMENTS_API_KEY NOWPAYMENTS_IPN_SECRET_KEY \
@@ -503,6 +508,9 @@ task_set_configs() {
         --arg bpvkey   "${BTCPAY_VIDEO_SPONSOR_API_KEY:-}" \
         --arg bpvhook  "${BTCPAY_VIDEO_SPONSOR_WEBHOOK_SECRET:-}" \
         --arg bprhook  "${BTCPAY_REVIEW_DONATIONS_WEBHOOK_SECRET:-}" \
+        --arg spmode   "${STATIC_PUBLISH_MODE:-Off}" \
+        --arg spport   "${STATIC_PUBLISH_INTERNAL_PORT:-0}" \
+        --arg spsecret "${STATIC_PUBLISH_SECRET:-}" \
         '{
             ConnectionStrings: { DefaultConnection: $conn },
             Site:              { CustomDomain: $domain, RequestProtocol: $proto },
@@ -520,7 +528,8 @@ task_set_configs() {
                     VideoSponsorStoreId: $bpvstore,
                     VideoSponsorApiKey: $bpvkey, VideoSponsorWebhookSecret: $bpvhook
                 }
-            }
+            },
+            StaticPublish: { Mode: $spmode, InternalPort: ($spport | tonumber), InternalSecret: $spsecret }
         }' > "$prod_settings"
     write_ok "Wrote $prod_settings"
 }
@@ -648,13 +657,13 @@ task_sync_files() {
         write_warn "Skipping migrations (--skip-migrate)"
     fi
 
-    # systemd unit — depends on docker (for SQL Server container)
+    # systemd unit — DB is host Postgres now; no docker dependency (a docker
+    # upgrade/restart must never stop the site)
     local svc_file="/tmp/$APP_NAME.service.local"
     cat > "$svc_file" <<EOF
 [Unit]
 Description=$APP_NAME ($DOMAIN)
-After=network.target docker.service
-Requires=docker.service
+After=network.target postgresql.service
 
 [Service]
 WorkingDirectory=$DEPLOY_PATH
@@ -714,7 +723,7 @@ server {
     ssl_certificate_key /etc/nginx/ssl/app-origin/privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers HIGH:!aNULL:!MD5;
-    add_header Strict-Transport-Security "max-age=31536000" always;
+    # HSTS is sent by the app itself (max-age=31536000; includeSubDomains) - no nginx copy, avoids a duplicate header.
     include /etc/nginx/snippets/bunny-origin-gate.conf;
 
     client_max_body_size 50M;
@@ -764,7 +773,7 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers HIGH:!aNULL:!MD5;
-    add_header Strict-Transport-Security "max-age=31536000" always;
+    # HSTS is sent by the app itself (max-age=31536000; includeSubDomains) - no nginx copy, avoids a duplicate header.
 
     client_max_body_size 50M;
     proxy_read_timeout 300s;

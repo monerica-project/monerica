@@ -36,6 +36,17 @@ namespace DirectoryManager.Web.Helpers
                 changes.Add("Contact email changes");
             }
 
+            // Every place a visitor could be sent or told to make contact. A swapped onion address,
+            // support handle or proof page is how a listing gets turned into a phishing page, so
+            // none of these may ride through a one-click approval.
+            AddIfChanged(changes, "Link 2 (onion)", entry.Link2, submission.Link2, url: true);
+            AddIfChanged(changes, "Link 3 (I2P)", entry.Link3, submission.Link3, url: true);
+            AddIfChanged(changes, "Proof link", entry.ProofLink, submission.ProofLink, url: true);
+            AddIfChanged(changes, "Video link", entry.VideoLink, submission.VideoLink, url: true);
+            AddIfChanged(changes, "Source code link", entry.SourceCodeLink, submission.SourceCodeLink, url: true);
+            AddIfChanged(changes, "Messenger contact", entry.Messenger, submission.Messenger, url: false);
+            AddIfChanged(changes, "Social contact", entry.Social, submission.Social, url: false);
+
             var oldKey = NormalizeKey(entry.PgpKey);
             var newKey = NormalizeKey(submission.PgpKey);
             if (oldKey != newKey)
@@ -53,6 +64,20 @@ namespace DirectoryManager.Web.Helpers
             }
 
             return changes;
+        }
+
+        private static void AddIfChanged(List<string> changes, string label, string? current, string? proposed, bool url)
+        {
+            bool same = url
+                ? SameUrl(current, proposed)
+                : string.Equals((current ?? string.Empty).Trim(), (proposed ?? string.Empty).Trim(), StringComparison.OrdinalIgnoreCase);
+            if (!same)
+            {
+                changes.Add(string.IsNullOrWhiteSpace(current)
+                    ? $"{label} is added: {proposed}"
+                    : string.IsNullOrWhiteSpace(proposed) ? $"{label} is removed (was {current})"
+                    : $"{label} changes from {current} to {proposed}");
+            }
         }
 
         private static bool SameUrl(string? a, string? b)

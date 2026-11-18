@@ -1,0 +1,127 @@
+@using DirectoryManager.Web.Helpers
+@model DirectoryManager.Web.Models.Emails.EmailSendLogDetailViewModel
+
+@{
+    PageMeta.Title = "Email Send Log #" + Model.Log.EmailSendLogId;
+    Layout = "_CenteredLayout";
+    var log = Model.Log;
+    var c = Model.Content;
+    var fmt = DirectoryManager.Common.Constants.StringConstants.DateTimeFormat;
+    const string PreStyle = "white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;max-height:640px;overflow:auto;padding:8px;border:1px solid #555;";
+}
+
+@section PageContent {
+<h1>@PageMeta.Title</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+<p><a href="/email/sendlog">&laquo; Back to the send log</a></p>
+
+<div class="table-wrapper">
+<table class="table table-bordered">
+    <tbody>
+        <tr><th>Service</th><td>@log.SourceApplication</td></tr>
+        <tr>
+            <th>Recipient</th>
+            <td>
+                @log.RecipientEmail
+                @if (log.RecipientCount > 1)
+                {
+                    <br /><small>Batch send to @log.RecipientCount recipients (BCC); only the first address is logged.</small>
+                }
+            </td>
+        </tr>
+        <tr><th>Subject</th><td>@log.Subject</td></tr>
+        <tr><th>Result</th><td>@(log.IsSuccess ? "Sent" : "Failed")</td></tr>
+        <tr><th>Status code</th><td>@(log.StatusCode.HasValue ? log.StatusCode.Value.ToString() : "none (no response received)")</td></tr>
+        <tr>
+            <th>Error message</th>
+            <td>
+                @if (string.IsNullOrEmpty(log.ErrorMessage))
+                {
+                    <text>none</text>
+                }
+                else
+                {
+                    <pre style="@PreStyle">@log.ErrorMessage</pre>
+                }
+            </td>
+        </tr>
+        <tr><th>Sent (UTC)</th><td>@log.SentDate.ToString(fmt)</td></tr>
+        @if (c != null)
+        {
+            <tr><th>From</th><td>@(string.IsNullOrEmpty(c.FromName) ? c.FromEmail : $"{c.FromName} <{c.FromEmail}>")</td></tr>
+            <tr><th>Reply-To</th><td>@(string.IsNullOrEmpty(c.ReplyTo) ? "none" : c.ReplyTo)</td></tr>
+            <tr>
+                <th>Same message</th>
+                <td>
+                    @if (Model.OtherSendsWithSameContent > 0)
+                    {
+                        <text>@Model.OtherSendsWithSameContent other send@(Model.OtherSendsWithSameContent == 1 ? string.Empty : "s") of this same message. </text>
+                        <a href="/email/sendlog?contentId=@c.EmailSendLogContentId">Show all sends of this message</a>
+                    }
+                    else
+                    {
+                        <text>No other sends of this same message.</text>
+                    }
+                </td>
+            </tr>
+            <tr><th>Stored size</th><td>@c.SizeBytes.ToString("N0") bytes (plain text + HTML, as sent)</td></tr>
+        }
+    </tbody>
+</table>
+</div>
+
+@if (c == null)
+{
+    <p><strong>The message content was not stored</strong> (sent before this feature, or older than @Model.RetentionDays days).</p>
+}
+else
+{
+    <p><small>Secret links (confirmation and unsubscribe tokens, invoice links) and the recipient's own address were replaced with [redacted] / [recipient] before the message was stored.</small></p>
+
+    <h2>Headers</h2>
+    @if (string.IsNullOrEmpty(c.Headers))
+    {
+        <p>No custom headers.</p>
+    }
+    else
+    {
+        <pre style="@PreStyle">@c.Headers</pre>
+    }
+
+    <h2>Plain-text body</h2>
+    @if (string.IsNullOrEmpty(c.BodyText))
+    {
+        <p>No plain-text body.</p>
+    }
+    else
+    {
+        if (c.BodyTextTruncated)
+        {
+            <p><strong>Truncated:</strong> only the first 512 KB were stored.</p>
+        }
+        <pre style="@PreStyle">@c.BodyText</pre>
+    }
+
+    <h2>HTML body</h2>
+    @if (string.IsNullOrEmpty(c.BodyHtml))
+    {
+        <p>No HTML body.</p>
+    }
+    else
+    {
+        if (c.BodyHtmlTruncated)
+        {
+            <p><strong>Truncated:</strong> only the first 512 KB were stored.</p>
+        }
+        <p><small>Shown in a locked-down frame: scripts, forms and links are disabled and remote images are not loaded.</small></p>
+        @EmailPreviewHelper.BuildIframe(c.BodyHtml, "Email HTML preview")
+
+        <details>
+            <summary>HTML source</summary>
+            <pre style="@PreStyle">@c.BodyHtml</pre>
+        </details>
+    }
+}
+}

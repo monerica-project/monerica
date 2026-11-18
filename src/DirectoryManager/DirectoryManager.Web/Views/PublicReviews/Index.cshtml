@@ -1,0 +1,265 @@
+@using System.Globalization
+@using DirectoryManager.Data.Enums
+@using DirectoryManager.Data.Models.TransferModels
+@using DirectoryManager.DisplayFormatting.Helpers
+@using DirectoryManager.Utilities.Helpers
+@using DirectoryManager.Web.Helpers
+@model DirectoryManager.Web.Models.TrustPages.PublicReviewsViewModel
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService Urls
+@{
+    var siteName = await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteName);
+    var currency = await cacheHelper.GetSnippetAsync(SiteConfigSetting.DirectoryCurrencyName);
+    var f = Model.Filter;
+    var result = Model.Result;
+    int totalPages = Model.TotalPages;
+
+    PageMeta.Title = "Reviews";
+    var subject = string.IsNullOrWhiteSpace(currency) ? "Latest Business Reviews" : $"Latest {currency} Business Reviews";
+    PageMeta.SeoTitle = SeoTitleBuilder.ForSubject(subject, null, siteName, f.Page);
+    PageMeta.MetaDescription = SeoDescriptionBuilder.Shorten(
+        $"Every published review on {siteName}, newest first: ratings, problem reports and replies from listing owners. Reviewers prove they hold a PGP key.");
+    Layout = "_LayoutWithNav";
+
+    // All filter and paging links go to the app: the static mirror only has the plain first page.
+    string PageUrl(int p) => Urls.ResolveToApp("/" + DirectoryManager.Web.Controllers.PublicReviewsController.PagePath + f.ToQueryString(p));
+    string ListingUrl(string key) => Urls.ResolveToRoot(UrlBuilder.ListingPath(key));
+    string ReviewUrl(string key, int reviewId)
+    {
+        var p = Model.ListingPages.TryGetValue(reviewId, out var lp) ? lp : 1;
+        var path = UrlBuilder.ListingPath(key) + (p > 1 ? $"/page/{p}" : string.Empty);
+        return Urls.ResolveToRoot(path) + "#review-" + reviewId.ToString(CultureInfo.InvariantCulture);
+    }
+
+    var dateFormat = DirectoryManager.Common.Constants.StringConstants.DateFormat;
+}
+
+@section PageContent {
+    <div class="page-header-bar">
+        <h1 class="page-title">@PageMeta.Title</h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
+    <hr />
+    @await Html.PartialAsync("_BackToHome")
+    <hr />
+
+    <p>
+        Every published review on @siteName, newest first. Each reviewer proves they hold a PGP key, and reviews with
+        order proof or problem tags are checked by a moderator first.
+        <a class="no-app-link" href="@Urls.ResolveToRoot("/" + DirectoryManager.Web.Controllers.HowWeVerifyController.PagePath + "#reviews")">How reviews are checked</a>
+        &middot;
+        <a class="no-app-link" href="@Urls.ResolveToRoot("/" + DirectoryManager.Web.Controllers.IncidentsController.PagePath)">Incidents</a>
+    </p>
+
+    <form method="get" action="@Urls.ResolveToApp("/" + DirectoryManager.Web.Controllers.PublicReviewsController.PagePath)" class="filter-form ui-form reviews-filter">
+        <fieldset class="ui-fieldset">
+            <legend class="ui-legend">Filter reviews</legend>
+            <div class="u-flex-gap-8px-flexwrap-wrap">
+                <label class="u-flex-1-1-240px-minw-0">
+                    <span class="u-block-fs-085rem-opacity-075-mb-035rem">Search</span>
+                    <input type="search" name="q" value="@f.Search" maxlength="@PublicReviewFilter.MaxSearchLength"
+                           class="dir-search-input u-w-100pct" size="1" placeholder="Review text or listing name" autocomplete="off" />
+                </label>
+                <label>
+                    <span class="u-block-fs-085rem-opacity-075-mb-035rem">Category</span>
+                    <span class="ui-select-wrap">
+                        <select name="category" class="form-control select-fit ui-select ui-select-caret">
+                            <option value="">All categories</option>
+                            @foreach (var c in Model.Categories)
+                            {
+                                var key = c.CategoryKey.ToLowerInvariant();
+                                <option value="@key" selected="@(key == f.CategoryKey)">@c.Name</option>
+                            }
+                        </select>
+                    </span>
+                </label>
+                <label>
+                    <span class="u-block-fs-085rem-opacity-075-mb-035rem">Rating</span>
+                    <span class="ui-select-wrap">
+                        <select name="rating" class="form-control select-fit ui-select ui-select-caret">
+                            <option value="">Any rating</option>
+                            @for (int s = 5; s >= 1; s--)
+                            {
+                                <option value="@s" selected="@(f.Rating == s)">@s star@(s == 1 ? "" : "s")</option>
+                            }
+                        </select>
+                    </span>
+                </label>
+                <label>
+                    <span class="u-block-fs-085rem-opacity-075-mb-035rem">Tag</span>
+                    <span class="ui-select-wrap">
+                        <select name="tag" class="form-control select-fit ui-select ui-select-caret">
+                            <option value="">Any tag</option>
+                            @foreach (var t in Model.Tags)
+                            {
+                                var slug = t.Slug.ToLowerInvariant();
+                                <option value="@slug" selected="@(slug == f.TagSlug)">@t.Name</option>
+                            }
+                        </select>
+                    </span>
+                </label>
+                <label>
+                    <span class="u-block-fs-085rem-opacity-075-mb-035rem">Sort</span>
+                    <span class="ui-select-wrap">
+                        <select name="sort" class="form-control select-fit ui-select ui-select-caret">
+                            <option value="" selected="@(f.Sort == PublicReviewSort.Newest)">Newest first</option>
+                            <option value="oldest" selected="@(f.Sort == PublicReviewSort.Oldest)">Oldest first</option>
+                            <option value="highest" selected="@(f.Sort == PublicReviewSort.Highest)">Highest rating</option>
+                            <option value="lowest" selected="@(f.Sort == PublicReviewSort.Lowest)">Lowest rating</option>
+                        </select>
+                    </span>
+                </label>
+            </div>
+            <div class="u-mt-10px-flex-flexwrap-wrap-gap-10px">
+                <label class="ui-check">
+                    <input type="checkbox" name="replies" value="1" checked="@f.WithReplies" />
+                    With replies only
+                </label>
+                <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+                @if (f.HasFilters)
+                {
+                    <a class="app-link" href="@Urls.ResolveToApp("/" + DirectoryManager.Web.Controllers.PublicReviewsController.PagePath)">Clear filters</a>
+                }
+            </div>
+        </fieldset>
+    </form>
+
+    <p class="text-muted u-mt-12px">
+        @result.TotalCount.ToString("N0", CultureInfo.InvariantCulture) review@(result.TotalCount == 1 ? "" : "s")@(f.HasFilters ? " match" : string.Empty)
+        @if (totalPages > 1)
+        {
+            @: &middot; page @result.Page of @totalPages
+        }
+    </p>
+
+    @if (result.Items.Count == 0)
+    {
+        <p>No reviews match these filters.</p>
+    }
+    else
+    {
+        <ul class="list-unstyled public-reviews">
+            @foreach (var r in result.Items)
+            {
+                var e = r.DirectoryEntry;
+                var listingUrl = ListingUrl(e.DirectoryEntryKey);
+                var reviewUrl = ReviewUrl(e.DirectoryEntryKey, r.DirectoryEntryReviewId);
+                var replyCount = Model.ReplyCounts.TryGetValue(r.DirectoryEntryReviewId, out var rc) ? rc : 0;
+                var categoryName = e.SubCategory?.Category?.Name;
+
+                <li id="review-@r.DirectoryEntryReviewId" class="mb-4 pb-3 border-bottom">
+                    <div>
+                        @Html.Raw(DisplayMarkUpHelper.GetDirectoryStausIcon(e.DirectoryStatus))<strong><a class="no-app-link" href="@listingUrl">@e.Name</a></strong>
+                        @if (!string.IsNullOrWhiteSpace(categoryName))
+                        {
+                            <small class="text-muted ms-2">@categoryName &rsaquo; @e.SubCategory!.Name</small>
+                        }
+                    </div>
+
+                    @if (r.IsOwner)
+                    {
+                        <div class="owner-badge mb-1 u-mt-6px">
+                            <span class="owner-badge-mark" aria-hidden="true">✓</span>
+                            @(string.IsNullOrWhiteSpace(r.DisplayName) ? "Listing owner" : r.DisplayName) (listing owner)
+                        </div>
+                    }
+
+                    <div class="d-flex align-items-center u-mt-6px">
+                        @EntryReviewHtmlHelper.RenderSingleReviewStars(r.Rating)
+                        @if (r.Rating.HasValue)
+                        {
+                            <small class="text-muted ms-2">@r.Rating/5</small>
+                        }
+                        @if (r.IsOfficial)
+                        {
+                            <span class="badge bg-orange official-flag u-color-1a1a1a ms-2" title="Official @siteName review">Official</span>
+                        }
+                    </div>
+
+                    @EntryReviewHtmlHelper.RenderReviewTags(r)
+
+                    <div class="mt-2@(r.IsStruckThrough ? " review-struck" : string.Empty)">
+                        @Html.Raw(StringHelpers.RenderBodyWithLinksHtml(r.Body, cssClass: "multi-line-text", ugcContent: true))
+                    </div>
+
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            Author:
+                            @if (MemberAuthor.IsMember(r.AuthorUserId))
+                            {
+                                <partial name="_MemberByline" model="@(new DirectoryManager.Web.Models.Members.MemberBylineModel(r.AuthorUserId, r.AuthorUsername))" />
+                            }
+                            else if (string.IsNullOrWhiteSpace(r.DisplayName))
+                            {
+                                <span class="review-fp" title="@r.AuthorFingerprint">@AuthorDisplay.ShortFingerprint(r.AuthorFingerprint)</span>
+                            }
+                            else
+                            {
+                                @r.DisplayName
+                            }
+                        </small>
+                        <small class="text-muted ms-2">&bull;</small>
+                        <time class="text-muted ms-2" datetime="@r.CreateDate.ToString(dateFormat, CultureInfo.InvariantCulture)">@r.CreateDate.ToString(dateFormat, CultureInfo.InvariantCulture)</time>
+                        @if (replyCount > 0)
+                        {
+                            <small class="text-muted ms-2">&bull;</small>
+                            <a class="no-app-link ms-2" href="@reviewUrl">@replyCount repl@(replyCount == 1 ? "y" : "ies")</a>
+                        }
+                    </div>
+
+                    <div class="mt-2">
+                        <small>
+                            <a class="no-app-link" href="@reviewUrl">Open on listing</a>
+                            &middot;
+                            <a class="no-app-link" href="@(listingUrl + "#reviews")">Write a review</a>
+                        </small>
+                    </div>
+                </li>
+            }
+        </ul>
+
+        @if (totalPages > 1)
+        {
+            var current = result.Page;
+            var shown = new SortedSet<int> { 1, totalPages };
+            for (int p = Math.Max(1, current - 2); p <= Math.Min(totalPages, current + 2); p++)
+            {
+                shown.Add(p);
+            }
+
+            <nav aria-label="Review pages">
+                <ul class="pagination">
+                    @if (current > 1)
+                    {
+                        <li class="page-item"><a class="page-link app-link" rel="prev" href="@PageUrl(current - 1)">&lsaquo; Prev</a></li>
+                    }
+                    @{
+                        int last = 0;
+                    }
+                    @foreach (var p in shown)
+                    {
+                        if (last > 0 && p > last + 1)
+                        {
+                            <li class="page-item"><span class="page-link">&hellip;</span></li>
+                        }
+
+                        if (p == current)
+                        {
+                            <li class="page-item active"><span class="page-link" aria-current="page">@p</span></li>
+                        }
+                        else
+                        {
+                            <li class="page-item"><a class="page-link app-link" href="@PageUrl(p)">@p</a></li>
+                        }
+
+                        last = p;
+                    }
+                    @if (current < totalPages)
+                    {
+                        <li class="page-item"><a class="page-link app-link" rel="next" href="@PageUrl(current + 1)">Next &rsaquo;</a></li>
+                    }
+                </ul>
+            </nav>
+        }
+    }
+}

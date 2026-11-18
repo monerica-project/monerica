@@ -2,8 +2,8 @@
 @model BtcPayNoJsInvoiceViewModel
 @{
     PageMeta.Title = "Pay with Monero";
-    bool shouldRefresh = !Model.IsPaid && !Model.IsExpired;
-    var qrUrl = Model.QrUrlOverride ?? Url.Action("BtcPayNoJsQr", "SponsoredListingCheckout", new { processorInvoiceId = Model.ProcessorInvoiceId });
+    bool shouldRefresh = (!Model.IsPaid && !Model.IsExpired) || Model.IsPaidLate;
+    var qrUrl = Model.QrUrlOverride ?? Url.Action("BtcPayNoJsQr", "SponsoredListingCheckout", new { processorInvoiceId = Model.ProcessorInvoiceId, orderId = Model.OrderId });
     var refreshUrl = Model.RefreshUrlOverride ?? Url.Action("BtcPayNoJsInvoice", "SponsoredListingCheckout", new { processorInvoiceId = Model.ProcessorInvoiceId, orderId = Model.OrderId });
     var successUrl = Model.SuccessUrlOverride ?? Url.Action("BtcPaySuccess", "SponsoredListingCheckout", new { orderId = Model.OrderId });
     var startOverUrl = Model.StartOverUrlOverride ?? Url.Action("SelectListing", "SponsoredListingCheckout");
@@ -221,6 +221,17 @@
                     Continue &rarr;
                 </a>
             </p>
+        </div>
+    }
+
+    @* ── PAID AFTER THE TIMER RAN OUT ── *@
+    else if (Model.IsPaidLate)
+    {
+        <div class="invoice-status pending">
+            <p>&#10003; Payment received, just after the timer ran out.</p>
+            <p>You do not need to pay again. Once the payment is confirmed (usually about 20 to 30 minutes)
+               your sponsorship goes live on its own. This page refreshes by itself and will show when it is live.</p>
+            <p>Order ID: @Model.OrderId. If it is not live within a few hours, contact us with this order ID.</p>
         </div>
     }
 

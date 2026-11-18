@@ -3,6 +3,7 @@
 @using DirectoryManager.Data.Enums
 @using DirectoryManager.Utilities.Helpers
 @model DirectoryManager.Web.Models.Reviews.EntryReviewsModerationViewModel
+@inject DirectoryManager.Web.Services.Implementations.MemberKeyDirectory MemberKeys
 
 @{
     Layout = "_CenteredLayout";
@@ -57,7 +58,7 @@
                         <th>Title</th>
                         <th>Order Proof</th>
                         <th>Created (UTC)</th>
-                        <th>Fingerprint</th>
+                        <th>Author (PGP / Member)</th>
                         <th class="u-w-220px">Actions</th>
                     </tr>
                 </thead>
@@ -92,7 +93,7 @@
                             </td>
 
                             <td>@r.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat)</td>
-                            <td><code>@r.AuthorFingerprint</code></td>
+                            <td><code>@(DirectoryManager.Web.Helpers.MemberAuthor.ForAdmin(r.AuthorFingerprint, r.AuthorUserId, r.AuthorUsername, await MemberKeys.FingerprintForAsync(r.AuthorUserId)))</code></td>
                             <td>
                                 <a asp-action="Edit" asp-route-id="@r.DirectoryEntryReviewId">Edit</a>
                                 <a asp-action="Show" asp-route-id="@r.DirectoryEntryReviewId" class="ms-1">View</a>

@@ -44,6 +44,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
         private const double FoundedAgeHalfLifeDays = 1825.0; // ~5 years
         private const double DirectoryAgeHalfLifeDays = 730.0;  // ~2 years
 
+        // Public search index shared across requests (see GetSearchIndexAsync).
+        private static readonly TimeSpan SearchIndexMaxAge = TimeSpan.FromMinutes(10);
+        private static volatile CachedSearchIndex? cachedSearchIndex;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="DirectoryEntryRepository"/> class.
         /// </summary>
@@ -260,6 +264,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
             existing.Liquidity = entry.Liquidity;
             existing.RateType = entry.RateType;
             existing.SiteJavaScript = entry.SiteJavaScript;
+            existing.RestrictedCountries = entry.RestrictedCountries;
+            existing.VpnPolicy = entry.VpnPolicy;
+            existing.TorPolicy = entry.TorPolicy;
+            existing.OtherRestrictions = entry.OtherRestrictions;
             existing.KycPolicy = entry.KycPolicy;
             existing.DirectoryBadge = entry.DirectoryBadge;
             existing.ReviewsDisabled = entry.ReviewsDisabled;
@@ -307,7 +315,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     DirectoryStatus = e.DirectoryStatus,
                     CreateDate = e.CreateDate,
                     UpdateDate = e.UpdateDate,
-                    CountryCode = e.CountryCode
+                    CountryCode = e.CountryCode,
+                    SubCategoryId = e.SubCategoryId
                 })
                 .ToListAsync(ct);
         }
@@ -938,8 +947,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 return null;
             }
 
-            var entries = await this.LoadSearchableEntriesAsync(includeRemoved: false).ConfigureAwait(false);
-            return DirectorySearchEngine.SuggestCorrection(entries, query);
+            var index = await this.GetSearchIndexAsync().ConfigureAwait(false);
+            return DirectorySearchEngine.SuggestCorrection(index, query);
         }
 
         public async Task<List<string>> ListActiveCountryCodesAsync(CancellationToken ct = default)
@@ -1259,6 +1268,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
             };
         }
 
+        private sealed record CachedSearchIndex(DirectorySearchEngine.SearchIndex Index, string Fingerprint);
+
         private sealed record AuthorSearchTerm(
             string term,
             string pattern,
@@ -1383,6 +1394,12 @@ namespace DirectoryManager.Data.Repositories.Implementations
             if (q.HasVideo)
             {
                 baseQ = baseQ.Where(e => !string.IsNullOrWhiteSpace(e.VideoLink));
+            }
+
+            // Open source = has a source code link
+            if (q.HasSourceCode)
+            {
+                baseQ = baseQ.Where(e => e.SourceCodeLink != null && e.SourceCodeLink.Trim() != "");
             }
 
             // Has Tor (.onion)
@@ -1704,8 +1721,112 @@ namespace DirectoryManager.Data.Repositories.Implementations
         /// </summary>
         private async Task<List<DirectoryEntry>> RankSearchAsync(string query, bool includeRemoved)
         {
-            var entries = await this.LoadSearchableEntriesAsync(includeRemoved).ConfigureAwait(false);
-            return DirectorySearchEngine.Rank(entries, query);
+            if (includeRemoved)
+            {
+                // Admin/duplicate lookups: rare, so built fresh, and Scam listings stay findable.
+                var all = await this.LoadSearchableEntriesAsync(includeRemoved: true).ConfigureAwait(false);
+                var adminIndex = DirectorySearchEngine.BuildIndex(all, await this.LoadSearchSignalsAsync().ConfigureAwait(false), alwaysShowScams: true);
+                return DirectorySearchEngine.Rank(adminIndex, query);
+            }
+
+            var index = await this.GetSearchIndexAsync().ConfigureAwait(false);
+            return DirectorySearchEngine.Rank(index, query);
+        }
+
+        public async Task<List<DirectorySearchEngine.RankedResult>> ExplainSearchAsync(string query)
+        {
+            var index = await this.GetSearchIndexAsync().ConfigureAwait(false);
+            return DirectorySearchEngine.RankExplained(index, query);
+        }
+
+        /// <summary>
+        /// The public search index (listings split into words + quality signals), shared by all
+        /// requests. Rebuilt when a listing, review or problem report changes (checked with one
+        /// cheap aggregate query per search), and at least every <see cref="SearchIndexMaxAge"/>
+        /// for changes that don't touch those rows (tags, links, subcategory names).
+        /// </summary>
+        public async Task<DirectorySearchEngine.SearchIndex> GetSearchIndexAsync()
+        {
+            var fingerprint = await this.SearchFingerprintAsync().ConfigureAwait(false);
+            var cached = cachedSearchIndex;
+            if (cached != null && cached.Fingerprint == fingerprint && DateTime.UtcNow - cached.Index.BuiltUtc < SearchIndexMaxAge)
+            {
+                return cached.Index;
+            }
+
+            var entries = await this.LoadSearchableEntriesAsync(includeRemoved: false).ConfigureAwait(false);
+            var signals = await this.LoadSearchSignalsAsync().ConfigureAwait(false);
+            var index = DirectorySearchEngine.BuildIndex(entries, signals);
+            cachedSearchIndex = new CachedSearchIndex(index, fingerprint);
+            return index;
+        }
+
+        // Changes whenever a listing (status, text, KYC…), a review (approval, rating) or a
+        // problem report is added or edited: count + newest change time of each table.
+        private async Task<string> SearchFingerprintAsync()
+        {
+            var e = await this.context.DirectoryEntries.AsNoTracking()
+                .GroupBy(_ => 1)
+                .Select(g => new { C = g.Count(), M = g.Max(x => x.UpdateDate ?? x.CreateDate) })
+                .FirstOrDefaultAsync().ConfigureAwait(false);
+            var r = await this.context.DirectoryEntryReviews.AsNoTracking()
+                .GroupBy(_ => 1)
+                .Select(g => new { C = g.Count(), M = g.Max(x => x.UpdateDate ?? x.CreateDate) })
+                .FirstOrDefaultAsync().ConfigureAwait(false);
+            var p = await this.context.ProblemReports.AsNoTracking()
+                .GroupBy(_ => 1)
+                .Select(g => new { C = g.Count(), M = g.Max(x => x.UpdateDate ?? x.CreateDate) })
+                .FirstOrDefaultAsync().ConfigureAwait(false);
+            return $"{e?.C}:{e?.M.Ticks}|{r?.C}:{r?.M.Ticks}|{p?.C}:{p?.M.Ticks}";
+        }
+
+        // Review, problem-report and guarantee facts per listing, for SearchRankingModel.
+        private async Task<SearchSignals> LoadSearchSignalsAsync()
+        {
+            var reviews = await this.context.DirectoryEntryReviews.AsNoTracking()
+                .Where(r => r.ModerationStatus == ReviewModerationStatus.Approved && r.Rating.HasValue)
+                .GroupBy(r => r.DirectoryEntryId)
+                .Select(g => new
+                {
+                    Id = g.Key,
+                    Count = g.Count(),
+                    Sum = g.Sum(x => (double)x.Rating!.Value),
+                    Last = g.Max(x => x.CreateDate),
+                })
+                .ToListAsync().ConfigureAwait(false);
+
+            var openProblems = await this.context.ProblemReports.AsNoTracking()
+                .Where(p => p.Status == ProblemReportStatus.Pending)
+                .GroupBy(p => p.DirectoryEntryId)
+                .Select(g => new { Id = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.Id, x => x.Count).ConfigureAwait(false);
+
+            var guaranteed = (await this.context.DirectoryEntryGuarantees.AsNoTracking()
+                .Select(x => x.DirectoryEntryId).Distinct().ToListAsync().ConfigureAwait(false)).ToHashSet();
+
+            var byReview = reviews.ToDictionary(x => x.Id);
+            var ids = byReview.Keys.Concat(openProblems.Keys).Concat(guaranteed).Distinct();
+            var map = new Dictionary<int, SearchListingSignals>();
+            foreach (var id in ids)
+            {
+                byReview.TryGetValue(id, out var rv);
+                map[id] = new SearchListingSignals
+                {
+                    ReviewCount = rv?.Count ?? 0,
+                    AverageRating = rv != null && rv.Count > 0 ? rv.Sum / rv.Count : 0,
+                    LastReviewUtc = rv?.Last,
+                    OpenProblemReports = openProblems.GetValueOrDefault(id),
+                    HasDepositGuarantee = guaranteed.Contains(id),
+                };
+            }
+
+            int totalReviews = reviews.Sum(x => x.Count);
+            return new SearchSignals
+            {
+                ByEntryId = map,
+                SiteMeanRating = totalReviews > 0 ? reviews.Sum(x => x.Sum) / totalReviews : SearchRankingModel.DefaultMeanRating,
+                NowUtc = DateTime.UtcNow,
+            };
         }
 
         // Whole directory (a few thousand rows) with the fields search needs; ranking is in memory.
@@ -1876,6 +1997,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 Liquidity = entry.Liquidity,
                 RateType = entry.RateType,
                 SiteJavaScript = entry.SiteJavaScript,
+                RestrictedCountries = entry.RestrictedCountries,
+                VpnPolicy = entry.VpnPolicy,
+                TorPolicy = entry.TorPolicy,
+                OtherRestrictions = entry.OtherRestrictions,
                 CountryCode = entry.CountryCode,
                 FoundedDate = entry.FoundedDate,
                 Description = entry.Description,

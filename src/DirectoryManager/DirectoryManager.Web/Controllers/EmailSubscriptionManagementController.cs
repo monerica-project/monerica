@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace DirectoryManager.Web.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     public class EmailSubscriptionManagementController : Controller
     {
         private readonly IEmailSubscriptionRepository emailSubscriptionRepository;

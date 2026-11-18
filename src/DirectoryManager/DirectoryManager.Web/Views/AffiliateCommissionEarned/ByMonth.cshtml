@@ -1,0 +1,208 @@
+@model DirectoryManager.Web.Models.AffiliateCommissionPaid.AffiliateCommissionEarnedByMonthViewModel
+@using DirectoryManager.Web.Revenue
+@using DirectoryManager.Web.Constants
+@using System.Globalization
+@{
+    var r = Model.Report;
+    PageMeta.Title = Model.CompanyName == null ? "Affiliate Sales by Month" : $"Affiliate Sales by Month: {Model.CompanyName}";
+    PageMeta.MetaContent = StringConstants.MetaTagNoIndex;
+    Layout = "_CenteredLayout";
+
+    var usd = CultureInfo.GetCultureInfo("en-US");
+    var cacheBust = DateTime.UtcNow.ToString(DirectoryManager.Common.Constants.StringConstants.CompactDateTimeFormat, CultureInfo.InvariantCulture);
+    var basePath = "/affiliatecommissionearned/by-month";
+    var series = AffiliateCommissionMonthlyReport.Series(r);
+    var colorById = series.Where(s => s.DirectoryEntryId.HasValue).ToDictionary(s => s.DirectoryEntryId!.Value, s => s.Hex);
+    var otherHex = DirectoryManager.Web.Charting.AffiliateCommissionPlotting.HexFor(0, isOther: true);
+    var isCustom = r.Range.Key == "custom";
+    string M(DateTime m) => AffiliateCommissionMonthlyReport.MonthLabel(m);
+    string Money(decimal v) => v.ToString("C2", usd);
+    string Pct(decimal v) => r.TotalUsd != 0m ? (v / r.TotalUsd * 100m).ToString("0.0", CultureInfo.InvariantCulture) + "%" : "0.0%";
+}
+
+@section PageContent {
+    <h1>@PageMeta.Title</h1>
+    @await Html.PartialAsync("_AdminMenu")
+
+    <p>
+        <a asp-action="Totals">&laquo; Totals by listing</a> |
+        <a asp-action="Pie">Pie chart by listing</a> |
+        <a asp-action="Index">All commissions</a> |
+        <a href="~/admin/revenue">Revenue</a>
+    </p>
+
+    <form method="get" action="@basePath" class="filter-form ui-form">
+        <fieldset class="ui-fieldset">
+            <legend class="ui-legend">Range</legend>
+            <div class="u-flex-gap-8px-flexwrap-wrap">
+                <span class="ui-select-wrap">
+                    <select name="range" class="form-control select-fit ui-select ui-select-caret" aria-label="Range">
+                        @foreach (var (key, label) in Model.RangeOptions.Where(o => o.Key != "custom"))
+                        {
+                            <option value="@key" selected="@(key == r.Range.Key)">@label</option>
+                        }
+                        @if (isCustom)
+                        {
+                            <option value="custom" selected>Custom months (below)</option>
+                        }
+                    </select>
+                </span>
+                @if (Model.CompanyId.HasValue)
+                {
+                    <input type="hidden" name="company" value="@Model.CompanyId" />
+                }
+                <button type="submit" class="btn btn-primary btn-sm">Show</button>
+            </div>
+        </fieldset>
+    </form>
+    <form method="get" action="@basePath" class="filter-form ui-form">
+        <fieldset class="ui-fieldset">
+            <legend class="ui-legend">Custom months</legend>
+            <input type="hidden" name="range" value="custom" />
+            <div class="u-flex-gap-8px-flexwrap-wrap">
+                <label for="bm-from">From</label>
+                <span class="ui-select-wrap">
+                    <select id="bm-from" name="from" class="form-control select-fit ui-select ui-select-caret">
+                        @foreach (var m in Model.MonthOptions)
+                        {
+                            <option value="@AffiliateCommissionMonthlyReport.MonthKey(m)" selected="@(m == r.Range.StartMonth)">@M(m)</option>
+                        }
+                    </select>
+                </span>
+                <label for="bm-to">To</label>
+                <span class="ui-select-wrap">
+                    <select id="bm-to" name="to" class="form-control select-fit ui-select ui-select-caret">
+                        @foreach (var m in Model.MonthOptions)
+                        {
+                            <option value="@AffiliateCommissionMonthlyReport.MonthKey(m)" selected="@(m == r.Range.EndMonth)">@M(m)</option>
+                        }
+                    </select>
+                </span>
+                @if (Model.CompanyId.HasValue)
+                {
+                    <input type="hidden" name="company" value="@Model.CompanyId" />
+                }
+                <button type="submit" class="btn btn-primary btn-sm">Show</button>
+            </div>
+            <p class="text-muted"><small>Up to @(AffiliateCommissionMonthlyReport.MaxMonths / 12) years. Months are calendar months in UTC; the current month is partial.</small></p>
+        </fieldset>
+    </form>
+
+    @foreach (var n in Model.Notices)
+    {
+        <div class="alert alert-warning">@n</div>
+    }
+
+    @if (Model.CompanyId.HasValue)
+    {
+        <p>
+            Showing only <strong>@Model.CompanyName</strong>.
+            <a href="@basePath?@Model.RangeQuery">Show all listings</a> |
+            <a asp-action="Index" asp-route-directoryEntryId="@Model.CompanyId">Commissions for this listing</a>
+        </p>
+    }
+
+    <p>
+        <strong>@r.Range.Label</strong> (@M(r.Range.StartMonth) to @M(r.Range.EndMonth), @r.Range.MonthCount month@(r.Range.MonthCount == 1 ? "" : "s"))
+        &mdash; <strong>Total:</strong> @Money(r.TotalUsd)
+        from @r.TotalCount sale@(r.TotalCount == 1 ? "" : "s")
+        &mdash; <strong>Average per month:</strong> @Money(r.AveragePerMonthUsd)
+    </p>
+
+    <img class="u-maxw-100pct-h-auto-block-m-0-auto-pb-10px" alt="Affiliate commissions per month in USD, @r.Range.Label" src="@(basePath).png?@(Model.ChartQuery)&v=@cacheBust" width="1400" height="600" />
+    <p><small>Amounts are the USD value recorded with each commission (payments received in XMR or BTC are counted at their USD value on the day). @if (series.Any(s => !s.DirectoryEntryId.HasValue)) { <text>The chart stacks the top @(AffiliateCommissionMonthlyReport.MaxChartCompanies - 1) listings; the rest are grouped as "Other".</text> }</small></p>
+
+    <h2>Listings</h2>
+    <div class="table-wrapper">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Listing</th>
+                    <th class="u-text-right">Sales</th>
+                    <th class="u-text-right">Total USD</th>
+                    <th class="u-text-right">Share</th>
+                    <th>First month</th>
+                    <th>Last month</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!r.Companies.Any())
+                {
+                    <tr><td colspan="7"><em>No commissions in these months.</em></td></tr>
+                }
+                @foreach (var c in r.Companies)
+                {
+                    var hex = colorById.TryGetValue(c.DirectoryEntryId, out var h) ? h : otherHex;
+                    <tr>
+                        <td><span style="display:inline-block;width:12px;height:12px;background:@hex"></span></td>
+                        <td>
+                            @if (Model.CompanyId.HasValue)
+                            {
+                                @c.Name
+                            }
+                            else
+                            {
+                                <a href="@basePath?@(Model.RangeQuery)&company=@c.DirectoryEntryId">@c.Name</a>
+                            }
+                        </td>
+                        <td class="u-text-right">@c.Count</td>
+                        <td class="u-text-right">@Money(c.Usd)</td>
+                        <td class="u-text-right">@Pct(c.Usd)</td>
+                        <td class="text-nowrap">@M(c.FirstMonth)</td>
+                        <td class="text-nowrap">@M(c.LastMonth)</td>
+                    </tr>
+                }
+            </tbody>
+            @if (r.Companies.Any())
+            {
+                <tfoot>
+                    <tr>
+                        <th></th>
+                        <th>Total</th>
+                        <th class="u-text-right">@r.TotalCount</th>
+                        <th class="u-text-right">@Money(r.TotalUsd)</th>
+                        <th class="u-text-right">100%</th>
+                        <th></th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+            }
+        </table>
+    </div>
+
+    <h2>Months</h2>
+    <div class="table-wrapper">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Month</th>
+                    <th class="u-text-right">Sales</th>
+                    <th class="u-text-right">Total USD</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var m in Enumerable.Reverse(r.Months))
+                {
+                    <tr>
+                        <td class="text-nowrap">@M(m.Month)</td>
+                        <td class="u-text-right">@m.Count</td>
+                        <td class="u-text-right">@Money(m.Usd)</td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th>Total</th>
+                    <th class="u-text-right">@r.TotalCount</th>
+                    <th class="u-text-right">@Money(r.TotalUsd)</th>
+                </tr>
+                <tr>
+                    <th>Average per month</th>
+                    <th class="u-text-right">@((r.Months.Count > 0 ? (decimal)r.TotalCount / r.Months.Count : 0m).ToString("0.#", CultureInfo.InvariantCulture))</th>
+                    <th class="u-text-right">@Money(r.AveragePerMonthUsd)</th>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+}

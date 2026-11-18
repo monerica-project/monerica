@@ -1,0 +1,10 @@
+@model DirectoryManager.Web.Models.Members.PostStatusCounts
+@if (Model.Total == 0)
+{
+    <span class="text-muted">0</span>
+}
+else
+{
+    <span title="published / waiting / rejected or hidden">@Model.Total</span>
+    <small class="text-muted"> (@Model.Published pub, @Model.Waiting wait, @Model.Rejected rej)</small>
+}

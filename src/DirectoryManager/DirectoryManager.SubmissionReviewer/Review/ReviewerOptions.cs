@@ -20,6 +20,10 @@ namespace DirectoryManager.SubmissionReviewer.Review
         // Only drafts started after this are auto-submitted; older previews were already handled by hand.
         public DateTime PreviewPromoteSinceUtc { get; set; } = new DateTime(2026, 11, 8, 17, 0, 0, DateTimeKind.Utc);
 
+        // Drafts never passed the captcha, so at most this many auto-sent ones may wait for the admin
+        // at a time. A flood of abandoned (or scripted) drafts cannot fill the review queue.
+        public int PreviewPromoteMaxWaiting { get; set; } = 15;
+
         public int DossierMaxChars { get; set; } = 6000;
 
         public string UserAgent { get; set; } = "MonericaSubmissionReviewer/1.0 (+https://monerica.com; reviews directory submissions)";

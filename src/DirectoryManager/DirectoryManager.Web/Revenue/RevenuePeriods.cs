@@ -14,7 +14,7 @@ namespace DirectoryManager.Web.Revenue
             ("this-quarter", "This quarter"),
             ("ytd", "Year to date"),
             ("last-year", "Last calendar year"),
-            ("last-12", "Last 12 months"),
+            ("last-12", "Last 12 months + this month to date"),
             ("all", "All time"),
             ("custom", "Custom dates"),
         };
@@ -34,7 +34,10 @@ namespace DirectoryManager.Web.Revenue
                 "this-quarter" => (new DateTime(today.Year, (((today.Month - 1) / 3) * 3) + 1, 1, 0, 0, 0, DateTimeKind.Utc), tomorrow),
                 "ytd" => (new DateTime(today.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc), tomorrow),
                 "last-year" => (new DateTime(today.Year - 1, 1, 1, 0, 0, 0, DateTimeKind.Utc), new DateTime(today.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc)),
-                "last-12" => (monthStart.AddMonths(-12), monthStart),
+
+                // The 12 full months before this one PLUS this month up to today, so money that
+                // came in this month is always in the totals, the chart and the average.
+                "last-12" => (monthStart.AddMonths(-12), tomorrow),
                 "all" => (new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc), tomorrow),
                 "custom" when from.HasValue => (
                     DateTime.SpecifyKind(from.Value.Date, DateTimeKind.Utc),

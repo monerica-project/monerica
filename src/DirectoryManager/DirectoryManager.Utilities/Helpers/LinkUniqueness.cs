@@ -3,13 +3,15 @@ namespace DirectoryManager.Utilities.Helpers
     /// <summary>
     /// "No link twice" rule for listing forms: every link field (main link, Tor/I2P links, proof,
     /// video, source code, related links, and Social/Messenger when they hold a URL) must point
-    /// somewhere different. One exception: the proof link may equal the main link (the profile
-    /// then simply doesn't show it twice).
+    /// somewhere different. Exceptions: the proof link may equal the main link (the profile
+    /// then simply doesn't show it twice), and the source code link may equal the main link or the
+    /// proof link (a project whose website IS its repository).
     /// </summary>
     public static class LinkUniqueness
     {
         public const string MainLinkField = "Link";
         public const string ProofLinkField = "ProofLink";
+        public const string SourceCodeLinkField = "SourceCodeLink";
 
         /// <summary>
         /// Returns (field, message) for every field whose link already appears in an EARLIER field
@@ -61,6 +63,11 @@ namespace DirectoryManager.Utilities.Helpers
         }
 
         private static bool IsAllowedPair(string a, string b) =>
-            (a == MainLinkField && b == ProofLinkField) || (a == ProofLinkField && b == MainLinkField);
+            IsPair(a, b, MainLinkField, ProofLinkField)
+            || IsPair(a, b, MainLinkField, SourceCodeLinkField)
+            || IsPair(a, b, ProofLinkField, SourceCodeLinkField);
+
+        private static bool IsPair(string a, string b, string x, string y) =>
+            (a == x && b == y) || (a == y && b == x);
     }
 }

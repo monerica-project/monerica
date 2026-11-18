@@ -50,8 +50,7 @@ else
                         @(item.IsEnabled ? "Disable" : "Enable")
                     </button>
                 </form>
-                <form method="post" action="~/submissionblockeddomains/delete" class="u-inline"
-                      onsubmit="return confirm('Delete this domain?');">
+                <form method="post" action="~/submissionblockeddomains/delete" class="u-inline">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="id" value="@item.SubmissionBlockedDomainId" />
                     <button type="submit" class="btn btn-danger btn-sm">Delete</button>

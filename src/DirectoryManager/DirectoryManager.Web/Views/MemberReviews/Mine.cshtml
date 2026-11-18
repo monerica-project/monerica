@@ -1,0 +1,81 @@
+@model DirectoryManager.Web.Models.Members.MyMemberReviewsViewModel
+@using DirectoryManager.Web.Constants
+@using DirectoryManager.Data.Enums
+@inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService Urls
+@{
+    PageMeta.Title = "My reviews";
+    PageMeta.IsIndexable = false;
+    Layout = "_CenteredLayout";
+
+    string StatusText(ReviewModerationStatus s) => s switch
+    {
+        ReviewModerationStatus.Approved => "Published",
+        ReviewModerationStatus.Rejected => "Not published",
+        _ => "Waiting for a moderator",
+    };
+}
+
+@section PageContent {
+<h1>@PageMeta.Title</h1>
+<p class="text-muted">Signed in as <strong>@Model.Username</strong> (member account) &middot; <a href="@MemberAuth.AccountPath">My account</a></p>
+<hr />
+
+@if (TempData["MemberMessage"] is string msg && !string.IsNullOrWhiteSpace(msg))
+{
+    <div class="alert alert-success">@msg</div>
+}
+
+<h2>Reviews</h2>
+@if (Model.Reviews.Count == 0)
+{
+    <p>You haven't written a review yet. Open a listing and choose <b>or use a username and password</b> under the review button.</p>
+}
+@foreach (var r in Model.Reviews)
+{
+    var key = r.DirectoryEntry?.DirectoryEntryKey ?? string.Empty;
+    <div class="card p-3 mb-3">
+        <h3 class="mb-1">@(r.DirectoryEntry?.Name ?? "Listing")</h3>
+        <div class="mb-2">
+            <strong>Rating:</strong> @(r.Rating?.ToString() ?? "N/A")
+            <span class="text-muted"> • @StatusText(r.ModerationStatus) • @((r.UpdateDate ?? r.CreateDate).ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat))</span>
+        </div>
+        @if (r.ModerationStatus == ReviewModerationStatus.Rejected && !string.IsNullOrWhiteSpace(r.RejectionReason))
+        {
+            <div class="mb-2 text-muted"><small>Moderator note: @r.RejectionReason</small></div>
+        }
+        <div class="u-ws-pre-wrap">@r.Body</div>
+        <div class="mt-3">
+            @if (!string.IsNullOrEmpty(key))
+            {
+                <a class="no-app-link" href="@Urls.ResolveToRoot(DirectoryManager.Utilities.Helpers.UrlBuilder.ListingPath(key))">View listing</a>
+                <span class="text-muted"> · </span>
+                <a href="@(MemberAuth.WriteReviewPathPrefix + key)">Edit</a>
+            }
+            <form method="post" action="/members/reviews/@r.DirectoryEntryReviewId/delete" class="d-inline">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-sm btn-outline-secondary">Delete review</button>
+            </form>
+        </div>
+    </div>
+}
+
+<h2>Replies</h2>
+@if (Model.Replies.Count == 0)
+{
+    <p>No replies yet.</p>
+}
+@foreach (var c in Model.Replies)
+{
+    <div class="card p-3 mb-3">
+        <div class="mb-2 text-muted">
+            On a review of <b>@(c.DirectoryEntryReview?.DirectoryEntry?.Name ?? "a listing")</b>
+            • @StatusText(c.ModerationStatus) • @c.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)
+        </div>
+        <div class="u-ws-pre-wrap">@c.Body</div>
+        <form method="post" action="/members/replies/@c.DirectoryEntryReviewCommentId/delete" class="mt-2">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-sm btn-outline-secondary">Delete reply</button>
+        </form>
+    </div>
+}
+}

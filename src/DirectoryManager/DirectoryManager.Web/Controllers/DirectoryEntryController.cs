@@ -1,4 +1,4 @@
-﻿using DirectoryManager.Web.Extensions;
+using DirectoryManager.Web.Extensions;
 using System.Net;
 using System.Text.RegularExpressions;
 using DirectoryManager.Common.Helpers;
@@ -27,7 +27,7 @@ using DirectoryEntry = DirectoryManager.Data.Models.DirectoryEntry;
 
 namespace DirectoryManager.Web.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     public class DirectoryEntryController : BaseController
     {
         // -------------------------------------------------------------------------
@@ -51,6 +51,8 @@ namespace DirectoryManager.Web.Controllers
         private readonly IDirectoryEntryAdditionalSubcategoryRepository additionalSubcategoryRepo;
         private readonly IDirectoryEntryGuaranteeRepository guaranteeRepo;
         private readonly IProcessorRepository processorRepository;
+        private readonly IStaticPublishService staticPublish;
+        private readonly IStaticPublishRepository staticPublishRepository;
 
         // -------------------------------------------------------------------------
         // Constructor
@@ -73,9 +75,13 @@ namespace DirectoryManager.Web.Controllers
             IAdditionalLinkRepository additionalLinkRepo,
             IDirectoryEntryGuaranteeRepository guaranteeRepo,
             IProcessorRepository processorRepository,
-            IDirectoryEntryAdditionalSubcategoryRepository additionalSubcategoryRepo)
+            IDirectoryEntryAdditionalSubcategoryRepository additionalSubcategoryRepo,
+            IStaticPublishService staticPublish,
+            IStaticPublishRepository staticPublishRepository)
             : base(cache)
         {
+            this.staticPublish = staticPublish;
+            this.staticPublishRepository = staticPublishRepository;
             this.userManager = userManager;
             this.directoryEntryRepository = entryRepository;
             this.subCategoryRepository = subCategoryRepository;
@@ -177,7 +183,7 @@ namespace DirectoryManager.Web.Controllers
                 this.ModelState.AddModelError(nameof(vm.FoundedYear), foundedErr!);
             }
 
-            GuaranteeValidation.ValidateGuarantees(vm.Guarantees, this.ModelState);
+            GuaranteeValidation.ValidateGuarantees(vm.Guarantees, this.ModelState, vm.Link, vm.Link2, vm.Link3);
 
             if (!this.ModelState.IsValid || vm.DirectoryStatus == DirectoryStatus.Unknown || vm.SubCategoryId == 0)
             {
@@ -248,6 +254,10 @@ namespace DirectoryManager.Web.Controllers
                 Liquidity = vm.Liquidity,
                 RateType = vm.RateType,
                 SiteJavaScript = vm.SiteJavaScript,
+                RestrictedCountries = DirectoryManager.Data.Helpers.ListingRestrictions.NormalizeCountries(vm.RestrictedCountries),
+                VpnPolicy = vm.VpnPolicy,
+                TorPolicy = vm.TorPolicy,
+                OtherRestrictions = DirectoryManager.Data.Helpers.ListingRestrictions.CleanOther(vm.OtherRestrictions),
                 FoundedDate = foundedDate,
                 ReviewsDisabled = vm.ReviewsDisabled,
                 RequireReviewVerificationDetails = vm.RequireReviewVerificationDetails,
@@ -260,6 +270,7 @@ namespace DirectoryManager.Web.Controllers
             await this.SyncAdditionalSubcategoriesAsync(model.DirectoryEntryId, vm);
 
             this.ClearCachedItems();
+            await this.staticPublish.EnqueueForEntryAsync(model.DirectoryEntryId, "listing created: " + model.Name);
             return this.RedirectToAction(nameof(this.Index));
         }
 
@@ -325,6 +336,10 @@ namespace DirectoryManager.Web.Controllers
                 Liquidity = entry.Liquidity,
                 RateType = entry.RateType,
                 SiteJavaScript = entry.SiteJavaScript,
+                RestrictedCountries = DirectoryManager.Data.Helpers.ListingRestrictions.ToInputText(entry.RestrictedCountries),
+                VpnPolicy = entry.VpnPolicy,
+                TorPolicy = entry.TorPolicy,
+                OtherRestrictions = entry.OtherRestrictions,
                 Processor = entry.Processor,
                 Email = entry.Email,
                 Messenger = entry.Messenger,
@@ -346,6 +361,8 @@ namespace DirectoryManager.Web.Controllers
 
             var guaranteeRows = await this.guaranteeRepo.GetByDirectoryEntryIdAsync(id, CancellationToken.None);
             vm.Guarantees = BuildGuaranteeFormList(guaranteeRows);
+
+            this.ViewBag.LastPublished = await this.staticPublishRepository.GetLastPublishForPathAsync(UrlBuilder.ListingPath(entry.DirectoryEntryKey));
 
             vm.AdditionalSubcategories = (await this.additionalSubcategoryRepo.GetByDirectoryEntryIdAsync(id))
                 .Select(a => new AdditionalSubcategoryInput
@@ -394,7 +411,7 @@ namespace DirectoryManager.Web.Controllers
                 this.ModelState.AddModelError(nameof(vm.FoundedYear), foundedErr!);
             }
 
-            GuaranteeValidation.ValidateGuarantees(vm.Guarantees, this.ModelState);
+            GuaranteeValidation.ValidateGuarantees(vm.Guarantees, this.ModelState, vm.Link, vm.Link2, vm.Link3);
 
             if (!this.ModelState.IsValid || vm.DirectoryStatus == DirectoryStatus.Unknown || vm.SubCategoryId == 0)
             {
@@ -404,6 +421,9 @@ namespace DirectoryManager.Web.Controllers
                 vm.AdditionalLinks = normalizedAdditional;
                 return this.View(vm);
             }
+
+            // Pages the listing is on BEFORE the edit (old subcategory, tags, country, key) are republished too.
+            var pagesBefore = await this.staticPublish.PathsForEntryAsync(id);
 
             existingEntry.UpdatedByUserId = this.userManager.GetUserId(this.User);
             existingEntry.SubCategoryId = vm.SubCategoryId;
@@ -434,6 +454,10 @@ namespace DirectoryManager.Web.Controllers
             existingEntry.Liquidity = vm.Liquidity;
             existingEntry.RateType = vm.RateType;
             existingEntry.SiteJavaScript = vm.SiteJavaScript;
+            existingEntry.RestrictedCountries = DirectoryManager.Data.Helpers.ListingRestrictions.NormalizeCountries(vm.RestrictedCountries);
+            existingEntry.VpnPolicy = vm.VpnPolicy;
+            existingEntry.TorPolicy = vm.TorPolicy;
+            existingEntry.OtherRestrictions = DirectoryManager.Data.Helpers.ListingRestrictions.CleanOther(vm.OtherRestrictions);
             existingEntry.PgpKey = vm.PgpKey?.Trim();
             existingEntry.FoundedDate = foundedDate;
             existingEntry.ReviewsDisabled = vm.ReviewsDisabled;
@@ -446,6 +470,7 @@ namespace DirectoryManager.Web.Controllers
             await this.SyncAdditionalSubcategoriesAsync(id, vm);
 
             this.ClearCachedItems();
+            await this.staticPublish.EnqueueForEntryAsync(id, "listing edited: " + existingEntry.Name, pagesBefore);
             return this.RedirectToAction(nameof(this.Index));
         }
 
@@ -494,6 +519,10 @@ namespace DirectoryManager.Web.Controllers
                 Liquidity = directoryEntry.Liquidity,
                 RateType = directoryEntry.RateType,
                 SiteJavaScript = directoryEntry.SiteJavaScript,
+                RestrictedCountries = directoryEntry.RestrictedCountries,
+                VpnPolicy = directoryEntry.VpnPolicy,
+                TorPolicy = directoryEntry.TorPolicy,
+                OtherRestrictions = directoryEntry.OtherRestrictions,
                 PgpKey = directoryEntry.PgpKey,
                 ProofLink = directoryEntry.ProofLink,
                 VideoLink = directoryEntry.VideoLink,
@@ -839,7 +868,7 @@ namespace DirectoryManager.Web.Controllers
 
         // Additional subcategories: links must be valid http(s) URLs; the main subcategory and
         // duplicates are rejected so the admin sees why a slot didn't save.
-        // Every link must be different (the proof link may equal the main link).
+        // Every link must be different (the proof link and the source code link may equal the main link).
         private void ValidateUniqueLinks(DirectoryEntryEditViewModel vm, IReadOnlyList<string> additional)
         {
             var fields = new List<(string, string, string?)>
@@ -1151,8 +1180,45 @@ namespace DirectoryManager.Web.Controllers
                             : kv.Value;
                     }
 
+                    // The directory's own key has more than one fingerprint (the primary key plus its
+                    // signing subkey), and a post is stored under whichever one signed it. Count the
+                    // Moderator as ONE author: every fingerprint of the site key shows the same total.
+                    MergeKeyFingerprints(merged, await this.cacheService.GetSnippetAsync(SiteConfigSetting.PgpKey));
+
                     return (IReadOnlyDictionary<string, int>)merged;
                 }) ?? new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Gives every fingerprint of one PGP key (primary and subkeys) the same post count: the sum
+        /// of the posts stored under any of them.
+        /// </summary>
+        internal static void MergeKeyFingerprints(Dictionary<string, int> counts, string? armoredKey)
+        {
+            if (string.IsNullOrWhiteSpace(armoredKey))
+            {
+                return;
+            }
+
+            var keyFps = PgpFingerprintTools.GetAllFingerprints(armoredKey);
+            if (keyFps == null || keyFps.Count < 2)
+            {
+                return;
+            }
+
+            var stored = counts.Keys
+                .Where(k => keyFps.Any(fp => PgpFingerprintTools.Matches(PgpFingerprintTools.Normalize(k), fp)))
+                .ToList();
+            if (stored.Count == 0)
+            {
+                return;
+            }
+
+            var total = stored.Sum(k => counts[k]);
+            foreach (var k in stored)
+            {
+                counts[k] = total;
+            }
         }
 
         private async Task<DirectoryEntry?> GetEntryOr404Async(string directoryEntryKey)
@@ -1296,6 +1362,10 @@ namespace DirectoryManager.Web.Controllers
                 Liquidity = entry.Liquidity,
                 RateType = entry.RateType,
                 SiteJavaScript = entry.SiteJavaScript,
+                RestrictedCountries = entry.RestrictedCountries,
+                VpnPolicy = entry.VpnPolicy,
+                TorPolicy = entry.TorPolicy,
+                OtherRestrictions = entry.OtherRestrictions,
                 Guarantees = guarantees ?? new List<DirectoryManager.Data.Models.GuaranteeItem>(),
                 IsSponsored = isSponsor,
                 SponsorSinceUtc = sponsorSinceUtc,

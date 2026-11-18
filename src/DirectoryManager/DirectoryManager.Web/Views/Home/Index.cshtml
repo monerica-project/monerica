@@ -499,7 +499,13 @@
         @if (activityStream.Any())
         {
             <hr />
-            <h3>Latest Activity</h3>
+            <h3>Newest Reviews &amp; Replies</h3>
+            <i>
+                See:
+                <a class="no-app-link" href="@UrlResolver.ResolveToRoot("/reviews")">all newest reviews</a>
+                or
+                <a class="no-app-link" href="@UrlResolver.ResolveToRoot("/incidents")">incidents</a>
+            </i>
             <ul class="blank_list_item latest-activity">
                 @foreach (var item in activityStream)
                 {

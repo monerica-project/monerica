@@ -43,7 +43,6 @@ namespace DirectoryManager.SubmissionReviewer.Tests
         [InlineData("\"/affiliate\"", "/affiliate")]
         [InlineData("'/affiliate-program'", "/affiliate-program")]
         [InlineData("`/refer-a-friend`", "/refer-a-friend")]
-        [InlineData("\"/partner-program/apply\"", "/partner-program/apply")]
         public void RoutesInScript_CommonProgramPaths(string js, string expected)
         {
             Assert.Contains(expected, ReferralScan.RoutesInScript(js));
@@ -63,14 +62,18 @@ namespace DirectoryManager.SubmissionReviewer.Tests
         public void LinksInHtml_FindsByUrlOrText()
         {
             const string html = """
-                <a href="/ref/program">Earn with us</a>
+                <a href="/ref/program">Invite and earn</a>
                 <a href="/affiliates">Partners</a>
                 <a href="/about">About</a>
+                <a href="/partners">Partner Program</a>
                 <a href="/x">Referral Program</a>
                 """;
             var links = ReferralScan.LinksInHtml(html, Page);
             Assert.Equal(3, links.Count);
             Assert.DoesNotContain(links, l => l.Contains("About", StringComparison.Ordinal));
+
+            // Owner rule 2026-11-11: a Partners / Partner Program page is not an affiliate program.
+            Assert.DoesNotContain(links, l => l.Contains("/partners", StringComparison.Ordinal));
         }
 
         [Fact]

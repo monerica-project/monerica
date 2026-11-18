@@ -1,0 +1,31 @@
+@using DirectoryManager.Web.Constants;
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@model DirectoryManager.Web.Models.Emails.NewsletterLinkModel?
+@{
+    PageMeta.Title = "Unsubscribe";
+    Layout = "_CenteredLayout";
+    var siteName = await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName);
+}
+
+@section PageContent {
+    <div class="page-header-bar">
+        <h1 class="page-title">@PageMeta.Title</h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
+
+    @if (Model == null)
+    {
+        <p>This unsubscribe link is not valid. You can <a href="~/unsubscribe">unsubscribe by entering your email address</a> instead.</p>
+    }
+    else if (Model.Done)
+    {
+        <p>The email <strong>@Model.Email</strong> has been unsubscribed. @siteName won't send it the newsletter again.</p>
+    }
+    else
+    {
+        <p>Stop the @siteName newsletter to <strong>@Model.Email</strong>?</p>
+        <form method="post" action="@Url.Content("~/unsubscribe/one-click")?email=@Uri.EscapeDataString(Model.Email)&amp;token=@Model.Token">
+            <button type="submit" class="btn btn-primary ui-submit btn-cta">Unsubscribe</button>
+        </form>
+    }
+}

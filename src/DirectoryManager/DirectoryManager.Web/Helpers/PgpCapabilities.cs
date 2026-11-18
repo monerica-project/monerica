@@ -21,6 +21,12 @@ namespace DirectoryManager.Web.Helpers;
 /// </summary>
 public static class PgpCapabilities
 {
+    /// <summary>Largest key block accepted. Real keys are a few KB; this bounds parsing work.</summary>
+    public const int MaxArmoredKeyChars = 64 * 1024;
+
+    private const int MaxKeysPerRing = 32;
+    private const int MaxSignaturesPerKey = 16;
+
     /// <summary>
     /// True when the armored public key has a usable encryption key (a verified encryption subkey,
     /// or an encryption-capable primary). Used to reject/warn on sign-only keys at upload time.
@@ -51,6 +57,11 @@ public static class PgpCapabilities
     /// <returns>The chosen encryption key, or null when none is usable.</returns>
     public static PgpPublicKey? SelectEncryptionKey(string armoredPublicKey)
     {
+        if (string.IsNullOrWhiteSpace(armoredPublicKey) || armoredPublicKey.Length > MaxArmoredKeyChars)
+        {
+            return null;
+        }
+
         using var keyIn = PgpUtilities.GetDecoderStream(
             new MemoryStream(Encoding.UTF8.GetBytes(armoredPublicKey)));
 
@@ -65,7 +76,7 @@ public static class PgpCapabilities
         // encrypted to the attacker.
         foreach (PgpPublicKeyRing ring in bundle.GetKeyRings().Cast<PgpPublicKeyRing>().Take(1))
         {
-            foreach (PgpPublicKey k in ring.GetPublicKeys())
+            foreach (PgpPublicKey k in ring.GetPublicKeys().Cast<PgpPublicKey>().Take(MaxKeysPerRing))
             {
                 if (!IsUsableForEncryption(ring, k))
                 {
@@ -130,6 +141,52 @@ public static class PgpCapabilities
         return null;
     }
 
+    /// <summary>
+    /// The ONE key that both names the key holder (identity fingerprint) and receives the challenge.
+    /// They must be the same key: decrypting the challenge proves control of exactly that key and
+    /// nothing else. (A ring can be built by anyone around any public subkey — the ring's own
+    /// primary can sign a binding over somebody else's public subkey — so a fingerprint taken from
+    /// one key while the challenge goes to another proves nothing.)
+    /// The historical identity (first encryption key in the first ring) is kept whenever it can
+    /// still receive mail, so stored fingerprints stay stable; otherwise the newest usable key is
+    /// both identity and target.
+    /// </summary>
+    /// <returns>The key, or null when the block has no usable encryption key.</returns>
+    public static PgpPublicKey? SelectChallengeKey(string armoredPublicKey)
+    {
+        if (string.IsNullOrWhiteSpace(armoredPublicKey) || armoredPublicKey.Length > MaxArmoredKeyChars)
+        {
+            return null;
+        }
+
+        using var keyIn = PgpUtilities.GetDecoderStream(
+            new MemoryStream(Encoding.UTF8.GetBytes(armoredPublicKey)));
+
+        var ring = new PgpPublicKeyRingBundle(keyIn).GetKeyRings().Cast<PgpPublicKeyRing>().FirstOrDefault();
+        if (ring is null)
+        {
+            return null;
+        }
+
+        var primary = ring.GetPublicKey();
+        foreach (PgpPublicKey k in ring.GetPublicKeys().Cast<PgpPublicKey>().Take(MaxKeysPerRing))
+        {
+            if (!k.IsEncryptionKey || !(k.IsMasterKey || HasValidEncryptionBinding(primary, k)))
+            {
+                continue;
+            }
+
+            if (IsUsableForEncryption(ring, k))
+            {
+                return k;
+            }
+
+            break;
+        }
+
+        return SelectEncryptionKey(armoredPublicKey);
+    }
+
     private static bool IsUsableForEncryption(PgpPublicKeyRing ring, PgpPublicKey key)
     {
         // Algorithm must be able to encrypt at all. IsEncryptionKey is algorithm-based only, so it is
@@ -177,9 +234,10 @@ public static class PgpCapabilities
     /// (a) verifies cryptographically and (b) either advertises an encryption usage flag or, for
     /// older keys, advertises no usage flags at all (algorithm capability then applies).
     /// </summary>
-    private static bool HasValidEncryptionBinding(PgpPublicKey primary, PgpPublicKey subkey)
+    internal static bool HasValidEncryptionBinding(PgpPublicKey primary, PgpPublicKey subkey)
     {
-        foreach (PgpSignature sig in subkey.GetSignatures())
+        // Bounded: a pasted key with thousands of fake bindings must not cost seconds of CPU.
+        foreach (PgpSignature sig in subkey.GetSignatures().Cast<PgpSignature>().Take(MaxSignaturesPerKey))
         {
             if (sig.KeyId != primary.KeyId)
             {

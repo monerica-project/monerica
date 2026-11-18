@@ -1,0 +1,87 @@
+@model DirectoryManager.Web.Models.Submissions.SubmissionRejectViewModel
+@using DirectoryManager.Web.Constants
+@using DirectoryManager.Web.Helpers
+@{
+    PageMeta.Title = "Reject Submission";
+    PageMeta.MetaContent = StringConstants.MetaTagNoIndex;
+    PageMeta.IsIndexable = false;
+    Layout = "_CenteredLayout";
+    var s = Model.Submission;
+    var fromQuery = Model.From == null ? string.Empty : "?from=" + Model.From;
+    bool isPending = s.SubmissionStatus == DirectoryManager.Data.Enums.SubmissionStatus.Pending;
+    var chosen = Model.Reason;
+}
+
+@section PageContent {
+<h1>@PageMeta.Title</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+<p><a href="~/submission/@s.SubmissionId@fromQuery">&larr; Back to submission #@s.SubmissionId</a>
+&middot; <a href="@SubmissionDecision.ReturnPath(Model.From, SubmissionDecision.FromPending)">Back to the list</a></p>
+
+<div class="table-wrapper">
+<table class="table table-sm">
+    <tbody>
+        <tr><th class="u-w-130px">Submission</th><td>#@s.SubmissionId &middot; @s.SubmissionStatus &middot; @s.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td></tr>
+        <tr><th>Name</th><td><b>@s.Name</b></td></tr>
+        <tr><th>Link</th><td class="u-prewrap-break">@s.Link</td></tr>
+        @if (s.DirectoryEntryId != null)
+        {
+            <tr><th>Edits listing</th><td><a href="~/directoryentry/edit/@s.DirectoryEntryId">#@s.DirectoryEntryId &rarr;</a></td></tr>
+        }
+        @if (!string.IsNullOrWhiteSpace(s.NoteToAdmin))
+        {
+            <tr><th>Note to admin</th><td class="u-prewrap-break">@s.NoteToAdmin</td></tr>
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.SuggestedByReviewer))
+        {
+            <tr><th>Reviewer said</th><td class="u-prewrap-break">@Model.SuggestedByReviewer</td></tr>
+        }
+    </tbody>
+</table>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.Error))
+{
+    <div class="text-danger u-m-12px-0-p-10px-border-1px-solid-c00" role="alert">@Model.Error</div>
+}
+
+@if (isPending)
+{
+    <form method="post" action="~/submission/@s.SubmissionId/reject">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="from" value="@Model.From" />
+
+        <fieldset>
+            <legend>Why is it rejected?</legend>
+            @foreach (var (key, label) in SubmissionDecision.Reasons)
+            {
+                <div class="form-check u-mb-8px">
+                    <label class="form-check-label u-flex-items-center-gap-8px-flexwrap-wrap">
+                        <input class="form-check-input" type="radio" name="reason" value="@key" checked="@(string.Equals(chosen, key, StringComparison.OrdinalIgnoreCase))" />
+                        <span>@label</span>
+                    </label>
+                </div>
+            }
+            <div class="form-check u-mb-8px">
+                <label class="form-check-label u-flex-items-center-gap-8px-flexwrap-wrap">
+                    <input class="form-check-input" type="radio" name="reason" value="@SubmissionDecision.OtherReasonKey" checked="@(string.Equals(chosen, SubmissionDecision.OtherReasonKey, StringComparison.OrdinalIgnoreCase))" />
+                    <span>Other (type it below)</span>
+                </label>
+            </div>
+        </fieldset>
+
+        <div class="form-group">
+            <label for="otherReason">Reason or extra detail (required for "Other", optional otherwise)</label>
+            <input id="otherReason" name="otherReason" type="text" class="form-control input-width" maxlength="@SubmissionDecision.OtherReasonMaxLength" autocomplete="off" value="@Model.OtherReason" />
+            <small class="form-text text-muted">Recorded in the submission's history. Nothing is sent to the submitter.</small>
+        </div>
+
+        <div class="u-flex-gap-8px-flexwrap-wrap u-mt-12px">
+            <button type="submit" class="btn btn-primary btn-cta">&#10007; Confirm reject</button>
+            <a class="btn" href="~/submission/@s.SubmissionId@fromQuery">Cancel</a>
+        </div>
+    </form>
+}
+}

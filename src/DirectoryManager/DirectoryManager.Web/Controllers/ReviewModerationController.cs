@@ -16,7 +16,7 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace DirectoryManager.Web.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = DirectoryManager.Web.Constants.AuthorizationPolicies.AdminOnly)]
     [Route("admin/reviews")]
     public class ReviewModerationController : BaseController
     {
@@ -31,6 +31,9 @@ namespace DirectoryManager.Web.Controllers
         private static readonly HashSet<string> ImageExtensions =
             new (StringComparer.OrdinalIgnoreCase) { ".png", ".jpg", ".jpeg", ".gif", ".webp" };
 
+        private readonly IStaticPublishService staticPublish;
+        private readonly DirectoryManager.Data.DbContextInfo.IApplicationDbContext dbContext;
+
         public ReviewModerationController(
              IDirectoryEntryReviewRepository repo,
              IDirectoryEntryReviewCommentRepository commentRepo,
@@ -39,9 +42,13 @@ namespace DirectoryManager.Web.Controllers
              IDirectoryEntryRepository directoryEntryRepository,
              ISiteFilesRepository siteFiles,
              ICacheService cacheService,
-             IMemoryCache cache)
+             IMemoryCache cache,
+             IStaticPublishService staticPublish,
+             DirectoryManager.Data.DbContextInfo.IApplicationDbContext dbContext)
             : base(cache)
         {
+            this.staticPublish = staticPublish;
+            this.dbContext = dbContext;
             this.repo = repo;
             this.commentRepo = commentRepo;
             this.reviewTagRepository = reviewTagRepository;
@@ -140,6 +147,7 @@ namespace DirectoryManager.Web.Controllers
             }
 
             await this.repo.UpdateAsync(review, ct);
+            await this.staticPublish.EnqueueForReviewAsync(id, "review image added", ct);
             this.TempData["ReviewImageMessage"] = "Image uploaded.";
             return this.Redirect($"/admin/reviews/{id}/edit");
         }
@@ -194,6 +202,7 @@ namespace DirectoryManager.Web.Controllers
             }
 
             await this.repo.UpdateAsync(review, ct);
+            await this.staticPublish.EnqueueForReviewAsync(id, "review image removed", ct);
             this.TempData["ReviewImageMessage"] = "Image deleted.";
             return this.Redirect($"/admin/reviews/{id}/edit");
         }
@@ -566,6 +575,7 @@ namespace DirectoryManager.Web.Controllers
                 ct);
 
             this.ClearCachedItems();
+            await this.staticPublish.EnqueueForReviewAsync(id, "review edited", ct);
             this.TempData["SuccessMessage"] = "Review updated.";
             return this.RedirectToAction(nameof(this.Show), new { id });
         }
@@ -586,6 +596,7 @@ namespace DirectoryManager.Web.Controllers
             }
 
             this.ClearCachedItems();
+            await this.staticPublish.EnqueueForReviewAsync(id, "review proof/tags updated", ct);
             return this.RedirectToAction(nameof(this.Show), new { id });
         }
 
@@ -607,7 +618,113 @@ namespace DirectoryManager.Web.Controllers
 
             await this.repo.ApproveAsync(id, ct);
             this.ClearCachedItems();
+            await this.staticPublish.EnqueueForReviewAsync(id, "review approved", ct);
             return this.RedirectToAction(nameof(this.Pending));
+        }
+
+        // GET /admin/reviews/deleted
+        // Every review and reply that was deleted, by its author or by an admin, newest first.
+        [HttpGet("deleted")]
+        public async Task<IActionResult> Deleted(int page = 1, CancellationToken ct = default)
+        {
+            const int pageSize = 50;
+            page = Math.Max(1, page);
+            var query = this.dbContext.DeletedReviewRecords.AsNoTracking();
+            this.ViewBag.Total = await query.CountAsync(ct);
+            this.ViewBag.Page = page;
+            this.ViewBag.PageSize = pageSize;
+            var rows = await query.OrderByDescending(r => r.DeletedUtc).ThenByDescending(r => r.Id)
+                .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(ct);
+            return this.View("Deleted", rows);
+        }
+
+        // GET /admin/reviews/deleted/5
+        [HttpGet("deleted/{recordId:int}")]
+        public async Task<IActionResult> DeletedDetails(int recordId, CancellationToken ct = default)
+        {
+            var record = await this.dbContext.DeletedReviewRecords.AsNoTracking().FirstOrDefaultAsync(r => r.Id == recordId, ct);
+            if (record is null)
+            {
+                return this.NotFound();
+            }
+
+            this.ViewBag.Copy = DirectoryManager.Data.Helpers.DeletedReviewArchive.ReadReview(record);
+            return this.View("DeletedDetails", record);
+        }
+
+        // POST /admin/reviews/deleted/5/restore
+        // Only for reviews an admin deleted (a full copy exists). Comes back as Pending.
+        [HttpPost("deleted/{recordId:int}/restore")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RestoreDeleted(int recordId, CancellationToken ct = default)
+        {
+            var newId = await DirectoryManager.Data.Helpers.DeletedReviewArchive.RestoreReviewAsync(this.dbContext, recordId, ct);
+            if (newId is null)
+            {
+                this.TempData["SuccessMessage"] = "This one cannot be restored (the author removed its content, it was already restored, or its listing is gone).";
+                return this.RedirectToAction(nameof(this.DeletedDetails), new { recordId });
+            }
+
+            this.ClearCachedItems();
+            this.TempData["SuccessMessage"] = "Review restored as Pending. Approve it to make it public again.";
+            return this.RedirectToAction(nameof(this.Show), new { id = newId.Value });
+        }
+
+        // POST /admin/reviews/123/ai-recheck
+        // Queues the review for the AI order check job (runs every 10 minutes). Changes nothing else.
+        [HttpPost("{id:int}/ai-recheck")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AiRecheck(int id, CancellationToken ct = default)
+        {
+            var review = await this.repo.GetByIdAsync(id, ct);
+            if (review is null)
+            {
+                return this.NotFound();
+            }
+
+            review.AiOrderCheckQueued = true;
+            await this.repo.UpdateAsync(review, ct);
+            this.TempData["SuccessMessage"] = "Order check queued. It runs within 10 minutes; reload this page then.";
+            return this.RedirectToAction(nameof(this.Show), new { id });
+        }
+
+        // POST /admin/reviews/123/ai-apply-tags
+        // The moderator accepts the AI's suggested tags: they are ADDED to the review's tags. A
+        // suggested amount tag replaces a different amount tag (a review has one amount band).
+        [HttpPost("{id:int}/ai-apply-tags")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AiApplyTags(int id, CancellationToken ct = default)
+        {
+            var review = await this.repo.Query()
+                .Include(r => r.ReviewTags)
+                .FirstOrDefaultAsync(r => r.DirectoryEntryReviewId == id, ct);
+            if (review is null)
+            {
+                return this.NotFound();
+            }
+
+            var allTags = await this.reviewTagRepository.ListAllAsync(ct);
+            var tagIds = AiSuggestedTagIds(review.ReviewTags.Select(t => t.ReviewTagId), review.AiSuggestedTags, allTags);
+            await this.reviewTagLinkRepository.SetTagsForReviewAsync(id, tagIds, userId: this.User?.Identity?.Name ?? "admin", ct);
+            this.ClearCachedItems();
+            await this.staticPublish.EnqueueForReviewAsync(id, "review tags updated", ct);
+            this.TempData["SuccessMessage"] = "Suggested tags applied.";
+            return this.RedirectToAction(nameof(this.Show), new { id });
+        }
+
+        /// <summary>Current tags plus the suggested ones; a suggested amount band replaces the current band.</summary>
+        internal static int[] AiSuggestedTagIds(IEnumerable<int> currentIds, string? suggestedNames, IReadOnlyList<ReviewTag> allTags)
+        {
+            var names = (suggestedNames ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var suggested = allTags.Where(t => t.IsEnabled && names.Contains(t.Name, StringComparer.OrdinalIgnoreCase)).ToList();
+            var ids = currentIds.ToHashSet();
+            if (suggested.Any(t => t.IsMoneyBand))
+            {
+                ids.ExceptWith(allTags.Where(t => t.IsMoneyBand).Select(t => t.ReviewTagId));
+            }
+
+            ids.UnionWith(suggested.Select(t => t.ReviewTagId));
+            return ids.OrderBy(i => i).ToArray();
         }
 
         // POST /admin/reviews/123/approve
@@ -617,6 +734,7 @@ namespace DirectoryManager.Web.Controllers
         {
             await this.repo.ApproveAsync(id, ct);
             this.ClearCachedItems();
+            await this.staticPublish.EnqueueForReviewAsync(id, "review approved", ct);
             return this.RedirectToAction(nameof(this.Pending));
         }
 
@@ -633,6 +751,7 @@ namespace DirectoryManager.Web.Controllers
 
             await this.repo.RejectAsync(id, reason.Trim(), ct);
             this.ClearCachedItems();
+            await this.staticPublish.EnqueueForReviewAsync(id, "review rejected", ct);
             return this.RedirectToAction(nameof(this.Pending));
         }
 
@@ -661,6 +780,7 @@ namespace DirectoryManager.Web.Controllers
             await this.commentRepo.AddAsync(reply, ct);
             await this.repo.RejectAsync(id, ReviewToReplyConverter.RejectionReason(target.DirectoryEntryReviewId), ct);
             this.ClearCachedItems();
+            await this.staticPublish.EnqueueForReviewAsync(id, "review moved to a reply", ct);
 
             this.TempData["SuccessMessage"] = $"Review #{id} was moved to a reply under review #{target.DirectoryEntryReviewId} and rejected. Approve the reply below.";
             return this.RedirectToAction(nameof(this.ShowReply), new { id = reply.DirectoryEntryReviewCommentId });
@@ -671,8 +791,13 @@ namespace DirectoryManager.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id, CancellationToken ct = default)
         {
+            var deletedEntryId = (await this.repo.GetByIdAsync(id, ct))?.DirectoryEntryId;
             await this.repo.DeleteAsync(id, ct);
             this.ClearCachedItems();
+            if (deletedEntryId.HasValue)
+            {
+                await this.staticPublish.EnqueueForEntryAsync(deletedEntryId.Value, "review deleted", null, ct);
+            }
             return this.RedirectToAction(nameof(this.Pending));
         }
 
@@ -764,6 +889,7 @@ namespace DirectoryManager.Web.Controllers
             item.Body = newBody;
             await this.commentRepo.UpdateAsync(item, ct);
             this.ClearCachedItems();
+            await this.staticPublish.EnqueueForReplyAsync(id, "reply edited", ct);
             this.TempData["SuccessMessage"] = "Reply updated.";
             return this.RedirectToAction(nameof(this.ShowReply), new { id });
         }
@@ -774,7 +900,22 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> ApproveReply(int id, CancellationToken ct = default)
         {
             await this.commentRepo.ApproveAsync(id, ct);
+
+            // A tag change the review's author requested with this reply takes effect on approval.
+            var reply = await this.commentRepo.GetByIdAsync(id, ct);
+            if (reply?.RequestedReviewTagIdsCsv != null && reply.RequestedTagsAppliedUtc == null)
+            {
+                var allTags = await this.reviewTagRepository.ListAllAsync(ct);
+                var current = await this.reviewTagLinkRepository.GetTagIdsForReviewAsync(reply.DirectoryEntryReviewId, ct);
+                var updated = OwnReviewEdit.ApplyRequested(current, allTags, OwnReviewEdit.FromCsv(reply.RequestedReviewTagIdsCsv));
+                await this.reviewTagLinkRepository.SetTagsForReviewAsync(
+                    reply.DirectoryEntryReviewId, updated, this.User?.Identity?.Name ?? "admin", ct);
+                reply.RequestedTagsAppliedUtc = DateTime.UtcNow;
+                await this.commentRepo.UpdateAsync(reply, ct);
+            }
+
             this.ClearCachedItems();
+            await this.staticPublish.EnqueueForReplyAsync(id, "reply approved", ct);
             return this.RedirectToAction(nameof(this.Pending));
         }
 
@@ -797,6 +938,7 @@ namespace DirectoryManager.Web.Controllers
 
             await this.commentRepo.RejectAsync(id, reason.Trim(), ct);
             this.ClearCachedItems();
+            await this.staticPublish.EnqueueForReplyAsync(id, "reply rejected", ct);
             return this.RedirectToAction(nameof(this.Pending));
         }
 
@@ -805,8 +947,13 @@ namespace DirectoryManager.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteReply(int id, CancellationToken ct = default)
         {
+            var deletedReplyReviewId = (await this.commentRepo.GetByIdAsync(id, ct))?.DirectoryEntryReviewId;
             await this.commentRepo.DeleteAsync(id, ct);
             this.ClearCachedItems();
+            if (deletedReplyReviewId.HasValue)
+            {
+                await this.staticPublish.EnqueueForReviewAsync(deletedReplyReviewId.Value, "reply deleted", ct);
+            }
             return this.RedirectToAction(nameof(this.Pending));
         }
 

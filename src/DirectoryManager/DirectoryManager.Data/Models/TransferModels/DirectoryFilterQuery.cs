@@ -23,6 +23,9 @@ namespace DirectoryManager.Data.Models.TransferModels
         public bool HasTor { get; set; }
         public bool HasI2p { get; set; }
 
+        /// <summary>Only open-source listings: those with a source code link (replaces the old "Open Source" tag).</summary>
+        public bool HasSourceCode { get; set; }
+
         /// <summary>Only listings with at least one approved review tagged "Valid Order".</summary>
         public bool VerifiedOrders { get; set; }
 

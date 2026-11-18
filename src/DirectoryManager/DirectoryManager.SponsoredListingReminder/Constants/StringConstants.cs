@@ -9,5 +9,12 @@
         public const string SubCategoryIdPlaceholder = "[SUBCATEGORY_ID]";
         public const string SponsoredListingExpirationReminder = "sponsored-listing-expiration-reminder";
         public const string DefaultListingName = "Your Sponsored Listing";
+
+        // Final (24 hours or less) reminder: template key and the extra tokens both templates may use.
+        public const string SponsoredListingFinalReminder = "sponsored-listing-final-reminder";
+        public const string ExpiresAtToken = "[EXPIRES_AT]";
+        public const string HoursLeftToken = "[HOURS_LEFT]";
+        public const string PlacementToken = "[PLACEMENT]";
+        public const string WaitlistLineToken = "[WAITLIST_LINE]";
     }
 }

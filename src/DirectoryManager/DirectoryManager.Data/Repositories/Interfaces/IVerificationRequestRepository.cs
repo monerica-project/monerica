@@ -39,6 +39,9 @@ namespace DirectoryManager.Data.Repositories.Interfaces
 
         Task<DateTime?> GetLastPaidUtcAsync(CancellationToken ct = default);
 
+        /// <summary>Items still Pending whose donation was paid, newest payment first.</summary>
+        Task<List<DirectoryManager.Data.Models.TransferModels.PaidWaitingItem>> ListPaidPendingAsync(CancellationToken ct = default);
+
         /// <summary>Most recent payment: when it arrived and its USD value (null when unknown), and its id.</summary>
         Task<(DateTime? PaidUtc, decimal? Usd, decimal? Xmr, int Id)> GetLastPaymentAsync(CancellationToken ct = default);
 

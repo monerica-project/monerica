@@ -38,9 +38,35 @@ namespace DirectoryManager.Data.Models.Reviews
         [MaxLength(64)]
         public string AuthorFingerprint { get; set; } = string.Empty;
 
+        // Member identity, same meaning as on DirectoryEntryReview. Null for PGP replies.
+        [MaxLength(36)]
+        public string? AuthorUserId { get; set; }
+
+        [MaxLength(32)]
+        public string? AuthorUsername { get; set; }
+
         // Optional navigation for nested children
         [InverseProperty(nameof(ParentComment))]
         public ICollection<DirectoryEntryReviewComment>? Children { get; set; }
+
+        /// <summary>
+        /// Set when the review's own AUTHOR changed the review's star rating while posting this reply
+        /// (the rating changes immediately; the written review never does). Shown on the reply.
+        /// </summary>
+        public byte? RatingChangedFrom { get; set; }
+
+        public byte? RatingChangedTo { get; set; }
+
+        /// <summary>
+        /// The review author's requested set of public tags, as a CSV of tag ids ("" = remove all
+        /// public tags), sent with this reply. Applied to the review only when a moderator approves
+        /// the reply; admin-only tags are always kept. Null = no tag change requested.
+        /// </summary>
+        [MaxLength(200)]
+        public string? RequestedReviewTagIdsCsv { get; set; }
+
+        /// <summary>When the requested tag change was applied (on approval).</summary>
+        public DateTime? RequestedTagsAppliedUtc { get; set; }
 
         [NotMapped]
         public string? DisplayName { get; set; }

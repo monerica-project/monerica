@@ -1,9 +1,10 @@
-﻿using System.Globalization;
+using System.Globalization;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Charting;
+using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Forecasting;
 using DirectoryManager.Web.Models.Reports;
 using DirectoryManager.Web.Revenue;
@@ -16,7 +17,7 @@ namespace DirectoryManager.Web.Controllers
 {
     // Admin revenue section: every income source by period (pie + monthly chart) and the
     // revenue forecast.
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     [Route("admin/revenue")]
     public class RevenueController : BaseController
     {
@@ -84,6 +85,9 @@ namespace DirectoryManager.Web.Controllers
                 ChartMonths = inXmr
                     ? ChartMonths(xmrInvoices, xmrOneTime, range, basis, now)
                     : ChartMonths(invoices, oneTime, range, basis, now),
+                ChartAveragePerMonth = inXmr
+                    ? ChartAverage(xmrInvoices, xmrOneTime, range, now)
+                    : ChartAverage(invoices, oneTime, range, now),
             });
         }
 
@@ -108,7 +112,8 @@ namespace DirectoryManager.Web.Controllers
             var (invoices, oneTime) = await this.LoadInAsync(inXmr, ct);
 
             var months = ChartMonths(invoices, oneTime, range, basis, now);
-            return this.Png(RevenuePlotting.MonthlyStacked(months, basis, inXmr));
+            var running = RevenueReportBuilder.RunningAverageEarnedPerMonth(invoices, oneTime, ChartStart(range, now), range.To, now, fromFirstPayment: range.Key == "all");
+            return this.Png(RevenuePlotting.MonthlyStacked(months, basis, inXmr, ChartAverage(invoices, oneTime, range, now), running));
         }
 
         // The months shown in the monthly chart (and its table): the selected period when it
@@ -120,16 +125,25 @@ namespace DirectoryManager.Web.Controllers
             RevenueBasis basis,
             DateTime now)
         {
-            var start = range.From;
-            if ((range.To - range.From).TotalDays < 85)
-            {
-                start = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(-23);
-            }
-
+            var start = ChartStart(range, now);
             var end = range.To > now ? now.Date.AddDays(1) : range.To;
             var months = RevenueReportBuilder.BuildMonths(invoices, oneTime, start, end, basis, now);
             return range.Key == "all" ? RevenueReportBuilder.TrimLeadingEmptyMonths(months) : months;
         }
+
+        private static DateTime ChartStart((string Key, string Label, DateTime From, DateTime To) range, DateTime now) =>
+            (range.To - range.From).TotalDays < 85
+                ? new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(-23)
+                : range.From;
+
+        // The dashed line on the monthly chart: average EARNED per month over the same months as
+        // the bars, up to now (packages spread over the days they run, current month pro-rated).
+        private static decimal ChartAverage(
+            IReadOnlyList<SponsoredListingInvoice> invoices,
+            IReadOnlyList<RevenueItem> oneTime,
+            (string Key, string Label, DateTime From, DateTime To) range,
+            DateTime now) =>
+            RevenueReportBuilder.AverageEarnedPerMonth(invoices, oneTime, ChartStart(range, now), range.To, now, fromFirstPayment: range.Key == "all");
 
         [HttpGet("forecast")]
         public async Task<IActionResult> Forecast(int? horizonMonths, int? confidence, decimal? priceGrowth, string? stream, int? lookbackYears, CancellationToken ct = default)

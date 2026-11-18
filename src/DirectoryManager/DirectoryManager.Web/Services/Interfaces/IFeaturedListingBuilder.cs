@@ -14,5 +14,9 @@ namespace DirectoryManager.Web.Services.Interfaces
         /// featured through one of its additional subcategories shows that subcategory's wording.
         /// </summary>
         Task<DirectoryEntryViewModel?> BuildAsync(int? directoryEntryId, int? subCategoryId = null);
+
+        /// <summary>Builds a category page's pick; a listing that is in the category only through an additional subcategory is shown with that subcategory's name and links.</summary>
+        /// <returns>The view model, or null when there is no featurable pick.</returns>
+        Task<DirectoryEntryViewModel?> BuildForCategoryAsync(int? directoryEntryId, int categoryId);
     }
 }

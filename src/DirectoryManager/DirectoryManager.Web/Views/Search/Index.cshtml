@@ -6,7 +6,7 @@
     @inject IUrlResolutionService urlService
     @model SearchViewModel
     @{
-        bool hasAnyContent = Model.Entries.Any() || Model.ShowDonatePin;
+        bool hasAnyContent = Model.Entries.Any() || Model.ShowDonatePin || Model.Shortcut != null;
         if (!hasAnyContent)
         {
             PageMeta.Title = "No results found.";
@@ -49,12 +49,32 @@
             {
                 <p class="search-corrected">Did you mean <a href="?q=@System.Net.WebUtility.UrlEncode(Model.DidYouMean)&amp;page=1"><strong>@Model.DidYouMean</strong></a>?</p>
             }
+            @if (Model.BrowseLinks.Any() || Model.ClosestLinks.Any())
+            {
+                <p>Browse instead:
+                    @for (int i = 0; i < Model.BrowseLinks.Concat(Model.ClosestLinks).Count(); i++)
+                    {
+                        var link = Model.BrowseLinks.Concat(Model.ClosestLinks).ElementAt(i);
+                        @(i > 0 ? " · " : "")<a href="@urlService.BaseUrl@link.Path">@link.Label</a>
+                    }
+                </p>
+            }
+            <p>Can&rsquo;t find what you&rsquo;re looking for? <a href="@Url.Content("~/submit")">Suggest a listing</a> or <a href="@urlService.BaseUrl/">browse all categories</a>.</p>
         }
         else
         {
             @if (!string.IsNullOrEmpty(Model.CorrectedQuery))
             {
                 <p class="search-corrected">No results for &ldquo;@q&rdquo;. Showing results for <strong>&ldquo;@Model.CorrectedQuery&rdquo;</strong>.</p>
+            }
+            @if (Model.BrowseLinks.Any())
+            {
+                <p>Browse:
+                    @for (int i = 0; i < Model.BrowseLinks.Count; i++)
+                    {
+                        @(i > 0 ? " · " : "")<a href="@urlService.BaseUrl@Model.BrowseLinks[i].Path"><strong>@Model.BrowseLinks[i].Label</strong></a>
+                    }
+                </p>
             }
             @if (Model.Entries.Any())
             {
@@ -67,11 +87,31 @@
                         <span class="u-color-red">&#10084;&#65039;</span>  <a href="@urlService.BaseUrl/donate"><strong>Donate To @(await cacheService.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName))</strong></a>
                     </li>
                 }
+                @if (Model.Shortcut != null)
+                {
+                    <li class="search-result-pinned">
+                        &#10148; <a href="@Url.Content("~" + Model.Shortcut.Path)"><strong>@Model.Shortcut.Label</strong></a>
+                    </li>
+                }
                 @foreach (var e in Model.Entries)
                 {
                     @Html.Raw(DisplayMarkUpHelper.GenerateSearchResultHtml(e, urlService.BaseUrl))
                 }
             </ul>
+            @if (!Model.Entries.Any())
+            {
+                <p>Can&rsquo;t find what you&rsquo;re looking for? <a href="@Url.Content("~/submit")">Suggest a listing</a> or <a href="@urlService.BaseUrl/">browse all categories</a>.</p>
+            }
+            @if (Model.DebugExplanations != null)
+            {
+                <h2>Ranking details (admin only)</h2>
+                <ol>
+                    @foreach (var e in Model.Entries)
+                    {
+                        <li><strong>@e.Name</strong>@(e.IsSponsored ? " [sponsored: pinned to top of page]" : ""): @(Model.DebugExplanations.TryGetValue(e.DirectoryEntryId, out var why) ? why : "(no details)")</li>
+                    }
+                </ol>
+            }
             @if (Model.Entries.Any())
             {
                 int totalPages = (int)Math.Ceiling(Model.TotalCount / (double)Model.PageSize);

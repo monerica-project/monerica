@@ -1,3 +1,4 @@
+using DirectoryManager.Web.Extensions;
 using System.Globalization;
 using System.Net;
 using DirectoryManager.Data.Enums;
@@ -19,7 +20,7 @@ namespace DirectoryManager.Web.Controllers
     // Admin side of video sponsorships: settings (on/off), video types + prices, the queue of
     // upcoming videos, orders (video URL + one-time "it's live" email), the sponsors list and
     // revenue reporting. Kept separate from the site-sponsor invoicing and reports.
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     [Route("admin/video-sponsorship")]
     public class VideoSponsorshipAdminController : BaseController
     {
@@ -74,7 +75,7 @@ namespace DirectoryManager.Web.Controllers
 
         [HttpPost("settings")]
         [ValidateAntiForgeryToken]
-        public IActionResult SaveSettings(bool isEnabled, string? channelUrl, string? videoSiteUrl, string? blogUrl)
+        public async Task<IActionResult> SaveSettings(bool isEnabled, string? channelUrl, string? videoSiteUrl, string? blogUrl)
         {
             channelUrl = (channelUrl ?? string.Empty).Trim();
             videoSiteUrl = (videoSiteUrl ?? string.Empty).Trim();
@@ -90,6 +91,7 @@ namespace DirectoryManager.Web.Controllers
             this.SaveSnippet(SiteConfigSetting.VideoSponsorshipChannelUrl, channelUrl);
             this.SaveSnippet(SiteConfigSetting.VideoSponsorshipVideoSiteUrl, videoSiteUrl);
             this.SaveSnippet(SiteConfigSetting.VideoSponsorshipBlogUrl, blogUrl);
+            await this.StaticPublish().RequestFullCrawlAsync("video sponsorship settings changed");
 
             this.TempData[StringConstants.SuccessMessage] = isEnabled
                 ? "Saved. Video sponsorship is ON."

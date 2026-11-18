@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models.Sponsorship;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -9,7 +10,7 @@ using Microsoft.Net.Http.Headers;
 
 namespace DirectoryManager.Web.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     public class SponsorEmailsController : Controller
     {
         private readonly ISponsoredListingInvoiceRepository invoiceRepository;

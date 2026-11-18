@@ -118,19 +118,19 @@ namespace DirectoryManager.Utilities.Helpers
             TimeSpan.FromMilliseconds(100));
 
         private static readonly Regex EmailRegex = new (
-            @"(?<![\w.+-])([A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,})(?![\w.+-])",
+            @"(?<![\w.%+-])([A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,})(?![\w.+-])",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled,
             TimeSpan.FromMilliseconds(100));
 
         // Combined URL or standard email matcher.
         private static readonly Regex UrlOrEmailRegex = new (
-            @"(?<url>(?:(?:https?://)|(?:www\.))[\w\-\.]+(?:\.[a-z]{2,})(?:[^\s<>]*)?)|(?<email>(?<![\w.+-])([A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,})(?![\w.+-]))",
+            @"(?<url>(?:(?:https?://)|(?:www\.))[\w\-\.]+(?:\.[a-z]{2,})(?:[^\s<>]*)?)|(?<email>(?<![\w.%+-])([A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,})(?![\w.+-]))",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled,
             TimeSpan.FromMilliseconds(100));
 
         // Matches obfuscated emails: user [at] domain.com / user(at)domain.com / user AT domain.com
         private static readonly Regex ObfuscatedEmailRegex = new (
-            @"(?<![\w.+-])([A-Z0-9._%+\-]+)\s*(?:\[at\]|\(at\)|(?<!\w)at(?!\w))\s*([A-Z0-9.\-]+\.[A-Z]{2,})(?![\w.+-])",
+            @"(?<![\w.%+-])([A-Z0-9._%+\-]+)\s*(?:\[at\]|\(at\)|(?<!\w)at(?!\w))\s*([A-Z0-9.\-]+\.[A-Z]{2,})(?![\w.+-])",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled,
             TimeSpan.FromMilliseconds(100));
 
@@ -295,6 +295,10 @@ namespace DirectoryManager.Utilities.Helpers
             var sb = new StringBuilder(text.Length + 32);
             int last = 0;
 
+            // A pathological body must never fail the page (audit 2026-11-11: one auto-approved
+            // review could 500 a listing page). On a regex timeout, fall back to plain encoded text.
+            try
+            {
             foreach (Match m in UrlOrEmailRegex.Matches(text))
             {
                 if (m.Index > last)
@@ -339,6 +343,11 @@ namespace DirectoryManager.Utilities.Helpers
 
                 last = m.Index + m.Length;
             }
+            }
+            catch (RegexMatchTimeoutException)
+            {
+                return HtmlEncodeWithLineBreaks(maskEmails ? text.Replace("@", " [at] ", StringComparison.Ordinal) : text);
+            }
 
             if (last < text.Length)
             {
@@ -380,6 +389,8 @@ namespace DirectoryManager.Utilities.Helpers
             var sb = new StringBuilder(trimmedAll.Length + 32);
             int last = 0;
 
+            try
+            {
             foreach (Match m in UrlOrEmailRegex.Matches(trimmedAll))
             {
                 if (m.Index > last)
@@ -421,6 +432,11 @@ namespace DirectoryManager.Utilities.Helpers
                 }
 
                 last = m.Index + m.Length;
+            }
+            }
+            catch (RegexMatchTimeoutException)
+            {
+                return HtmlEncodeWithLineBreaks(trimmedAll);
             }
 
             if (last < trimmedAll.Length)

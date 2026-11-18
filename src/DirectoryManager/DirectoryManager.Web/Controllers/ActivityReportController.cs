@@ -2,6 +2,7 @@ using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Activity;
 using DirectoryManager.Web.Charting;
+using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models.Reports;
 using DirectoryManager.Web.Revenue;
 using Microsoft.AspNetCore.Authorization;
@@ -12,7 +13,7 @@ namespace DirectoryManager.Web.Controllers
 {
     // Admin activity report: everything people submit to the site (new listings, listing edits,
     // reviews, review replies, problem reports, verification requests) per week and per month.
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     [Route("admin/activity")]
     public class ActivityReportController : BaseController
     {

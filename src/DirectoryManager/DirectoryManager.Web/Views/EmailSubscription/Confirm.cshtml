@@ -1,0 +1,29 @@
+@using DirectoryManager.Web.Constants;
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@model DirectoryManager.Web.Models.Emails.NewsletterLinkModel?
+@{
+    PageMeta.Title = "Confirm subscription";
+    Layout = "_CenteredLayout";
+    var siteName = await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName);
+}
+
+@section PageContent {
+    <div class="page-header-bar">
+        <h1 class="page-title">@PageMeta.Title</h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
+
+    @if (Model == null)
+    {
+        <p>This confirmation link is not valid or has expired. You can <a href="~/newsletter">sign up again</a> to get a new one.</p>
+    }
+    else
+    {
+        <p>Get the @siteName newsletter at <strong>@Model.Email</strong>?</p>
+        <form method="post" action="~/newsletter/confirm">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="token" value="@Model.Token" />
+            <button type="submit" class="btn btn-primary ui-submit btn-cta">Confirm subscription</button>
+        </form>
+    }
+}

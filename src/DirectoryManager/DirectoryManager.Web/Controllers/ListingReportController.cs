@@ -17,7 +17,7 @@ namespace DirectoryManager.Web.Controllers
     /// country. Every page takes a date range (or an "as of" date) and rebuilds the directory
     /// for those dates from the listing edit history.
     /// </summary>
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     [Route("directoryentry/report")]
     public class ListingReportController : BaseController
     {

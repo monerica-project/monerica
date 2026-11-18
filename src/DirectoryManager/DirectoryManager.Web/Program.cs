@@ -47,9 +47,11 @@ builder.Logging.AddSerilog(logger);
 // Must be configured before Build() and applied as the FIRST middleware below.
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
+    // X-Forwarded-Host is NOT trusted: every nginx proxy here already sends the real Host,
+    // and trusting it let any client rewrite the host used for sitemap URLs, redirects,
+    // Tor detection and payment return URLs. (Audit 2026-11-11.)
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor
-                             | ForwardedHeaders.XForwardedProto
-                             | ForwardedHeaders.XForwardedHost;
+                             | ForwardedHeaders.XForwardedProto;
 
     // nginx is on loopback / private IP and we don't enumerate it, so clear the
     // default known-proxy list to accept the headers from any upstream.
@@ -77,9 +79,21 @@ if (!builder.Environment.IsDevelopment())
         .SetApplicationName("dm-web");
 }
 
+// Loopback-only port for the static-site publisher's internal endpoints. nginx and Tor proxy to
+// the public port only, so nothing from outside can reach this one (see InternalEndpointGuard).
+var staticPublishOptions = builder.Configuration
+    .GetSection(DirectoryManager.Web.Models.StaticPublishing.StaticPublishOptions.SectionName)
+    .Get<DirectoryManager.Web.Models.StaticPublishing.StaticPublishOptions>()
+    ?? new DirectoryManager.Web.Models.StaticPublishing.StaticPublishOptions();
+
 // Configure Kestrel based on environment and certificate availability
 builder.WebHost.ConfigureKestrel(options =>
 {
+    if (staticPublishOptions.InternalEndpointEnabled)
+    {
+        options.Listen(System.Net.IPAddress.Loopback, staticPublishOptions.InternalPort);
+    }
+
     if (builder.Environment.IsDevelopment())
     {
         // Development ports for Visual Studio debugging with HTTPS
@@ -278,6 +292,25 @@ app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// A signed-in (admin) response must never be stored by a CDN or shared cache, whatever the
+// pull zone's settings are. Anonymous pages keep their normal headers (the static mirror crawls them).
+// Members sign in with their own cookie (path /members), which never sets context.User here, so
+// requests carrying it are covered explicitly.
+app.Use(async (context, next) =>
+{
+    if (context.User?.Identity?.IsAuthenticated == true
+        || context.Request.Cookies.ContainsKey(DirectoryManager.Web.Constants.MemberAuth.CookieName))
+    {
+        context.Response.OnStarting(() =>
+        {
+            context.Response.Headers.CacheControl = "no-store, private";
+            return Task.CompletedTask;
+        });
+    }
+
+    await next();
+});
 app.UseSession();
 app.MapDefaultControllerRoute();
 app.Run();

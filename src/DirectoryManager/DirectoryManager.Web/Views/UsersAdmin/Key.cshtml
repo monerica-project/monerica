@@ -1,0 +1,98 @@
+@using DirectoryManager.Web.Models.Members
+@using DirectoryManager.Common.Constants
+@model KeyDetailViewModel
+@{
+    var k = Model.Key;
+    PageMeta.Title = "PGP key " + k.Short;
+    PageMeta.IsIndexable = false;
+    Layout = "_CenteredLayout";
+    ViewData["PostsBaseUrl"] = DirectoryManager.Web.Controllers.UsersAdminController.KeyUrl(k.Fingerprint);
+    var activeBlock = Model.Block is { UnblockedUtc: null } ? Model.Block : null;
+}
+
+@section PageContent {
+@await Html.PartialAsync("_AdminMenu")
+<p><a href="/admin/users?tab=@UsersAdminTabs.Keys">&larr; Users: PGP reviewers</a></p>
+<h1>@PageMeta.Title</h1>
+
+@if (TempData["UsersMessage"] is string ok && !string.IsNullOrWhiteSpace(ok))
+{
+    <div class="alert alert-success">@ok</div>
+}
+@if (TempData["UsersError"] is string err && !string.IsNullOrWhiteSpace(err))
+{
+    <div class="alert alert-danger">@err</div>
+}
+
+<table class="table table-sm">
+    <tbody>
+        <tr><th>Fingerprint</th><td><code>@k.Fingerprint</code></td></tr>
+        <tr><th>First seen</th><td>@(k.FirstSeenUtc?.ToString(StringConstants.DateTimeShortFormat) ?? "never posted")</td></tr>
+        <tr><th>Last seen</th><td>@(k.LastSeenUtc?.ToString(StringConstants.DateTimeShortFormat) ?? "-")</td></tr>
+        <tr><th>Reviews</th><td>@await Html.PartialAsync("_StatusCounts", k.Reviews)</td></tr>
+        <tr><th>Replies</th><td>@await Html.PartialAsync("_StatusCounts", k.Replies)</td></tr>
+        <tr><th>Listings</th><td>@k.ListingCount</td></tr>
+        <tr><th>Notes</th><td>@await Html.PartialAsync("_KeyBadges", k)</td></tr>
+        <tr>
+            <th>Block</th>
+            <td>
+                @if (activeBlock != null)
+                {
+                    <span class="text-danger">Blocked</span>
+                    <br /><small>since @activeBlock.BlockedUtc.ToString(StringConstants.DateTimeShortFormat) UTC by @(activeBlock.BlockedBy ?? "?")@(string.IsNullOrEmpty(activeBlock.Reason) ? "" : " — reason: " + activeBlock.Reason)@(activeBlock.HidPosts ? " (posts hidden)" : "")</small>
+                }
+                else
+                {
+                    <span>Not blocked</span>
+                    @if (Model.Block?.UnblockedUtc is DateTime unblocked)
+                    {
+                        <br /><small class="text-muted">last blocked @Model.Block.BlockedUtc.ToString(StringConstants.DateTimeShortFormat) UTC by @(Model.Block.BlockedBy ?? "?"); unblocked @unblocked.ToString(StringConstants.DateTimeShortFormat) UTC by @(Model.Block.UnblockedBy ?? "?")</small>
+                    }
+                }
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+@if (k.IsModerator)
+{
+    <p class="text-muted">This is the directory's own moderator key. It can't be blocked.</p>
+}
+else if (activeBlock == null)
+{
+    <h3>Block this key</h3>
+    <p class="text-muted">
+        A blocked key can't start or submit a review or reply in the PGP flow (it is refused right after the key is pasted, and again on submit),
+        can't post owner replies on the listing owner page, and can't be linked to a member account. A member account that already has this key linked can't post either.
+        The person sees a neutral message ("This PGP key can't be used to post reviews or replies here.").
+        Existing posts stay as they are unless you tick "hide".
+    </p>
+    @if (k.OwnerOf.Count > 0)
+    {
+        <p class="text-danger">This key is a listing owner's key: blocking it also stops owner replies for that listing.</p>
+    }
+    <form method="post" action="/admin/users/key/@k.Fingerprint/block">
+        @Html.AntiForgeryToken()
+        <input name="reason" maxlength="200" class="form-control input-width" placeholder="Reason (admin-only, optional)" />
+        <label><input type="checkbox" name="hidePosts" value="true" /> also hide this key's published and waiting posts (set to rejected; member-account posts are not touched)</label><br />
+        <label><input type="checkbox" name="confirm" value="true" /> I confirm</label><br />
+        <button type="submit" class="btn btn-sm btn-danger">Block key</button>
+    </form>
+}
+else
+{
+    <h3>Unblock this key</h3>
+    <form method="post" action="/admin/users/key/@k.Fingerprint/unblock">
+        @Html.AntiForgeryToken()
+        @if (Model.HiddenByBlockCount > 0)
+        {
+            <label><input type="checkbox" name="restorePosts" value="true" /> put the @Model.HiddenByBlockCount post(s) hidden by the block back in the moderation queue (as waiting, not published)</label><br />
+        }
+        <label><input type="checkbox" name="confirm" value="true" /> I confirm</label><br />
+        <button type="submit" class="btn btn-sm btn-outline-secondary">Unblock key</button>
+    </form>
+}
+
+<hr />
+@await Html.PartialAsync("_UserPosts", Model.Posts)
+}

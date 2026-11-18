@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Web.Extensions;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Helpers;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.SponsoredListings;
@@ -72,7 +73,7 @@ namespace DirectoryManager.Web.Controllers
         // =====================================================================
         [Route("sponsoredlisting/create")]
         [HttpGet]
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> CreateAsync()
         {
             var entries = (await this.directoryEntryRepository.GetAllowableAdvertisers().ConfigureAwait(false))
@@ -102,7 +103,7 @@ namespace DirectoryManager.Web.Controllers
 
         [Route("sponsoredlisting/create")]
         [HttpPost]
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateAsync(CreateListingViewModel model)
         {
@@ -154,6 +155,7 @@ namespace DirectoryManager.Web.Controllers
 
             var created = await this.sponsoredListingRepository.CreateAsync(listing).ConfigureAwait(false);
             this.ClearCachedItems();
+            await this.StaticPublish().RequestFullCrawlAsync("sponsorship added by admin");
 
             var admin = this.User?.Identity?.Name ?? "(unknown)";
             this.logger.LogInformation(
@@ -169,7 +171,7 @@ namespace DirectoryManager.Web.Controllers
         // =====================================================================
         [Route("sponsoredlisting/delete/{sponsoredListingId:int}")]
         [HttpGet]
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> DeleteAsync(int sponsoredListingId)
         {
             var listing = await this.sponsoredListingRepository.GetByIdAsync(sponsoredListingId).ConfigureAwait(false);
@@ -193,7 +195,7 @@ namespace DirectoryManager.Web.Controllers
 
         [Route("sponsoredlisting/delete/{sponsoredListingId:int}")]
         [HttpPost]
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         [ValidateAntiForgeryToken]
         [ActionName("Delete")]
         public async Task<IActionResult> DeleteConfirmedAsync(int sponsoredListingId)
@@ -206,6 +208,7 @@ namespace DirectoryManager.Web.Controllers
 
             await this.sponsoredListingRepository.DeleteAsync(sponsoredListingId).ConfigureAwait(false);
             this.ClearCachedItems();
+            await this.StaticPublish().RequestFullCrawlAsync("sponsorship deleted by admin");
 
             var admin = this.User?.Identity?.Name ?? "(unknown)";
             this.logger.LogWarning(
@@ -396,7 +399,7 @@ namespace DirectoryManager.Web.Controllers
 
         [Route("sponsoredlisting/list/{page?}")]
         [HttpGet]
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> List(int page = 1)
         {
             var pageSize = IntegerConstants.DefaultPageSize;
@@ -445,7 +448,7 @@ namespace DirectoryManager.Web.Controllers
         // =====================================================================
         [Route("sponsoredlisting/edit/{sponsoredListingId}")]
         [HttpGet]
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> EditAsync(int sponsoredListingId)
         {
             var listing = await this.sponsoredListingRepository.GetByIdAsync(sponsoredListingId);
@@ -469,7 +472,7 @@ namespace DirectoryManager.Web.Controllers
 
         [Route("sponsoredlisting/edit/{sponsoredListingId}")]
         [HttpPost]
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> EditAsync(int sponsoredListingId, EditListingViewModel model)
         {
             if (!this.ModelState.IsValid)
@@ -487,6 +490,7 @@ namespace DirectoryManager.Web.Controllers
             listing.CampaignEndDate = model.CampaignEndDate;
             await this.sponsoredListingRepository.UpdateAsync(listing);
             this.ClearCachedItems();
+            await this.StaticPublish().RequestFullCrawlAsync("sponsorship edited by admin");
 
             return this.RedirectToAction("List");
         }
@@ -564,8 +568,7 @@ namespace DirectoryManager.Web.Controllers
             foreach (var cat in allCategories)
             {
                 var sponsor = currentCatSponsors.FirstOrDefault(x =>
-                    x.DirectoryEntry?.SubCategory != null &&
-                    x.DirectoryEntry.SubCategory.CategoryId == cat.CategoryId);
+                    (x.CategoryId ?? x.DirectoryEntry?.SubCategory?.CategoryId) == cat.CategoryId);
 
                 if (sponsor != null)
                 {

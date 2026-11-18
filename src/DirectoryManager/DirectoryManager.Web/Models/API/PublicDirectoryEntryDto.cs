@@ -70,6 +70,17 @@ namespace DirectoryManager.Web.Models.API
         /// <summary>Whether the website needs JavaScript. Unknown = Not Stated.</summary>
         public SiteJavaScript SiteJavaScript { get; set; }
 
+        /// <summary>Countries the service does not serve (ISO 3166-1 alpha-2 codes); empty when none recorded.</summary>
+        public List<string> RestrictedCountries { get; set; } = new ();
+
+        /// <summary>Whether a VPN may be used. Unknown = Not Stated.</summary>
+        public VpnPolicy VpnPolicy { get; set; }
+
+        /// <summary>Whether Tor may be used. Unknown = Not Stated.</summary>
+        public TorPolicy TorPolicy { get; set; }
+
+        public string? OtherRestrictions { get; set; }
+
         public List<DirectoryManager.Data.Models.GuaranteeItem> Guarantees { get; set; } = new ();
 
         public bool ReviewsDisabled { get; set; }

@@ -2,6 +2,7 @@
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.VerificationRequests;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models.VerificationRequests;
 using DirectoryManager.Web.Services.Interfaces;
@@ -11,7 +12,7 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace DirectoryManager.Web.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     [Route("admin/verification-requests")]
     public class VerificationRequestsAdminController : BaseController
     {

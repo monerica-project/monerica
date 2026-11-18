@@ -1,0 +1,187 @@
+@using DirectoryManager.Data.Enums
+@using DirectoryManager.DisplayFormatting.Helpers
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService Urls
+@{
+    // Every statement on this page describes something the code or the operator really does
+    // (checked 2026-11-11). Change the text when the process changes.
+    var siteName = await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteName);
+    var currency = await cacheHelper.GetSnippetAsync(SiteConfigSetting.DirectoryCurrencyName);
+    if (string.IsNullOrWhiteSpace(currency))
+    {
+        currency = "Monero";
+    }
+
+    var sponsorDays = DirectoryManager.Common.Constants.IntegerConstants.MinimumDaysListedBeforeSponsoring;
+    var newDays = DirectoryManager.Data.Helpers.NewListingRule.Days;
+
+    PageMeta.Title = "How Listings Are Verified";
+    PageMeta.SeoTitle = DirectoryManager.Web.Helpers.SeoTitleBuilder.WithBrand("How Listings Are Verified", siteName);
+    PageMeta.MetaDescription = DirectoryManager.Web.Helpers.SeoDescriptionBuilder.Shorten(
+        $"How {siteName} checks listings and reviews: {currency} acceptance on the site itself, human approval, listing statuses, weekly site checks, PGP-verified reviews and order proof checked by hand.");
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <div class="page-header-bar">
+        <h1 class="page-title">@PageMeta.Title</h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
+    <hr />
+    @await Html.PartialAsync("_BackToHome")
+    <hr />
+
+    <div class="text-block how-we-verify">
+        <p>
+            This page describes the checks @siteName runs on listings and reviews today.
+            It does not describe plans. See also the <a class="no-app-link" href="@Urls.ResolveToRoot("/faq")">FAQ</a>,
+            the <a class="no-app-link" href="@Urls.ResolveToRoot("/incidents")">incidents page</a> and
+            <a class="no-app-link" href="@Urls.ResolveToRoot("/reviews")">all reviews</a>.
+        </p>
+
+        <h2 id="adding">How a listing is added</h2>
+        <ul>
+            <li>
+                Anyone can <a class="app-link" href="@Urls.ResolveToApp("/submit")">submit a business</a>.
+                @currency acceptance must be visible on the business's own site: on its main page, or on a
+                proof page on its own domain or .onion address. Blockchain explorer links, transaction links
+                and screenshots hosted elsewhere are not accepted as proof.
+            </li>
+            <li>
+                New submissions and edits first go through an automated check. It opens the submitted site
+                and proof page, looks for @currency on pages that can be seen without an account, compares the
+                category, description and KYC policy with what the site says, and writes notes for the moderator.
+                The automated check never approves anything.
+            </li>
+            <li>
+                A person reads each submission and those notes, then approves, corrects or rejects it. No new listing
+                and no edit goes live automatically.
+            </li>
+            <li>
+                Public edits cannot change a listing's status, and cannot replace or remove its PGP key. Edits that change
+                a listing's link, email address or PGP key are not approved in one click; a moderator opens the full review
+                page for them.
+            </li>
+        </ul>
+
+        <h2 id="statuses">What the statuses mean</h2>
+        <ul>
+            <li><strong>Admitted:</strong> added to the directory but not yet tested by the community.</li>
+            <li>@Html.Raw(DisplayMarkUpHelper.GetDirectoryStausIcon(DirectoryStatus.Verified))<strong>Verified:</strong> confirmed to accept @currency in a real transaction, either tested by @siteName or shown by a review whose order proof was checked.</li>
+            <li>@Html.Raw(DisplayMarkUpHelper.GetDirectoryStausIcon(DirectoryStatus.Questionable))<strong>Questionable:</strong> there is uncertainty about the listing's claims or reliability, but no confirmed reports of theft.</li>
+            <li>@Html.Raw(DisplayMarkUpHelper.GetDirectoryStausIcon(DirectoryStatus.Scam))<strong>Scam:</strong> there is credible evidence that the service took users' funds without delivering what it promised. Its name is crossed out and its links are marked nofollow.</li>
+            <li><strong>Removed:</strong> no longer listed. Its page is taken down and it does not appear in lists.</li>
+        </ul>
+        <p>
+            Statuses are set by a moderator, and the reason is usually written in the listing's note.
+            Marking a listing Questionable or Scam opens an issue: the listing is shown on the
+            <a class="no-app-link" href="@Urls.ResolveToRoot("/incidents")">incidents page</a> with the date and the reason
+            until it is returned to its normal status, which closes the issue.
+        </p>
+
+        <h2 id="verified">Getting Verified</h2>
+        <p>
+            An Admitted listing's page has a <em>Request verification</em> button. Anyone can use it to explain why
+            the listing should be checked and add a link that shows someone used the service, such as a public review
+            or a transaction. A request goes to a moderator; it does not change the status by itself. The request flow
+            offers an optional donation, which is not required.
+        </p>
+
+        <h2 id="kyc">KYC policy</h2>
+        <p>
+            The KYC policy on a listing is based on what the site itself publishes. A plain statement on the site's
+            own pages, such as "No KYC" or "we never ask for ID", counts. A submitter's claim alone does not. When the
+            site says nothing about identity checks, the listing shows <em>Not Stated</em>. The
+            <a class="no-app-link" href="@Urls.ResolveToRoot("/faq#kyc-policy")">FAQ</a> explains each policy.
+        </p>
+
+        <h2 id="site-check">Weekly site check</h2>
+        <ul>
+            <li>Every Tuesday an automated job checks that each listing's website and Tor address still respond.</li>
+            <li>
+                It never removes a listing by itself. When a site looks offline, it creates a proposed edit that a
+                moderator reviews.
+            </li>
+            <li>
+                A website is flagged only after a second, outside service also cannot reach it. A Tor address that does not
+                answer is flagged only after three failed weekly checks in a row, because Tor connections often fail for a
+                short time.
+            </li>
+            <li>It also reports expired or otherwise invalid HTTPS certificates after two failed weekly checks in a row.</li>
+        </ul>
+
+        <h2 id="hosting">Hosting providers</h2>
+        <p>
+            In November 2026 we checked the networks used by the web hosting providers in the directory against the
+            Spamhaus DROP and ASN-DROP lists. Providers running on a listed network were removed, and resellers on
+            such a network were marked Questionable.
+        </p>
+
+        <h2 id="reviews">Reviews</h2>
+        <ul>
+            <li>
+                Every reviewer proves they control a PGP key by decrypting a one-time code with it. There are no accounts
+                or passwords, and a reviewer is shown only by a short form of their key's fingerprint.
+            </li>
+            <li>
+                Reviews that include an order link are always checked by a moderator before they appear. A review also
+                waits for a moderator when it includes a tag the reviewer picked, a link in the text or a blocked word,
+                and always on listings that require verification details. Other reviews are published right away, and
+                moderators can remove a published review.
+            </li>
+            <li>
+                Order proof is checked by hand. When a reviewer gives an order link, order ID or screenshot, a moderator
+                checks it before the review gets the <em>Valid Order</em> tag.
+            </li>
+            <li>
+                Order links and the verification details reviewers give are used for checking only and are not shown on
+                public pages. Official reviews written by @siteName show their own verification details.
+            </li>
+            <li>
+                Problem tags such as <em>Funds held</em>, <em>KYC Issue</em> and <em>Misleading fees</em> are picked by
+                the reviewer and checked by a moderator before the review is published. Reviews with these tags are listed
+                on the <a class="no-app-link" href="@Urls.ResolveToRoot("/incidents")">incidents page</a>.
+            </li>
+            <li>
+                A business that has added its PGP key to its listing can reply with that key. Its replies are marked as
+                coming from the listing owner and are published right away.
+            </li>
+            <li>
+                Replies made with the directory's own <a class="app-link" href="@Urls.ResolveToApp("/pgp")">PGP key</a>
+                are marked <em>Moderator</em>.
+            </li>
+            <li>A review its author takes back is shown crossed out instead of being deleted.</li>
+        </ul>
+
+        <h2 id="reports">Problem reports</h2>
+        <p>
+            Every listing page has a <em>Report a problem</em> button for wrong information, dead links or scams.
+            Reports go to a moderator queue and are not published.
+        </p>
+
+        <h2 id="sponsors">Sponsors and featured listings</h2>
+        <ul>
+            <li>
+                Sponsors are paid placements and are labeled <em>Sponsored</em>. Only Verified listings that have been
+                in the directory for at least @sponsorDays days can buy a sponsorship.
+            </li>
+            <li>Paying for a sponsorship does not change a listing's status or its reviews.</li>
+            <li>
+                Featured listings are unpaid picks by the editors and are labeled <em>Featured</em>.
+            </li>
+        </ul>
+
+        <h2 id="transparency">What you can check yourself</h2>
+        <ul>
+            <li>Every listing page links to its full change history, with the date of each change.</li>
+            <li>The <a class="no-app-link" href="@Urls.ResolveToRoot("/incidents")">incidents page</a> lists open issues (listings currently marked Questionable or Scam) and, separately, recent reviews with problem tags.</li>
+            <li>The <a class="no-app-link" href="@Urls.ResolveToRoot("/reviews")">reviews page</a> lists every published review, newest first.</li>
+            <li>Listings added in the last @newDays days are labeled <em>New</em>.</li>
+        </ul>
+
+        <h2 id="privacy">Privacy</h2>
+        <p>
+            We do not log or store visitors' IP addresses. Browsing the directory needs no account.
+        </p>
+    </div>
+}

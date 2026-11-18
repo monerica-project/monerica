@@ -1,4 +1,6 @@
-﻿using DirectoryManager.Data.Models;
+using DirectoryManager.Web.Constants;
+using DirectoryManager.Web.Extensions;
+using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Models.ContentSnippet;
 using DirectoryManager.Web.Services.Interfaces;
@@ -9,7 +11,7 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace DirectoryManager.Web.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     public class ContentSnippetManagementController : BaseController
     {
         private readonly IContentSnippetRepository contentSnippetRepository;
@@ -76,7 +78,7 @@ namespace DirectoryManager.Web.Controllers
 
         [Route("contentsnippetmanagement/create")]
         [HttpPost]
-        public IActionResult Create(ContentSnippetEditModel model)
+        public async Task<IActionResult> Create(ContentSnippetEditModel model)
         {
             if (!this.ModelState.IsValid)
             {
@@ -96,6 +98,9 @@ namespace DirectoryManager.Web.Controllers
                 ContentSnippetId = model.ContentSnippetId,
                 SnippetType = model.SnippetType
             });
+
+            this.contentSnippetHelper.ClearSnippetCache(model.SnippetType);
+            await this.StaticPublish().RequestFullCrawlAsync("content snippet created: " + model.SnippetType);
 
             return this.RedirectToAction("index");
         }
@@ -123,7 +128,7 @@ namespace DirectoryManager.Web.Controllers
 
         [Route("contentsnippetmanagement/edit")]
         [HttpPost]
-        public IActionResult Edit(ContentSnippetEditModel model)
+        public async Task<IActionResult> Edit(ContentSnippetEditModel model)
         {
             if (!this.ModelState.IsValid)
             {
@@ -145,6 +150,7 @@ namespace DirectoryManager.Web.Controllers
             this.contentSnippetHelper.ClearSnippetCache(model.SnippetType);
 
             this.ClearCachedItems();
+            await this.StaticPublish().RequestFullCrawlAsync("content snippet edited: " + model.SnippetType);
 
             return this.RedirectToAction("index");
         }
@@ -174,7 +180,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpPost]
         [ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public IActionResult DeleteConfirmed(int contentSnippetId)
+        public async Task<IActionResult> DeleteConfirmed(int contentSnippetId)
         {
             var dbModel = this.contentSnippetRepository.Get(contentSnippetId);
 
@@ -185,6 +191,7 @@ namespace DirectoryManager.Web.Controllers
                 this.contentSnippetHelper.ClearSnippetCache(dbModel.SnippetType);
 
                 this.ClearCachedItems();
+                await this.StaticPublish().RequestFullCrawlAsync("content snippet edited: " + dbModel.SnippetType);
             }
 
             return this.RedirectToAction("index");

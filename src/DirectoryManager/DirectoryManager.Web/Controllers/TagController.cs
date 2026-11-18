@@ -24,6 +24,17 @@ namespace DirectoryManager.Web.Controllers
     {
         private const int PageSize = Constants.IntegerConstants.MaxPageSize;
 
+        /// <summary>
+        /// Tags that were retired in favor of a listing field: their old public pages (and any
+        /// /page/N of them) 301 to the equivalent filter view. "Open Source" became the
+        /// source code link (removed 2026-11-13).
+        /// </summary>
+        public static readonly IReadOnlyDictionary<string, string> RetiredTagRedirects =
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["open-source"] = "/filter?HasSourceCode=true",
+            };
+
         private readonly ITagRepository tagRepo;
         private readonly IDirectoryEntryTagRepository entryTagRepo;
         private readonly ICacheService cacheService;
@@ -98,6 +109,11 @@ namespace DirectoryManager.Web.Controllers
             if (string.IsNullOrWhiteSpace(tagSlug))
             {
                 return this.NotFound();
+            }
+
+            if (RetiredTagRedirects.TryGetValue(tagSlug.Trim(), out var retiredTarget))
+            {
+                return this.RedirectPermanent(retiredTarget);
             }
 
             var tag = await this.tagRepo.GetByKeyAsync(tagSlug);

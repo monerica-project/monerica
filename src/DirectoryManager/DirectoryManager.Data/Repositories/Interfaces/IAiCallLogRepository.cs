@@ -1,4 +1,4 @@
-using DirectoryManager.Data.Models;
+﻿using DirectoryManager.Data.Models;
 
 namespace DirectoryManager.Data.Repositories.Interfaces
 {
@@ -6,7 +6,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
     {
         /// <summary>Newest first, optionally only one submission's calls or only failed calls.</summary>
         /// <returns>The page of rows and the total matching count.</returns>
-        Task<(IReadOnlyList<AiCallLog> Items, int Total)> GetPageAsync(int page, int pageSize, int? submissionId, bool errorsOnly, CancellationToken ct = default);
+        Task<(IReadOnlyList<AiCallLog> Items, int Total)> GetPageAsync(int page, int pageSize, int? submissionId, bool errorsOnly, CancellationToken ct = default, int? reviewId = null);
 
         Task<AiCallLog?> GetByIdAsync(int id, CancellationToken ct = default);
 

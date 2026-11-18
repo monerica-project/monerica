@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Web.Extensions;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Helpers;
@@ -36,7 +37,7 @@ namespace DirectoryManager.Web.Controllers
             this.subcategoryRepository = subcategoryRepository;
         }
 
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         [HttpGet]
         [Route("sponsoredlistingnotification/list")]
         public async Task<IActionResult> List(int page = 1, int pageSize = 50, SponsorshipType? type = null, int? typeId = null)
@@ -139,7 +140,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View(vm);
         }
 
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         [HttpGet]
         [Route("sponsoredlistingnotification/edit/{id}")]
         public async Task<IActionResult> Edit(int id)
@@ -190,7 +191,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View(notification);
         }
 
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Route("sponsoredlistingnotification/edit/{id}")]
@@ -248,13 +249,14 @@ namespace DirectoryManager.Web.Controllers
             var ok = await this.notificationRepository
                                .UpdateAsync(existing)
                                .ConfigureAwait(false);
+            await this.StaticPublish().RequestFullCrawlAsync("sponsorship waitlist edited by admin");
             this.TempData[ok ? StringConstants.SuccessMessage : StringConstants.ErrorMessage] =
                 ok ? "Updated." : "Update failed.";
 
             return this.RedirectToAction(nameof(this.List));
         }
 
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Route("sponsoredlistingnotification/delete/{id}")]

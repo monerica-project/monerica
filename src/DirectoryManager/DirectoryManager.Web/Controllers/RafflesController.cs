@@ -10,7 +10,7 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace DirectoryManager.Web.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     [Route("raffles")]
     public class RafflesController : BaseController
     {

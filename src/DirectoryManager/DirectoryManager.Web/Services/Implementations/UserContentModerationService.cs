@@ -113,6 +113,20 @@ namespace DirectoryManager.Web.Services.Implementations
                 };
             }
 
+            // 2b) Test / probe text ("probe 651", "IDOR test review", "{{7*7}}") is never saved.
+            if (ProbeContentRules.LooksLikeTestText(trimmed))
+            {
+                return new UserContentModerationResult
+                {
+                    IsValid = false,
+                    NeedsManualReview = false,
+                    ValidationErrorMessage = isReply
+                        ? "This looks like test or placeholder text. Please write a real reply."
+                        : "This looks like test or placeholder text. Please write about your real experience with this service.",
+                    ThankYouMessage = string.Empty
+                };
+            }
+
             // 3) Manual review triggers: blacklist OR hyperlink
             var terms = await this.blacklistCache.GetTermsAsync(ct); // expected normalized/lowercase
             bool hasBlacklistTerm = ContainsBlacklistTermWholeWord(trimmed, terms);

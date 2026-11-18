@@ -32,6 +32,7 @@ namespace DirectoryManager.Data.Extensions
             services.AddScoped<IEmailCampaignSubscriptionRepository, EmailCampaignSubscriptionRepository>();
             services.AddScoped<ISentEmailRecordRepository, SentEmailRecordRepository>();
             services.AddScoped<IEmailSendLogRepository, EmailSendLogRepository>();
+            services.AddScoped<IEmailSendLogContentRepository, EmailSendLogContentRepository>();
 
             // Other repositories
             services.AddScoped<ISubmissionRepository, SubmissionRepository>();
@@ -74,6 +75,7 @@ namespace DirectoryManager.Data.Extensions
             services.AddScoped<IRevenueRepository, RevenueRepository>();
 
             services.AddScoped<IRaffleRepository, RaffleRepository>();
+            services.AddScoped<IStaticPublishRepository, StaticPublishRepository>();
 
             return services;
         }

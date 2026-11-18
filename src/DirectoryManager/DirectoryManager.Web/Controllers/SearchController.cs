@@ -9,6 +9,9 @@ using DirectoryManager.Web.Extensions;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
+using DirectoryManager.Utilities.Helpers;
+using DirectoryManager.Web.Constants;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -26,6 +29,10 @@ public class SearchController : Controller
     private readonly ISearchBlacklistRepository blacklistRepository;
     private readonly IMemoryCache memoryCache;
     private readonly ISearchBlacklistCache blacklistCache;
+    private readonly ICategoryRepository categoryRepository;
+    private readonly ISubcategoryRepository subCategoryRepository;
+    private readonly ITagRepository tagRepository;
+    private readonly IAuthorizationService authorizationService;
 
     public SearchController(
         IDirectoryEntryRepository entryRepo,
@@ -36,8 +43,16 @@ public class SearchController : Controller
         ISearchBlacklistRepository blacklistRepository,
         IMemoryCache memoryCache,
         IUrlResolutionService urlResolver,
-        DirectoryManager.Web.Services.Interfaces.ISearchBlacklistCache blacklistCache)
+        DirectoryManager.Web.Services.Interfaces.ISearchBlacklistCache blacklistCache,
+        ICategoryRepository categoryRepository,
+        ISubcategoryRepository subCategoryRepository,
+        ITagRepository tagRepository,
+        IAuthorizationService authorizationService)
     {
+        this.categoryRepository = categoryRepository;
+        this.subCategoryRepository = subCategoryRepository;
+        this.tagRepository = tagRepository;
+        this.authorizationService = authorizationService;
         this.entryRepo = entryRepo;
         this.reviewRepo = reviewRepo;
         this.cacheService = cacheService;
@@ -49,7 +64,7 @@ public class SearchController : Controller
     }
 
     [HttpGet("search")]
-    public async Task<IActionResult> Index(string q, int page = 1, int pageSize = 10)
+    public async Task<IActionResult> Index(string q, int page = 1, int pageSize = 10, int debug = 0)
     {
         if (string.IsNullOrWhiteSpace(q))
         {
@@ -148,35 +163,18 @@ public class SearchController : Controller
             link2Name,
             link3Name);
 
-        await this.searchLogRepository.CreateAsync(new SearchLog
+        // Probe-shaped or machine-made terms are answered but not logged (no visitor data used).
+        if (SearchLogFilter.ShouldLog(q))
         {
-            Term = q.Trim()
-        });
-
-        // Sponsor pinning
-        var allSponsors = await this.sponsoredListingRepository.GetAllActiveSponsorsAsync();
-        var sponsorIds = new HashSet<int>(allSponsors.Select(s => s.DirectoryEntryId));
-
-        // A result shown under one of the listing's ADDITIONAL subcategories only counts as
-        // sponsored if it paid for that exact subcategory (or holds the site-wide main slot);
-        // a sponsorship elsewhere doesn't carry over to the alternative.
-        var shownViaAlternative = result.Items
-            .Where(e => e.ShownViaAdditionalSubcategoryId.HasValue)
-            .ToDictionary(e => e.DirectoryEntryId, e => e.SubCategoryId);
-
-        foreach (var item in vmList)
-        {
-            if (shownViaAlternative.TryGetValue(item.DirectoryEntryId, out var altSubId))
+            await this.searchLogRepository.CreateAsync(new SearchLog
             {
-                item.IsSponsored = allSponsors.Any(s => s.DirectoryEntryId == item.DirectoryEntryId &&
-                    (s.SponsorshipType == SponsorshipType.MainSponsor ||
-                     (s.SponsorshipType == SponsorshipType.SubcategorySponsor && s.SubCategoryId == altSubId)));
-            }
-            else
-            {
-                item.IsSponsored = sponsorIds.Contains(item.DirectoryEntryId);
-            }
+                Term = q.Trim()
+            });
         }
+
+        // Sponsor pinning: unchanged rules, see SearchSponsorOrdering.
+        var allSponsors = await this.sponsoredListingRepository.GetAllActiveSponsorsAsync();
+        vmList = SearchSponsorOrdering.Apply(vmList, result.Items, allSponsors);
 
         // ✅ Ratings for the CURRENT PAGE (approved + has value) via repository
         var pageIds = vmList.Select(v => v.DirectoryEntryId).Distinct().ToList();
@@ -201,8 +199,24 @@ public class SearchController : Controller
             }
         }
 
-        // show sponsors first (keep rating order within each group)
-        vmList = vmList.Where(e => e.IsSponsored).Concat(vmList.Where(e => !e.IsSponsored)).ToList();
+        // Links to the category/subcategory/tag/country page the search names, a site page for
+        // navigational searches, and the closest categories when nothing was found.
+        var effectiveQuery = correctedQuery ?? q;
+        var browseTargets = await this.GetBrowseTargetsAsync();
+        var browseLinks = page <= 1 ? SearchBrowseLinks.FindNamed(effectiveQuery, browseTargets) : new List<BrowseTarget>();
+        var shortcut = page <= 1 ? SearchBrowseLinks.FindShortcut(q) : null;
+        var closest = result.TotalCount == 0 && browseLinks.Count == 0
+            ? SearchBrowseLinks.FindClosest(q, browseTargets)
+            : new List<BrowseTarget>();
+
+        // Admin-only ranking details (?debug=1).
+        Dictionary<int, string>? explanations = null;
+        if (debug == 1 && (await this.authorizationService.AuthorizeAsync(this.User, AuthorizationPolicies.AdminOnly)).Succeeded)
+        {
+            explanations = (await this.entryRepo.ExplainSearchAsync(effectiveQuery))
+                .GroupBy(r => r.Entry.DirectoryEntryId)
+                .ToDictionary(g => g.Key, g => g.First().Explain());
+        }
 
         var vmOut = new SearchViewModel
         {
@@ -213,9 +227,54 @@ public class SearchController : Controller
             Entries = vmList,
             ShowDonatePin = showDonatePin,
             CorrectedQuery = correctedQuery,
-            DidYouMean = didYouMean
+            DidYouMean = didYouMean,
+            BrowseLinks = browseLinks,
+            Shortcut = shortcut,
+            ClosestLinks = closest,
+            DebugExplanations = explanations,
         };
 
         return this.View(vmOut);
+    }
+
+    // Every browsable page a search can point to, cached for 10 minutes.
+    private async Task<List<BrowseTarget>> GetBrowseTargetsAsync()
+    {
+        const string cacheKey = "search:browse-targets";
+        if (this.memoryCache.TryGetValue(cacheKey, out List<BrowseTarget>? cached) && cached != null)
+        {
+            return cached;
+        }
+
+        var targets = new List<BrowseTarget>();
+        var categories = (await this.categoryRepository.GetActiveCategoriesAsync()).Where(c => c.IsEnabled).ToList();
+        var enabledCategoryIds = categories.Select(c => c.CategoryId).ToHashSet();
+        targets.AddRange(categories.Select(c => new BrowseTarget(c.Name, "/" + c.CategoryKey, SearchBrowseLinks.TargetKind.Category, c.Name)));
+
+        foreach (var sc in await this.subCategoryRepository.GetAllActiveSubCategoriesAsync())
+        {
+            if (sc.Category != null && enabledCategoryIds.Contains(sc.CategoryId))
+            {
+                targets.Add(new BrowseTarget($"{sc.Category.Name} › {sc.Name}", $"/{sc.Category.CategoryKey}/{sc.SubCategoryKey}", SearchBrowseLinks.TargetKind.Subcategory, sc.Name));
+            }
+        }
+
+        foreach (var tag in await this.tagRepository.ListActiveTagsAsync())
+        {
+            targets.Add(new BrowseTarget($"Tagged: {tag.Name}", "/tagged/" + tag.Key, SearchBrowseLinks.TargetKind.Tag, tag.Name));
+        }
+
+        var activeCountries = await this.entryRepo.ListActiveCountryCodesAsync();
+        var countryNames = CountryHelper.GetCountries();
+        foreach (var code in activeCountries)
+        {
+            if (countryNames.TryGetValue(code, out var name))
+            {
+                targets.Add(new BrowseTarget($"Listings in {name}", "/countries/" + StringHelpers.UrlKey(name), SearchBrowseLinks.TargetKind.Country, code));
+            }
+        }
+
+        this.memoryCache.Set(cacheKey, targets, TimeSpan.FromMinutes(10));
+        return targets;
     }
 }

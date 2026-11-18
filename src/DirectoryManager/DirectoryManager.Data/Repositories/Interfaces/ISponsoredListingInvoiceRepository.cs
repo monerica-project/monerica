@@ -42,6 +42,14 @@ namespace DirectoryManager.Data.Repositories.Interfaces
 
         IAsyncEnumerable<AccountantRow> StreamPaidForAccountantAsync(DateTime startUtc, DateTime endUtc, SponsorshipType? sponsorshipType, CancellationToken ct = default);
         Task<SponsoredListingInvoice?> GetByProcessorInvoiceIdAsync(string ipnProcessorId);
+
+        /// <summary>
+        /// BTCPay invoices created since <paramref name="createdSinceUtc"/> that are not paid on our
+        /// side (created, pending, underpaid, expired or canceled) and are not tests: the ones a
+        /// late payment could still arrive for.
+        /// </summary>
+        /// <returns>Their ids, oldest first.</returns>
+        Task<List<int>> GetLatePaymentCandidateIdsAsync(DateTime createdSinceUtc, CancellationToken ct = default);
         Task<List<RecentPaidPurchaseDto>> GetRecentPaidActivePurchasesAsync(int take);
 
         Task<List<RecentPaidPurchaseDto>> GetRecentPaidByTypeAsync(

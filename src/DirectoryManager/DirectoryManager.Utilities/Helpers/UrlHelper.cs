@@ -146,6 +146,26 @@ namespace DirectoryManager.Web.Helpers
                    && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
         }
 
+        /// <summary>True when the URL's host is a Tor hidden service (ends in .onion).</summary>
+        /// <returns>True for a .onion address.</returns>
+        public static bool IsOnion(string? url) => HostEndsWith(url, ".onion");
+
+        /// <summary>True when the URL's host is an I2P site (ends in .i2p).</summary>
+        /// <returns>True for a .i2p address.</returns>
+        public static bool IsI2p(string? url) => HostEndsWith(url, ".i2p");
+
+        private static bool HostEndsWith(string? url, string suffix)
+        {
+            if (string.IsNullOrWhiteSpace(url)
+                || !Uri.TryCreate(url.Trim(), UriKind.Absolute, out var uri)
+                || string.IsNullOrEmpty(uri.Host))
+            {
+                return false;
+            }
+
+            return uri.Host.TrimEnd('.').EndsWith(suffix, StringComparison.OrdinalIgnoreCase);
+        }
+
         /// <summary>
         /// True when the URL points at a Tor (.onion) or I2P (.i2p / .b32.i2p)
         /// hidden service. The main directory Link must be clearnet; hidden-service

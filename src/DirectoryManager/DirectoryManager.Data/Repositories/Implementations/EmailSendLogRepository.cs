@@ -1,6 +1,7 @@
 using DirectoryManager.Data.Constants;
 using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Models.Emails;
+using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -40,7 +41,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
             string subject,
             bool isSuccess,
             int? statusCode,
-            string? errorMessage)
+            string? errorMessage,
+            int? emailSendLogContentId = null)
         {
             var model = new EmailSendLog
             {
@@ -51,7 +53,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 IsSuccess = isSuccess,
                 StatusCode = statusCode,
                 ErrorMessage = errorMessage,
-                SentDate = DateTime.UtcNow
+                SentDate = DateTime.UtcNow,
+                EmailSendLogContentId = emailSendLogContentId,
             };
 
             this.context.EmailSendLogs.Add(model);
@@ -126,6 +129,60 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 throw new Exception(StringConstants.DBErrorMessage, ex.InnerException);
             }
         }
+
+        public IList<EmailSendLog> Search(EmailSendLogFilter filter, int pageIndex, int pageSize, out int totalRecords)
+        {
+            ArgumentNullException.ThrowIfNull(filter);
+            IQueryable<EmailSendLog> query = this.context.EmailSendLogs.AsNoTracking();
+
+            if (!string.IsNullOrWhiteSpace(filter.Source))
+            {
+                var source = filter.Source.Trim();
+                query = query.Where(x => x.SourceApplication == source);
+            }
+
+            if (!string.IsNullOrWhiteSpace(filter.RecipientContains))
+            {
+                var r = filter.RecipientContains.Trim().ToLowerInvariant();
+                query = query.Where(x => x.RecipientEmail.ToLower().Contains(r));
+            }
+
+            if (!string.IsNullOrWhiteSpace(filter.SubjectContains))
+            {
+                var sub = filter.SubjectContains.Trim().ToLowerInvariant();
+                query = query.Where(x => x.Subject.ToLower().Contains(sub));
+            }
+
+            if (filter.IsSuccess.HasValue)
+            {
+                var ok = filter.IsSuccess.Value;
+                query = query.Where(x => x.IsSuccess == ok);
+            }
+
+            if (filter.ContentId.HasValue)
+            {
+                var cid = filter.ContentId.Value;
+                query = query.Where(x => x.EmailSendLogContentId == cid);
+            }
+
+            totalRecords = query.Count();
+
+            return query
+                .OrderByDescending(x => x.SentDate)
+                .ThenByDescending(x => x.EmailSendLogId)
+                .Skip(pageIndex * pageSize)
+                .Take(pageSize)
+                .ToList();
+        }
+
+        public EmailSendLog? GetWithContent(int emailSendLogId) =>
+            this.context.EmailSendLogs
+                .AsNoTracking()
+                .Include(x => x.Content)
+                .FirstOrDefault(x => x.EmailSendLogId == emailSendLogId);
+
+        public int CountByContent(int emailSendLogContentId) =>
+            this.context.EmailSendLogs.Count(x => x.EmailSendLogContentId == emailSendLogContentId);
 
         private static string Truncate(string? value, int maxLength)
         {

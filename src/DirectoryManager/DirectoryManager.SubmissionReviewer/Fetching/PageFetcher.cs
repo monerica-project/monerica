@@ -104,10 +104,50 @@ namespace DirectoryManager.SubmissionReviewer.Fetching
                 Proxy = proxy,
                 UseProxy = proxy != null,
             };
+
+            // Clearnet only (Tor refuses internal addresses itself): submitted links, redirects and
+            // links found on pages must never reach loopback / LAN / link-local / metadata
+            // addresses on this server. Checked on every connect, so redirects are covered and the
+            // validated IP is the one used (no DNS-rebinding window). (Audit 2026-11-11.)
+            if (proxy == null)
+            {
+                handler.ConnectCallback = SafeConnectAsync;
+            }
             var http = new HttpClient(handler) { Timeout = System.Threading.Timeout.InfiniteTimeSpan };
             http.DefaultRequestHeaders.UserAgent.ParseAdd(userAgent);
             http.DefaultRequestHeaders.Accept.ParseAdd("text/html,application/xhtml+xml;q=0.9,*/*;q=0.5");
             return http;
+        }
+
+        /// <summary>Connects only when every resolved address is public (see NetworkAddressHelper).</summary>
+        internal static async ValueTask<Stream> SafeConnectAsync(SocketsHttpConnectionContext context, CancellationToken ct)
+        {
+            var host = context.DnsEndPoint.Host;
+            var addresses = IPAddress.TryParse(host, out var literal)
+                ? new[] { literal }
+                : await Dns.GetHostAddressesAsync(host, ct).ConfigureAwait(false);
+
+            if (addresses.Length == 0)
+            {
+                throw new HttpRequestException($"Could not resolve host '{host}'.");
+            }
+
+            if (addresses.Any(DirectoryManager.Utilities.Helpers.NetworkAddressHelper.IsPrivateOrDisallowed))
+            {
+                throw new HttpRequestException($"Blocked: '{host}' resolves to a private or internal address.");
+            }
+
+            var socket = new Socket(SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
+            try
+            {
+                await socket.ConnectAsync(addresses, context.DnsEndPoint.Port, ct).ConfigureAwait(false);
+                return new NetworkStream(socket, ownsSocket: true);
+            }
+            catch
+            {
+                socket.Dispose();
+                throw;
+            }
         }
 
         private static bool TorAvailable(string host, int port)

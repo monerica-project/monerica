@@ -1,0 +1,55 @@
+@model DirectoryManager.Web.Models.Members.MemberPgpKeyVerifyViewModel
+@using DirectoryManager.Web.Constants
+@using DirectoryManager.Web.Helpers
+@{
+    PageMeta.Title = "My PGP key – Verify Code";
+    PageMeta.IsIndexable = false;
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+<h1>@PageMeta.Title</h1>
+<hr />
+
+<p>
+    Key: <span class="review-fp" title="@Model.Fingerprint">@AuthorDisplay.ShortFingerprint(Model.Fingerprint)</span>
+    @if (Model.IsReplace)
+    {
+        <span>(replaces the key linked now, once verified)</span>
+    }
+</p>
+
+<p>
+    Decrypt the message below with your private key. The decrypted text will be a short code like
+    <strong>ABCDE-FGHIJ</strong>.
+    Enter that code below (dashes/spaces don’t matter). The code works once and expires at
+    @Model.ExpiresUtc.ToString("HH:mm") UTC.
+</p>
+
+<br />
+
+<div class="card p-3 u-ws-pre-wrap-ff-lucida-console">@Model.Ciphertext</div>
+
+<br />
+<div asp-validation-summary="All" class="text-danger"></div>
+
+<form method="post" action="@MemberAuth.PgpKeyVerifyPath">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="fingerprint" value="@Model.Fingerprint" />
+
+    <input name="code"
+           class="form-control input-width"
+           autocomplete="one-time-code"
+           autocapitalize="characters"
+           autocorrect="off"
+           spellcheck="false"
+           inputmode="text"
+           maxlength="16"
+           placeholder="ABCDE-FGHIJ" />
+
+    <br /><br />
+    <button type="submit" class="btn btn-success btn-cta">Verify</button>
+</form>
+
+<p class="u-mt-12px"><a href="@MemberAuth.PgpKeyPath">Use a different key</a></p>
+}

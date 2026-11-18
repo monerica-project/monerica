@@ -9,11 +9,16 @@
     int totalRecords = ViewBag.TotalRecords;
     int pageSize = ViewBag.PageSize;
     string? source = ViewBag.Source as string;
+    string? recipient = ViewBag.Recipient as string;
+    string? subject = ViewBag.Subject as string;
+    string? result = ViewBag.Result as string;
+    int? contentId = ViewBag.ContentId as int?;
 
-    // Preserve the active source filter across pagination links.
-    string sourceQuery = string.IsNullOrWhiteSpace(source)
-        ? string.Empty
-        : "&source=" + Uri.EscapeDataString(source);
+    // Preserve the active filters across pagination links.
+    string Q(string name, string? value) => string.IsNullOrWhiteSpace(value) ? string.Empty : "&" + name + "=" + Uri.EscapeDataString(value);
+    string otherFilters = Q("recipient", recipient) + Q("subject", subject) + Q("result", result) + Q("contentId", contentId?.ToString());
+    string sourceQuery = Q("source", source) + otherFilters;
+    bool anyFilter = !string.IsNullOrWhiteSpace(source) || !string.IsNullOrWhiteSpace(recipient) || !string.IsNullOrWhiteSpace(subject) || result != null || contentId != null;
 }
 
 @{
@@ -27,18 +32,61 @@
 
 <p>
     Filter by service:
-    <a href="?page=1&pageSize=@pageSize">All</a> |
-    <a href="?page=1&pageSize=@pageSize&source=@EmailSendSource.Web">Web</a> |
-    <a href="?page=1&pageSize=@pageSize&source=@EmailSendSource.NewsletterSender">Newsletter</a> |
-    <a href="?page=1&pageSize=@pageSize&source=@EmailSendSource.SponsoredListingOpening">Listing opening</a> |
-    <a href="?page=1&pageSize=@pageSize&source=@EmailSendSource.SponsoredListingReminder">Listing reminder</a>
+    <a href="?page=1&pageSize=@pageSize@(otherFilters)">All</a> |
+    <a href="?page=1&pageSize=@pageSize&source=@EmailSendSource.Web@(otherFilters)">Web</a> |
+    <a href="?page=1&pageSize=@pageSize&source=@EmailSendSource.NewsletterSender@(otherFilters)">Newsletter</a> |
+    <a href="?page=1&pageSize=@pageSize&source=@EmailSendSource.SponsoredListingOpening@(otherFilters)">Listing opening</a> |
+    <a href="?page=1&pageSize=@pageSize&source=@EmailSendSource.SponsoredListingReminder@(otherFilters)">Listing reminder</a> |
+    <a href="?page=1&pageSize=@pageSize&source=@EmailSendSource.ReviewNotifier@(otherFilters)">Review notifier</a>
 </p>
+
+<form method="get" action="/email/sendlog">
+    @if (!string.IsNullOrWhiteSpace(source))
+    {
+        <input type="hidden" name="source" value="@source" />
+    }
+    @if (contentId != null)
+    {
+        <input type="hidden" name="contentId" value="@contentId" />
+    }
+    <input type="hidden" name="pageSize" value="@pageSize" />
+    <label>Recipient contains <input type="text" name="recipient" value="@recipient" maxlength="320" /></label>
+    <label>Subject contains <input type="text" name="subject" value="@subject" maxlength="500" /></label>
+    <label>Result
+        <select name="result" class="ui-select-caret">
+            <option value="" selected="@(result == null)">Any</option>
+            <option value="sent" selected="@(result == "sent")">Sent</option>
+            <option value="failed" selected="@(result == "failed")">Failed</option>
+        </select>
+    </label>
+    <button type="submit">Filter</button>
+    @if (anyFilter)
+    {
+        <a href="/email/sendlog?pageSize=@pageSize">Clear filters</a>
+    }
+</form>
 
 <p>
     @totalRecords total
     @if (!string.IsNullOrWhiteSpace(source))
     {
-        <text>— filtered to <strong>@source</strong></text>
+        <text>— service <strong>@source</strong></text>
+    }
+    @if (!string.IsNullOrWhiteSpace(recipient))
+    {
+        <text>— recipient contains <strong>@recipient</strong></text>
+    }
+    @if (!string.IsNullOrWhiteSpace(subject))
+    {
+        <text>— subject contains <strong>@subject</strong></text>
+    }
+    @if (result != null)
+    {
+        <text>— <strong>@(result == "sent" ? "sent" : "failed")</strong> only</text>
+    }
+    @if (contentId != null)
+    {
+        <text>— sends of the same message (content #@contentId)</text>
     }
 </p>
 
@@ -60,12 +108,12 @@
             foreach (var record in Model)
             {
                 <tr>
-                    <td>@record.EmailSendLogId</td>
+                    <td><a href="/email/sendlog/@record.EmailSendLogId">@record.EmailSendLogId</a></td>
                     <td>@record.SourceApplication</td>
                     <td>
                         @record.RecipientEmail@(record.RecipientCount > 1 ? $" (+{record.RecipientCount - 1})" : string.Empty)
                     </td>
-                    <td>@record.Subject</td>
+                    <td><a href="/email/sendlog/@record.EmailSendLogId" title="View the full message details">@(string.IsNullOrWhiteSpace(record.Subject) ? "(no subject)" : record.Subject)</a></td>
                     <td>
                         @if (record.IsSuccess)
                         {

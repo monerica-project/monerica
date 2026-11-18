@@ -1,0 +1,85 @@
+@using DirectoryManager.Data.Models.Reviews
+@using DirectoryManager.Web.Constants
+@using DirectoryManager.Web.Models
+@model List<DeletedReviewRecord>
+@{
+    Layout = "_CenteredLayout";
+    PageMeta.Title = "Deleted reviews and replies";
+    int total = ViewBag.Total ?? 0;
+    int pageNumber = ViewBag.Page ?? 1;
+    int pageSize = ViewBag.PageSize ?? 50;
+    int last = Math.Max(1, (int)Math.Ceiling(total / (double)pageSize));
+}
+
+@section PageContent {
+    <h1>@PageMeta.Title</h1>
+    @await Html.PartialAsync("_AdminMenu")
+
+    <p><a asp-action="All">Back to all reviews</a></p>
+    <p class="text-muted">
+        Every review or reply that was deleted (@total in total). When the <b>author</b> deletes their own post, their text is
+        removed for good and only the record below is kept. When an <b>admin</b> deletes one, a full copy is kept and a review can be restored.
+        Nothing on this page is public.
+    </p>
+
+    @if (Model.Count == 0)
+    {
+        <p><i>Nothing has been deleted since this log started (15 Nov 2026).</i></p>
+    }
+    else
+    {
+        <div class="table-wrapper">
+            <table class="table table-striped table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th>Deleted (UTC)</th>
+                        <th>By</th>
+                        <th>What</th>
+                        <th>Listing</th>
+                        <th>Author</th>
+                        <th>Rating</th>
+                        <th>Was</th>
+                        <th>Posted (UTC)</th>
+                        <th>Replies</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model)
+                    {
+                        <tr>
+                            <td>@r.DeletedUtc.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td><b class="@(r.DeletedBy == DeletedReviewRecord.ByAuthor ? "text-danger" : "")">@(r.DeletedBy == DeletedReviewRecord.ByAuthor ? "Author" : "Admin")</b></td>
+                            <td>@(r.Kind == DeletedReviewRecord.KindReview ? "Review" : "Reply") #@r.OriginalId</td>
+                            <td><a href="~/directoryentry/edit/@r.DirectoryEntryId">@(r.ListingName ?? r.DirectoryEntryId.ToString())</a></td>
+                            <td><code>@(string.IsNullOrEmpty(r.AuthorUsername) ? DirectoryManager.Web.Helpers.AuthorDisplay.ShortFingerprint(r.AuthorFingerprint ?? string.Empty) : r.AuthorUsername)</code></td>
+                            <td>@(r.Rating?.ToString() ?? "-")</td>
+                            <td>@r.StatusAtDelete</td>
+                            <td>@r.PostedUtc.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td>@(r.Kind == DeletedReviewRecord.KindReview ? r.ReplyCount.ToString() : "-")</td>
+                            <td>
+                                <a asp-action="DeletedDetails" asp-route-recordId="@r.Id">View</a>
+                                @if (r.RestoredAsId is int restored)
+                                {
+                                    <span> · restored as <a asp-action="Show" asp-route-id="@restored">#@restored</a></span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <p>
+            Page @pageNumber of @last
+            @if (pageNumber > 1)
+            {
+                <span> · </span><a asp-action="Deleted" asp-route-page="@(pageNumber - 1)">Prev</a>
+            }
+            @if (pageNumber < last)
+            {
+                <span> · </span><a asp-action="Deleted" asp-route-page="@(pageNumber + 1)">Next</a>
+            }
+        </p>
+    }
+}

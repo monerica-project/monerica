@@ -1,4 +1,6 @@
-﻿using DirectoryManager.Data.Models;
+using DirectoryManager.Web.Constants;
+using DirectoryManager.Web.Extensions;
+using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Models.Processors;
 using Microsoft.AspNetCore.Authorization;
@@ -7,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace DirectoryManager.Web.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     [Route("processors")]
     public class ProcessorsController : Controller
     {
@@ -61,6 +63,7 @@ namespace DirectoryManager.Web.Controllers
                     UpdatedByUserId = null
                 }, ct);
 
+            await this.StaticPublish().RequestFullCrawlAsync("payment processor list changed", ct, runNow: true);
             return this.RedirectToAction(nameof(this.Index));
         }
 
@@ -115,6 +118,7 @@ namespace DirectoryManager.Web.Controllers
                     UpdatedByUserId = userId
                 }, ct);
 
+            await this.StaticPublish().RequestFullCrawlAsync("payment processor list changed", ct, runNow: true);
             return this.RedirectToAction(nameof(this.Index));
         }
 
@@ -135,6 +139,7 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> DeleteConfirmed(int id, CancellationToken ct)
         {
             await this.processorRepo.DeleteAsync(id, ct);
+            await this.StaticPublish().RequestFullCrawlAsync("payment processor list changed", ct, runNow: true);
             return this.RedirectToAction(nameof(this.Index));
         }
     }

@@ -47,6 +47,21 @@
 {
     <p><b>Liquidity:</b> @DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(Model.DirectoryEntryViewModel.Liquidity)</p>
 }
+@{
+    var previewRestrictions = Model.DirectoryEntryViewModel.Restrictions;
+}
+@if (!previewRestrictions.IsEmpty)
+{
+    <p><b>Restrictions:</b> @previewRestrictions.SummaryLine</p>
+    @if (previewRestrictions.CountryNames.Count > 0)
+    {
+        <p><b>Countries not served:</b> @string.Join(", ", previewRestrictions.CountryNames)</p>
+    }
+    @if (previewRestrictions.Other != null)
+    {
+        <p><b>Other restrictions:</b> @previewRestrictions.Other</p>
+    }
+}
 
 @if (Model.DirectoryEntryViewModel.Guarantees != null && Model.DirectoryEntryViewModel.Guarantees.Any())
 {

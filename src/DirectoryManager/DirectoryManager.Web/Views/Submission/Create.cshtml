@@ -37,6 +37,10 @@
     <!-- Use the partial view for the form -->
     @await Html.PartialAsync("_SubmissionForm")
 
+    @if (ViewBag.RequireDraftCaptcha == true)
+    {
+        @await Html.PartialAsync("_CaptchaBlock", (string)"draft")
+    }
     <button type="submit" class="btn btn-primary btn-cta">Preview</button>
 </form>
 }

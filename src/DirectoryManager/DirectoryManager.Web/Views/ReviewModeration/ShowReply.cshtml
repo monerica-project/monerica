@@ -5,6 +5,9 @@
 @using DirectoryManager.Data.Enums
 
 @model DirectoryManager.Web.Models.Reviews.ShowReplyViewModel
+@inject DirectoryManager.Web.Services.Implementations.MemberKeyDirectory MemberKeys
+@inject DirectoryManager.Data.Repositories.Interfaces.IReviewTagRepository ReviewTags
+@inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryReviewTagRepository ReviewTagLinks
 
 @{
     Layout = "_CenteredLayout";
@@ -43,14 +46,44 @@
         <dt class="col-sm-3">Parent Comment Id</dt>
         <dd class="col-sm-9">@(reply.ParentCommentId?.ToString() ?? "-")</dd>
 
-        <dt class="col-sm-3">Author Fingerprint</dt>
-        <dd class="col-sm-9"><code>@reply.AuthorFingerprint</code></dd>
+        <dt class="col-sm-3">Author (PGP / Member)</dt>
+        <dd class="col-sm-9"><code>@(DirectoryManager.Web.Helpers.MemberAuthor.ForAdmin(reply.AuthorFingerprint, reply.AuthorUserId, reply.AuthorUsername, await MemberKeys.FingerprintForAsync(reply.AuthorUserId)))</code></dd>
 
         <dt class="col-sm-3">Created (UTC)</dt>
         <dd class="col-sm-9">@reply.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</dd>
 
         <dt class="col-sm-3">Updated (UTC)</dt>
         <dd class="col-sm-9">@((reply.UpdateDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)) ?? "-")</dd>
+
+        @if (reply.RatingChangedTo.HasValue)
+        {
+            <dt class="col-sm-3">Rating change</dt>
+            <dd class="col-sm-9">The review's author changed their rating from <b>@(reply.RatingChangedFrom?.ToString() ?? "none")</b> to <b>@reply.RatingChangedTo / 5</b> with this reply (already applied).</dd>
+        }
+
+        @if (reply.RequestedReviewTagIdsCsv != null)
+        {
+            var allTags = (await ReviewTags.ListAllAsync()).ToDictionary(t => t.ReviewTagId);
+            var currentIds = await ReviewTagLinks.GetTagIdsForReviewAsync(reply.DirectoryEntryReviewId);
+            string Names(IEnumerable<int> ids) => string.Join(", ", ids.Select(id => allTags.TryGetValue(id, out var t) ? t.Name : "#" + id).DefaultIfEmpty("(none)"));
+            var currentPublic = DirectoryManager.Web.Helpers.OwnReviewEdit.CurrentPublicTags(currentIds, allTags.Values);
+            var requested = DirectoryManager.Web.Helpers.OwnReviewEdit.FromCsv(reply.RequestedReviewTagIdsCsv);
+            <dt class="col-sm-3">Tag change requested</dt>
+            <dd class="col-sm-9">
+                The review's author asks to change their review's tags:
+                <br /><span class="text-muted">Now:</span> @Names(currentPublic)
+                <br /><span class="text-muted">Requested:</span> <b>@Names(requested)</b>
+                <br />
+                @if (reply.RequestedTagsAppliedUtc is DateTime applied)
+                {
+                    <small class="text-muted">Applied @applied.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat) UTC.</small>
+                }
+                else
+                {
+                    <small class="text-muted">Approving this reply applies the requested tags (admin-only tags such as Valid Order are kept). Rejecting it leaves the tags as they are.</small>
+                }
+            </dd>
+        }
 
         <dt class="col-sm-3">Body</dt>
         <dd class="col-sm-9">
@@ -116,8 +149,7 @@
               method="post"
               class="mt-3">
             @Html.AntiForgeryToken()
-            <button type="submit"
-                    onclick="return confirm('Delete this reply permanently?');">
+            <button type="submit">
                 Delete
             </button>
         </form>

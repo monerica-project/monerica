@@ -1,0 +1,39 @@
+@model DirectoryManager.Data.Models.Submission
+@using DirectoryManager.Data.Enums
+@using DirectoryManager.Web.Helpers
+@*
+    Approve / Reject bar on the submission review page (shown at the top and the bottom of the form).
+    It sits INSIDE the review form, so Approve saves the fields as edited, through the same
+    action as choosing "Approved" in the status dropdown. The first button is a plain Save, so
+    pressing Enter in a field never approves by accident. Reject opens the reason page
+    (edits on this page are not saved by Reject).
+*@
+@{
+    var from = ViewData["DecisionFrom"] as string;
+    var rejectHref = $"/submission/{Model.SubmissionId}/reject?from={from ?? SubmissionDecision.FromPending}";
+    var sensitive = ViewBag.SensitiveChanges as List<string>;
+    bool hasSensitive = Model.DirectoryEntryId != null && sensitive != null && sensitive.Count > 0;
+}
+@if (Model.SubmissionStatus == SubmissionStatus.Pending)
+{
+    <div class="u-callout-orange">
+        <div class="u-flex-gap-8px-flexwrap-wrap">
+            <button type="submit" class="btn" title="Save edits; the status comes from the Submission Status dropdown at the bottom">Save</button>
+            <button type="submit" name="decision" value="approve" class="btn btn-primary btn-cta" title="Save the fields as shown and approve (publishes the listing)">&#10003; Approve</button>
+            <a class="btn" href="@rejectHref" title="Choose a reason on the next page (edits here are not saved)">&#10007; Reject&hellip;</a>
+        </div>
+        @if (hasSensitive)
+        {
+            <div class="form-check u-mt-4px">
+                <label class="form-check-label u-flex-items-center-gap-8px-flexwrap-wrap">
+                    <input class="form-check-input" type="checkbox" name="confirmSensitive" value="true" />
+                    <span><b>I checked the protected-field changes</b> (the "Check before approving" box near the top; required for Approve)</span>
+                </label>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <p class="u-callout-orange">This submission is <b>@Model.SubmissionStatus</b>. Approve and Reject are for pending submissions; use the status dropdown at the bottom to change it.</p>
+}

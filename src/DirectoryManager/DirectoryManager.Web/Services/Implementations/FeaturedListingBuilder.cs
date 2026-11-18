@@ -27,6 +27,26 @@ namespace DirectoryManager.Web.Services.Implementations
             this.cacheService = cacheService;
         }
 
+        public async Task<DirectoryEntryViewModel?> BuildForCategoryAsync(int? directoryEntryId, int categoryId)
+        {
+            if (directoryEntryId is null)
+            {
+                return null;
+            }
+
+            // A category's pick whose main subcategory sits in another category is here through an
+            // additional subcategory: show it under that subcategory's name and links.
+            var entry = await this.entryRepository.GetByIdAsync(directoryEntryId.Value);
+            int? viaSubCategoryId = null;
+            if (entry?.SubCategory != null && entry.SubCategory.CategoryId != categoryId)
+            {
+                var alts = await this.additionalSubcategoryRepository.GetByDirectoryEntryIdAsync(entry.DirectoryEntryId);
+                viaSubCategoryId = alts.FirstOrDefault(x => x.SubCategory?.CategoryId == categoryId)?.SubCategoryId;
+            }
+
+            return await this.BuildAsync(directoryEntryId, viaSubCategoryId);
+        }
+
         public async Task<DirectoryEntryViewModel?> BuildAsync(int? directoryEntryId, int? subCategoryId = null)
         {
             if (directoryEntryId is null)

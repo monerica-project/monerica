@@ -1,8 +1,35 @@
-﻿@using DirectoryManager.Data.Enums
+@using DirectoryManager.Data.Enums
 @using DirectoryManager.Utilities.Helpers
 @using DirectoryManager.Web.Constants
+@using DirectoryManager.Web.Helpers
 @model DirectoryManager.Web.Models.SubmissionRequest
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@*
+    Public submission form (Submission/Create and Submission/SubmitEdit).
+    Layout: the required fields first, then the optional fields in collapsible groups
+    (Helpers/SubmissionFormLayout.cs). A group opens by itself when one of its fields has a value
+    or an error, so nothing typed and no error is ever hidden. No JavaScript.
+    Every input has a real label; help text is tied to it with aria-describedby (id = field + "Hint").
+*@
+@{
+    var ms = ViewData.ModelState;
+    var siteName = await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteName);
+    var link2Name = await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name);
+    var link3Name = await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name);
+    var allTags = ViewBag.AllTags as IEnumerable<dynamic>;
+
+    // Support BOTH flows: existing listing edit (Model.SelectedTagIds) and the review page
+    // (ViewBag.SelectedTagIds is a HashSet<int>).
+    var selectedTagSet = ViewBag.SelectedTagIds as HashSet<int>;
+    var maxGuarantees = DirectoryManager.Web.Constants.IntegerConstants.MaxGuarantees;
+    var descriptionMax = DirectoryManager.Web.Models.SubmissionRequest.DescriptionMaxLength;
+    var noteMax = DirectoryManager.Web.Models.SubmissionRequest.NoteMaxLength;
+    var noteToAdminMax = DirectoryManager.Web.Models.SubmissionRequest.NoteToAdminMaxLength;
+
+    string OpenIf(SubmissionFormLayout.FormGroup g) => SubmissionFormLayout.OpenAttribute(g, Model, ms);
+    var tagsOpen = SubmissionFormLayout.IsOpen(SubmissionFormLayout.CategoriesAndTags, Model, ms)
+        || (selectedTagSet != null && selectedTagSet.Count > 0);
+}
 
 <p class="text-muted"><i>Emojis aren't allowed in listings and will be removed automatically.</i></p>
 
@@ -10,368 +37,476 @@
 @Html.HiddenFor(x => x.SubmissionId)
 @Html.HiddenFor(x => x.DirectoryEntryId)
 
-<h3>Required Information</h3>
+@* ===================== Section 1: required ===================== *@
+<fieldset class="ui-fieldset">
+    <legend class="ui-legend">Required information</legend>
+    <p class="text-muted"><i>Fill in all four fields in this box. Each one is marked "(required)".</i></p>
 
-@if (Model.DirectoryEntryId != null && Model.CurrentDirectoryStatus != null)
-{
-    @* A listing's status is set by the admins only; problems go through "Report a problem". *@
-    <input type="hidden" name="CurrentDirectoryStatus" value="@((int)Model.CurrentDirectoryStatus.Value)" />
+    @if (Model.DirectoryEntryId != null && Model.CurrentDirectoryStatus != null)
+    {
+        @* A listing's status is set by the admins only; problems go through "Report a problem". *@
+        <input type="hidden" name="CurrentDirectoryStatus" value="@((int)Model.CurrentDirectoryStatus.Value)" />
+        <div class="form-group">
+            <span class="u-fw-600">Directory Status</span>
+            <p class="u-m-0">@Model.CurrentDirectoryStatus <small>(set by the admins; to report a problem with this listing, use "Report a problem" on its page)</small></p>
+        </div>
+    }
+
     <div class="form-group">
-        <label>Directory Status</label>
-        <p class="u-m-0">@Model.CurrentDirectoryStatus <small>(set by the admins; to report a problem with this listing, use "Report a problem" on its page)</small></p>
+        <label asp-for="Name">Name (required)</label>
+        <input autocomplete="off" asp-for="Name" class="form-control input-width" required aria-describedby="NameHint" />
+        <small id="NameHint" class="form-text text-muted">The name of the business or project, as it appears on its website. Up to 65 characters. Example: Example Hosting</small>
+        <span asp-validation-for="Name" class="text-danger"></span>
     </div>
-}
 
-<div class="form-group">
-    <label asp-for="SubCategoryId">Subcategory</label>
-    <select asp-for="SubCategoryId"
-    class="form-control select-fit"
-            asp-items="@(new SelectList(ViewBag.SubCategories, "SubcategoryId", "DisplayName"))"
-            required></select>
-</div>
-
-<div class="form-group">
-    <label asp-for="Name">Name</label>
-    <input autocomplete="off" asp-for="Name" class="form-control input-width" />
-    <span asp-validation-for="Name" class="text-danger"></span>
-</div>
-
-<div class="form-group">
-    <label asp-for="Link">Link</label>
-    <input autocomplete="off" asp-for="Link" class="form-control input-width" />    
-    <span asp-validation-for="Link" class="text-danger"></span>
-</div>
-
-<div class="form-group">
-    <label asp-for="Description">Description</label>
-    @* Native maxlength (no JS) gives a hard client-side stop at the same limit the server enforces,
-       so nobody discovers the cap only at Preview. Value comes from the server constant so the two
-       can never drift. Note: browsers silently truncate pasted text beyond maxlength, so the hint
-       below states the limit up front. *@
-    <textarea asp-for="Description" class="form-control input-width" required
-              maxlength="@DirectoryManager.Web.Models.SubmissionRequest.DescriptionMaxLength"
-              aria-describedby="descriptionHint"></textarea>
-    <small id="descriptionHint" class="text-muted">Maximum @DirectoryManager.Web.Models.SubmissionRequest.DescriptionMaxLength characters.</small>
-    <span asp-validation-for="Description" class="text-danger"></span>
-</div>
-
-<hr />
-
-<h3>Optional Information</h3>
-
-<div class="form-group">
-    <label asp-for="Link2">@await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name)</label>
-    <input autocomplete="off" asp-for="Link2" class="form-control input-width" />
-    <span asp-validation-for="Link2" class="text-danger"></span>
-</div>
-
-<div class="form-group">
-    <label asp-for="Link3">@await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name)</label>
-    <input autocomplete="off" asp-for="Link3" class="form-control input-width" />
-    <span asp-validation-for="Link3" class="text-danger"></span>
-</div>
-
-<div class="form-group">
-    <label asp-for="ProofLink">Proof Link</label>
-    <input autocomplete="off" asp-for="ProofLink" class="form-control input-width" />
-    <small class="form-text text-muted">
-        A page <strong>on the site itself</strong> (its own domain or .onion) that shows it accepts Monero —
-        e.g. its checkout, payment, or FAQ page. <strong>Do not</strong> submit blockchain-explorer links,
-        transaction links, or screenshots on other sites; those are not proof and will be rejected.
-        Leave blank if the main link already shows Monero acceptance.
-    </small>
-    <span asp-validation-for="ProofLink" class="text-danger"></span>
-</div>
-
-<div class="form-group">
-    <label asp-for="VideoLink">Video Link</label>
-    <input autocomplete="off" asp-for="VideoLink" class="form-control input-width" />
-    <span asp-validation-for="VideoLink" class="text-danger"></span>
-</div>
-
-<div class="form-group">
-    <label asp-for="SourceCodeLink">Source Code Link</label>
-    <input autocomplete="off" asp-for="SourceCodeLink" class="form-control input-width" placeholder="Optional. Link to the site's source code (e.g. GitHub, Codeberg)" />
-    <span asp-validation-for="SourceCodeLink" class="text-danger"></span>
-</div>
-
-
-<div class="form-group">
-    <div style="border-left:4px solid #ff6600; background:rgba(255,102,0,0.08); padding:.6rem .8rem; border-radius:4px; margin-bottom:.6rem;">
-        <strong>&#9888;&#65039; These contact details are shown publicly on your listing.</strong>
-        The <strong>Email</strong>, <strong>Messenger</strong>, and <strong>Social</strong> fields below are
-        displayed <strong>on your public listing page</strong> so visitors can contact you &mdash; they are
-        <strong>not</strong> a private way to reach @(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName)), and they are not kept confidential.
-        Only enter details you're comfortable showing to everyone. Leave any field blank to not display it.
+    <div class="form-group">
+        <label asp-for="Link">Link (required)</label>
+        <input autocomplete="off" asp-for="Link" class="form-control input-width" required aria-describedby="LinkHint" />
+        <small id="LinkHint" class="form-text text-muted">The main website address, starting with https:// or http://. It must be a normal web address; put a Tor (.onion) or I2P (.i2p) address under <b>More links</b> below. Example: https://example.com</small>
+        <span asp-validation-for="Link" class="text-danger"></span>
     </div>
-</div>
 
-<div class="form-group">
-    <label asp-for="Email">Email</label>
-    <input autocomplete="off" asp-for="Email" class="form-control input-width" />
-    <span asp-validation-for="Email" class="text-danger"></span>
-</div>
+    <div class="form-group">
+        <label asp-for="SubCategoryId">Category (required)</label>
+        <select asp-for="SubCategoryId"
+                class="form-control select-fit"
+                asp-items="@(new SelectList(ViewBag.SubCategories, "SubcategoryId", "DisplayName"))"
+                required
+                aria-describedby="SubCategoryIdHint"></select>
+        <small id="SubCategoryIdHint" class="form-text text-muted">The category and subcategory that fit the listing best. If none fits, leave "@StringConstants.SelectACategory" and suggest a category under <b>Categories and tags</b> below.</small>
+        <span asp-validation-for="SubCategoryId" class="text-danger"></span>
+    </div>
 
-<div class="form-group">
-    <label asp-for="Messenger">Messenger</label>
-    <input autocomplete="off" asp-for="Messenger" class="form-control input-width" />
-    <span asp-validation-for="Messenger" class="text-danger"></span>
-</div>
+    <div class="form-group">
+        <label asp-for="Description">Description (required)</label>
+        @* Native maxlength (no JS) gives a hard client-side stop at the same limit the server enforces,
+           so nobody discovers the cap only at Preview. Value comes from the server constant so the two
+           can never drift. Note: browsers silently truncate pasted text beyond maxlength, so the hint
+           below states the limit up front. *@
+        <textarea asp-for="Description" class="form-control input-width" required
+                  maxlength="@descriptionMax"
+                  aria-describedby="DescriptionHint"></textarea>
+        <small id="DescriptionHint" class="form-text text-muted">What the business offers, in a sentence or two. Maximum @descriptionMax characters. No links, don't start with the listing name, and don't end a sentence with "!". Example: Accepts Monero for VPS hosting in 12 countries.</small>
+        <span asp-validation-for="Description" class="text-danger"></span>
+    </div>
+</fieldset>
 
-<div class="form-group">
-    <label asp-for="Social">Social</label>
-    <input autocomplete="off" asp-for="Social" class="form-control input-width" />
-    <span asp-validation-for="Social" class="text-danger"></span>
-</div>
+@* ===================== Section 2: optional ===================== *@
+<h3>Optional information</h3>
+<p class="text-muted"><i>Everything below is optional. Click a section to open it. Sections you have filled in, or that need a correction, open by themselves.</i></p>
 
-<div class="form-group">
-    <label asp-for="Processor">Payment Processor</label>
-    <select asp-for="Processor"
-            class="form-control select-fit"
-            asp-items="ViewBag.ProcessorOptions">
-    </select>
-    <span asp-validation-for="Processor" class="text-danger"></span>
-</div>
+@* ---- More links ---- *@
+<details class="ui-fieldset" id="group-@SubmissionFormLayout.MoreLinks.Id"@OpenIf(SubmissionFormLayout.MoreLinks)>
+    <summary><b>More links</b> <span class="text-muted">(optional: Tor/I2P address, proof of Monero, video, source code, related pages)</span></summary>
+    <p class="text-muted"><i>Every link must be a full address starting with https:// or http://, and each link must be different (the source code link may be the same as the main link when the site is the repository itself). Links straight to a download (a program, installer or archive) aren't accepted.</i></p>
 
-<div class="form-group">
-    <label asp-for="CountryCode" class="control-label"></label>
-    <select asp-for="CountryCode" asp-items="ViewBag.CountryCode" class="form-control select-fit"></select>
-    <span asp-validation-for="CountryCode" class="text-danger"></span>
-</div>
+    <div class="form-group">
+        <label asp-for="Link2">@link2Name</label>
+        <input autocomplete="off" asp-for="Link2" class="form-control input-width" aria-describedby="Link2Hint" />
+        <small id="Link2Hint" class="form-text text-muted">A second address for the same site, such as its Tor (.onion) address. Example: http://exampleonionaddress.onion</small>
+        <span asp-validation-for="Link2" class="text-danger"></span>
+    </div>
 
-@* Physical address: optional, collapsed unless already filled in (no JS needed).
-   Only for a real place (shop, office). The country is the field above, never typed here. *@
-<details class="form-group"@(DirectoryManager.Data.Helpers.PostalAddress.HasAny(Model.StreetAddress, Model.City, Model.StateRegion, Model.PostalCode) ? " open" : "")>
-    <summary><b>Physical address</b> <span class="text-muted">(optional, only for a real location)</span></summary>
-    <p class="text-muted"><i>Only fill this in if the business has a real place people can visit, like a shop or office. Leave it empty for online-only services. Don't type the country here; choose it above.</i></p>
+    <div class="form-group">
+        <label asp-for="Link3">@link3Name</label>
+        <input autocomplete="off" asp-for="Link3" class="form-control input-width" aria-describedby="Link3Hint" />
+        <small id="Link3Hint" class="form-text text-muted">A third address for the same site, such as its I2P (.i2p) address. Example: http://example.i2p</small>
+        <span asp-validation-for="Link3" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="ProofLink">Proof Link</label>
+        <input autocomplete="off" asp-for="ProofLink" class="form-control input-width" aria-describedby="ProofLinkHint" />
+        <small id="ProofLinkHint" class="form-text text-muted">
+            A page <strong>on the site itself</strong> (its own domain or .onion) that shows it accepts Monero,
+            such as its checkout, payment, or FAQ page. <strong>Do not</strong> submit blockchain-explorer links,
+            transaction links, or screenshots on other sites; those are not proof and will be rejected.
+            Leave blank if the main link already shows Monero acceptance. Example: https://example.com/faq#payments
+        </small>
+        <span asp-validation-for="ProofLink" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="VideoLink">Video Link</label>
+        <input autocomplete="off" asp-for="VideoLink" class="form-control input-width" aria-describedby="VideoLinkHint" />
+        <small id="VideoLinkHint" class="form-text text-muted">A video that shows the site being used, such as a walkthrough of paying with Monero. Example: https://www.youtube.com/watch?v=example</small>
+        <span asp-validation-for="VideoLink" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="SourceCodeLink">Source Code Link</label>
+        <input autocomplete="off" asp-for="SourceCodeLink" class="form-control input-width" aria-describedby="SourceCodeLinkHint" />
+        <small id="SourceCodeLinkHint" class="form-text text-muted">Where the site's or app's source code is published, such as GitHub or Codeberg. Example: https://github.com/example/project</small>
+        <span asp-validation-for="SourceCodeLink" class="text-danger"></span>
+    </div>
+
+    <h4 id="RelatedLinksHeading">Related Links</h4>
+    <p id="RelatedLinksHint" class="text-muted">Up to three pages about the site on other websites, such as forum posts, documentation, or reviews. Not Tor/I2P links. Example: https://forum.example.org/thread/123</p>
+
+    <div class="form-group">
+        <label asp-for="RelatedLink1"></label>
+        <input autocomplete="off" asp-for="RelatedLink1" class="form-control input-width" aria-describedby="RelatedLinksHint" />
+        <span asp-validation-for="RelatedLink1" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="RelatedLink2"></label>
+        <input autocomplete="off" asp-for="RelatedLink2" class="form-control input-width" aria-describedby="RelatedLinksHint" />
+        <span asp-validation-for="RelatedLink2" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="RelatedLink3"></label>
+        <input autocomplete="off" asp-for="RelatedLink3" class="form-control input-width" aria-describedby="RelatedLinksHint" />
+        <span asp-validation-for="RelatedLink3" class="text-danger"></span>
+    </div>
+</details>
+
+@* ---- Contact details (public) ---- *@
+<details class="ui-fieldset" id="group-@SubmissionFormLayout.Contact.Id"@OpenIf(SubmissionFormLayout.Contact)>
+    <summary><b>Contact details</b> <span class="text-muted">(optional, shown publicly: email, messenger, social, PGP key)</span></summary>
+
+    <div class="form-group">
+        <div style="border-left:4px solid #ff6600; background:rgba(255,102,0,0.08); padding:.6rem .8rem; border-radius:4px; margin-bottom:.6rem;">
+            <strong>&#9888;&#65039; These contact details are shown publicly on your listing.</strong>
+            The <strong>Email</strong>, <strong>Messenger</strong>, and <strong>Social</strong> fields below are
+            displayed <strong>on your public listing page</strong> so visitors can contact you &mdash; they are
+            <strong>not</strong> a private way to reach @siteName, and they are not kept confidential.
+            Only enter details you're comfortable showing to everyone. Leave any field blank to not display it.
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Email">Email</label>
+        <input autocomplete="off" asp-for="Email" class="form-control input-width" aria-describedby="EmailHint" />
+        <small id="EmailHint" class="form-text text-muted">An email address customers can write to. To list more than one, separate them with commas. Example: support@example.com</small>
+        <span asp-validation-for="Email" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Messenger">Messenger</label>
+        <input autocomplete="off" asp-for="Messenger" class="form-control input-width" aria-describedby="MessengerHint" />
+        <small id="MessengerHint" class="form-text text-muted">A full link to a chat account, such as Telegram, Signal, Session or SimpleX. A bare handle like @@yourname isn't accepted; use the full link (or an email address). To list more than one, separate them with commas. Example: https://t.me/yourname</small>
+        <span asp-validation-for="Messenger" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Social">Social</label>
+        <input autocomplete="off" asp-for="Social" class="form-control input-width" aria-describedby="SocialHint" />
+        <small id="SocialHint" class="form-text text-muted">A full link to a social media profile, such as X, Mastodon, Nostr or Reddit. A bare handle like @@yourname isn't accepted; use the full link. To list more than one, separate them with commas. Example: https://x.com/yourname</small>
+        <span asp-validation-for="Social" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="PgpKey">PGP Key</label>
+        @if (Model.DirectoryEntryId != null && !string.IsNullOrWhiteSpace(Model.PgpKey))
+        {
+            @* The key is the owner's identity: a public edit can't replace it. *@
+            <textarea class="input-width" asp-for="PgpKey" readonly aria-describedby="PgpKeyHint"></textarea>
+            <small id="PgpKeyHint" class="form-text text-muted">This listing's PGP key can't be changed with an edit. To change it, contact us with a message signed by the current key.</small>
+        }
+        else
+        {
+            <textarea class="input-width" asp-for="PgpKey" aria-describedby="PgpKeyHint"></textarea>
+            <small id="PgpKeyHint" class="form-text text-muted">The site's PGP public key, shown on the listing so people can check messages signed by the site. Paste the full public key block starting with -----BEGIN PGP PUBLIC KEY BLOCK----- and ending with -----END PGP PUBLIC KEY BLOCK-----. It must be a complete, valid public key block; a fingerprint or a private key isn't accepted.</small>
+        }
+        <span asp-validation-for="PgpKey" class="text-danger"></span>
+    </div>
+</details>
+
+@* ---- Location ---- *@
+<details class="ui-fieldset" id="group-@SubmissionFormLayout.Location.Id"@OpenIf(SubmissionFormLayout.Location)>
+    <summary><b>Location</b> <span class="text-muted">(optional: country and physical address)</span></summary>
+
+    <div class="form-group">
+        <label asp-for="CountryCode" class="control-label"></label>
+        <select asp-for="CountryCode" asp-items="ViewBag.CountryCode" class="form-control select-fit" aria-describedby="CountryCodeHint"></select>
+        <small id="CountryCodeHint" class="form-text text-muted">The country the business is based in. Leave it on "@StringConstants.SelectText" if you don't know.</small>
+        <span asp-validation-for="CountryCode" class="text-danger"></span>
+    </div>
+
+    @* Physical address: only for a real place (shop, office). The country is the field above, never typed here. *@
+    <p id="AddressHint" class="text-muted"><i>Physical address: only fill this in if the business has a real place people can visit, like a shop or office. Leave it empty for online-only services. Don't type the country here; choose it above.</i></p>
     <div class="form-group">
         <label asp-for="StreetAddress">Street Address</label>
-        <input autocomplete="off" asp-for="StreetAddress" class="form-control input-width" />
+        <input autocomplete="off" asp-for="StreetAddress" class="form-control input-width" aria-describedby="AddressHint StreetAddressHint" />
+        <small id="StreetAddressHint" class="form-text text-muted">Up to 150 characters. Example: 123 Main St, Suite 4</small>
         <span asp-validation-for="StreetAddress" class="text-danger"></span>
     </div>
     <div class="form-group">
         <label asp-for="City">City</label>
-        <input autocomplete="off" asp-for="City" class="form-control input-width" />
+        <input autocomplete="off" asp-for="City" class="form-control input-width" aria-describedby="AddressHint CityHint" />
+        <small id="CityHint" class="form-text text-muted">Example: Miami Beach</small>
         <span asp-validation-for="City" class="text-danger"></span>
     </div>
     <div class="form-group">
         <label asp-for="StateRegion">State/Region</label>
-        <input autocomplete="off" asp-for="StateRegion" class="form-control input-width" />
+        <input autocomplete="off" asp-for="StateRegion" class="form-control input-width" aria-describedby="AddressHint StateRegionHint" />
+        <small id="StateRegionHint" class="form-text text-muted">Example: Florida</small>
         <span asp-validation-for="StateRegion" class="text-danger"></span>
     </div>
     <div class="form-group">
         <label asp-for="PostalCode">Postal Code</label>
-        <input autocomplete="off" asp-for="PostalCode" class="form-control input-width" />
+        <input autocomplete="off" asp-for="PostalCode" class="form-control input-width" aria-describedby="AddressHint PostalCodeHint" />
+        <small id="PostalCodeHint" class="form-text text-muted">Example: 33139</small>
         <span asp-validation-for="PostalCode" class="text-danger"></span>
     </div>
 </details>
 
-<div class="form-group">
-    <label for="KycPolicy" class="control-label">KYC Policy</label>
-    <select class="form-control select-fit" id="KycPolicy" name="KycPolicy">
-        <option value="" selected="@(Model.KycPolicy == null)">Not Stated</option>
-        @foreach (var kp in Enum.GetValues<KycPolicy>())
-        {
-            if (kp == KycPolicy.NotStated || kp == KycPolicy.Unknown) { continue; }
-            <option value="@((int)kp)" selected="@(Model.KycPolicy == kp)">@EnumHelper.GetDescription(kp)</option>
-        }
-    </select>
-</div>
+@* ---- About the business ---- *@
+<details class="ui-fieldset" id="group-@SubmissionFormLayout.Business.Id"@OpenIf(SubmissionFormLayout.Business)>
+    <summary><b>About the business</b> <span class="text-muted">(optional: payment processor, founded date, public note)</span></summary>
 
-@* Does the website need JavaScript? Default "Not Stated". *@
-<div class="form-group">
-    <label for="SiteJavaScript" class="control-label">JavaScript</label>
-    <p class="text-muted"><i>Does the website need JavaScript to work?</i></p>
-    <select class="form-control select-fit" id="SiteJavaScript" name="SiteJavaScript">
-        @foreach (var js in DirectoryManager.Data.Enums.SiteJavaScriptExtensions.FormOrder)
-            {
-                <option value="@((int)js)" selected="@(DirectoryManager.Data.Enums.SiteJavaScriptExtensions.Normalize(Model.SiteJavaScript) == js)">@DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(js)</option>
-            }
-    </select>
-    <small class="form-text text-muted"><b>None</b>: no JavaScript at all. <b>Optional</b>: the main features work with JavaScript turned off. <b>Required</b>: does not work without JavaScript.</small>
-</div>
+    <div class="form-group">
+        <label asp-for="Processor">Payment Processor</label>
+        <select asp-for="Processor"
+                class="form-control select-fit"
+                asp-items="ViewBag.ProcessorOptions"
+                aria-describedby="ProcessorHint">
+        </select>
+        <small id="ProcessorHint" class="form-text text-muted">The payment company or plugin the site uses to take Monero, if it is one in this list. Leave it on "Select a processor" if the site takes Monero directly or you don't know.</small>
+        <span asp-validation-for="Processor" class="text-danger"></span>
+    </div>
 
-@* For exchanges: liquidity + rate type together. Optional, collapsed unless one is already set (no JS needed). *@
-<details class="form-group"@((DirectoryManager.Data.Enums.RateTypeExtensions.IsShown(Model.RateType) || (Model.Liquidity != Liquidity.Unknown && Model.Liquidity != Liquidity.NotApplicable)) ? " open" : "")>
-    <summary><b>For exchanges</b> <span class="text-muted">(optional: liquidity and rate type)</span></summary>
-    <p class="text-muted"><i>Only for exchanges and swap services. Skip this section for anything else.</i></p>
+    <div class="form-group">
+        <span class="u-fw-600" id="FoundedHeading">Founded Date</span>
+        <div class="u-flex-gap-8px-items-center-flexwrap-wrap" role="group" aria-labelledby="FoundedHeading" aria-describedby="FoundedHint">
+            <div>
+                <label asp-for="FoundedYear">Year</label>
+                <input asp-for="FoundedYear"
+                       class="form-control u-flex-0-0-auto u-minw-0 u-w-110px"
+                       autocomplete="off"
+                       inputmode="numeric"
+                       pattern="[0-9]*"
+                       maxlength="4"
+                       placeholder="YYYY" />
+            </div>
+            <div>
+                <label asp-for="FoundedMonth">Month</label>
+                <input asp-for="FoundedMonth"
+                       class="form-control u-flex-0-0-auto u-minw-0 u-w-90px"
+                       autocomplete="off"
+                       inputmode="numeric"
+                       pattern="[0-9]*"
+                       maxlength="2"
+                       placeholder="MM" />
+            </div>
+            <div>
+                <label asp-for="FoundedDay">Day</label>
+                <input asp-for="FoundedDay"
+                       class="form-control u-flex-0-0-auto u-minw-0 u-w-90px"
+                       autocomplete="off"
+                       inputmode="numeric"
+                       pattern="[0-9]*"
+                       maxlength="2"
+                       placeholder="DD" />
+            </div>
+        </div>
+        <small id="FoundedHint" class="form-text text-muted">When the business started. Fill in the year, month and day, or leave all three blank. For a new listing it can't be earlier than the date the website's domain was registered. Example: 2019 04 23</small>
+        <span class="text-danger">
+            @Html.ValidationMessage(nameof(Model.FoundedYear))
+        </span>
+    </div>
 
-    <label for="Liquidity" class="control-label">Liquidity</label>
-    <p class="text-muted"><i>Whose funds fill the trades: the exchange's own, third-party providers, or a mix. Leave as "Not Applicable" if it doesn't apply.</i></p>
-    <select class="form-control select-fit" id="Liquidity" name="Liquidity">
-        @foreach (var lq in LiquidityExtensions.Selectable)
-        {
-            <option value="@((int)lq)" selected="@(Model.Liquidity == lq)">@EnumHelper.GetDescription(lq)</option>
-        }
-    </select>
-
-    <label for="RateType" class="control-label">Rate type</label>
-    <p class="text-muted"><i>Does the exchange offer fixed rates (locked when you start), float rates (follow the market), or both?</i></p>
-    <select class="form-control select-fit" id="RateType" name="RateType">
-        @foreach (var rt in DirectoryManager.Data.Enums.RateTypeExtensions.PublicFormOrder)
-            {
-                <option value="@((int)rt)" selected="@(Model.RateType == rt)">@DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(rt)</option>
-            }
-    </select>
+    <div class="form-group">
+        <label asp-for="Note">Note</label>
+        <textarea asp-for="Note" class="form-control input-width" aria-describedby="NoteHint"></textarea>
+        <small id="NoteHint" class="form-text text-muted">A short public note shown on the listing: coupon or discount codes, fees, or special ordering steps. Up to @noteMax characters, no links. Example: Use code XMR10 for 10% off.</small>
+        <span asp-validation-for="Note" class="text-danger"></span>
+    </div>
 </details>
 
-@* Deposit guarantees — up to @DirectoryManager.Web.Constants.IntegerConstants.MaxGuarantees (link + USD amount).
-   Optional; each row needs both a link and an amount to count. Collapsed by default (no JS needed). *@
-<details class="form-group">
-    <summary>Deposit guarantees (optional)</summary>
-    <p class="text-muted"><i>Links to deposits that show a liquidity guarantee, so people feel safe exchanging. Up to @DirectoryManager.Web.Constants.IntegerConstants.MaxGuarantees.</i></p>
-    @for (int gi = 0; gi < DirectoryManager.Web.Constants.IntegerConstants.MaxGuarantees; gi++)
+@* ---- KYC policy and JavaScript ---- *@
+<details class="ui-fieldset" id="group-@SubmissionFormLayout.KycAndJavaScript.Id"@OpenIf(SubmissionFormLayout.KycAndJavaScript)>
+    <summary><b>KYC policy and JavaScript</b> <span class="text-muted">(optional)</span></summary>
+
+    <div class="form-group">
+        <label for="KycPolicy" class="control-label">KYC Policy</label>
+        <select class="form-control select-fit" id="KycPolicy" name="KycPolicy" aria-describedby="KycPolicyHint">
+            <option value="" selected="@(Model.KycPolicy == null)">Not Stated</option>
+            @foreach (var kp in Enum.GetValues<KycPolicy>())
+            {
+                if (kp == KycPolicy.NotStated || kp == KycPolicy.Unknown) { continue; }
+                <option value="@((int)kp)" selected="@(Model.KycPolicy == kp)">@EnumHelper.GetDescription(kp)</option>
+            }
+        </select>
+        <div id="KycPolicyHint" class="form-text text-muted">
+            Whether customers must prove who they are (KYC = "know your customer").
+            <ul class="u-m-0">
+                <li><b>Not Stated</b>: @SubmissionFormLayout.OptionHelp(KycPolicy.NotStated)</li>
+                @foreach (var kp in Enum.GetValues<KycPolicy>())
+                {
+                    if (kp == KycPolicy.NotStated || kp == KycPolicy.Unknown) { continue; }
+                    <li><b>@EnumHelper.GetDescription(kp)</b>: @SubmissionFormLayout.OptionHelp(kp)</li>
+                }
+            </ul>
+        </div>
+        <span asp-validation-for="KycPolicy" class="text-danger"></span>
+    </div>
+
+    @* Does the website need JavaScript? Default "Not Stated". *@
+    <div class="form-group">
+        <label for="SiteJavaScript" class="control-label">JavaScript</label>
+        <select class="form-control select-fit" id="SiteJavaScript" name="SiteJavaScript" aria-describedby="SiteJavaScriptHint">
+            @foreach (var js in SiteJavaScriptExtensions.FormOrder)
+            {
+                <option value="@((int)js)" selected="@(SiteJavaScriptExtensions.Normalize(Model.SiteJavaScript) == js)">@EnumHelper.GetDescription(js)</option>
+            }
+        </select>
+        <div id="SiteJavaScriptHint" class="form-text text-muted">
+            Does the website need JavaScript to work?
+            <ul class="u-m-0">
+                @foreach (var js in SiteJavaScriptExtensions.FormOrder)
+                {
+                    <li><b>@EnumHelper.GetDescription(js)</b>: @SubmissionFormLayout.OptionHelp(js)</li>
+                }
+            </ul>
+        </div>
+        <span asp-validation-for="SiteJavaScript" class="text-danger"></span>
+    </div>
+</details>
+
+@* ---- Restrictions (shared partial; works out its own open state with the same rule) ---- *@
+@await Html.PartialAsync("_RestrictionFields", new DirectoryManager.Web.Models.RestrictionFieldsViewModel { RestrictedCountries = Model.RestrictedCountries, VpnPolicy = Model.VpnPolicy, TorPolicy = Model.TorPolicy, OtherRestrictions = Model.OtherRestrictions, DetailsCssClass = "ui-fieldset form-group", ShowOptionHelp = true })
+
+@* ---- For exchanges: liquidity, rate type, deposit guarantees ---- *@
+<details class="ui-fieldset" id="group-@SubmissionFormLayout.Exchanges.Id"@OpenIf(SubmissionFormLayout.Exchanges)>
+    <summary><b>For exchanges</b> <span class="text-muted">(optional: liquidity, rate type, deposit guarantees)</span></summary>
+    <p class="text-muted"><i>Only for exchanges and swap services. Skip this section for anything else.</i></p>
+
+    <div class="form-group">
+        <label for="Liquidity" class="control-label">Liquidity</label>
+        <select class="form-control select-fit" id="Liquidity" name="Liquidity" aria-describedby="LiquidityHint">
+            @foreach (var lq in LiquidityExtensions.Selectable)
+            {
+                <option value="@((int)lq)" selected="@(Model.Liquidity == lq)">@EnumHelper.GetDescription(lq)</option>
+            }
+        </select>
+        <div id="LiquidityHint" class="form-text text-muted">
+            Whose funds fill the trades.
+            <ul class="u-m-0">
+                @foreach (var lq in LiquidityExtensions.Selectable)
+                {
+                    <li><b>@EnumHelper.GetDescription(lq)</b>: @SubmissionFormLayout.OptionHelp(lq)</li>
+                }
+            </ul>
+        </div>
+        <span asp-validation-for="Liquidity" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label for="RateType" class="control-label">Rate type</label>
+        <select class="form-control select-fit" id="RateType" name="RateType" aria-describedby="RateTypeHint">
+            @foreach (var rt in RateTypeExtensions.PublicFormOrder)
+            {
+                <option value="@((int)rt)" selected="@(Model.RateType == rt)">@EnumHelper.GetDescription(rt)</option>
+            }
+        </select>
+        <div id="RateTypeHint" class="form-text text-muted">
+            Which swap rates the exchange offers.
+            <ul class="u-m-0">
+                @foreach (var rt in RateTypeExtensions.PublicFormOrder)
+                {
+                    <li><b>@EnumHelper.GetDescription(rt)</b>: @SubmissionFormLayout.OptionHelp(rt)</li>
+                }
+            </ul>
+        </div>
+        <span asp-validation-for="RateType" class="text-danger"></span>
+    </div>
+
+    @* Deposit guarantees: up to MaxGuarantees rows (link + amount + currency). Each row needs both a
+       link and an amount to count; empty rows are ignored. *@
+    <h4 id="GuaranteesHeading">Deposit guarantees</h4>
+    <p id="GuaranteesHint" class="text-muted">Links to public posts showing a deposit the exchange has put up as a guarantee, so people feel safe exchanging. Up to @maxGuarantees. The link must be on a third-party site (a forum or a guarantor), not on the listing's own domain. Each one needs both a link and an amount; leave unused rows empty. Example: https://bitcointalk.org/index.php?topic=123 with 30000 USD.</p>
+    @for (int gi = 0; gi < maxGuarantees; gi++)
     {
         var g = Model.Guarantees != null && gi < Model.Guarantees.Count ? Model.Guarantees[gi] : new DirectoryManager.Data.Models.GuaranteeItem();
+        var gLinkId = $"Guarantees_{gi}__Link";
+        var gAmountId = $"Guarantees_{gi}__Amount";
+        var gCurrencyId = $"Guarantees_{gi}__Currency";
         <fieldset class="guarantee-group">
             <legend>Guarantee @(gi + 1)</legend>
-            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-                <input autocomplete="off" name="Guarantees[@gi].Link" value="@g.Link" class="form-control" style="flex:3 1 240px;" placeholder="Proof link, e.g. https://bitcointalk.org/" />
-                <input autocomplete="off" name="Guarantees[@gi].Amount" value="@(g.Amount > 0 ? g.Amount.Value.ToString("0.############", System.Globalization.CultureInfo.InvariantCulture) : string.Empty)" type="number" min="0" step="any" class="form-control" style="flex:1 1 120px;" placeholder="Amount, e.g. 30000" />
-                <select name="Guarantees[@gi].Currency" class="form-control" style="flex:0 1 90px;">
-                    <option value="2" selected="@(g.Currency == DirectoryManager.Data.Enums.Currency.USD)">USD</option>
-                    <option value="3" selected="@(g.Currency == DirectoryManager.Data.Enums.Currency.BTC)">BTC</option>
-                    <option value="1" selected="@(g.Currency == DirectoryManager.Data.Enums.Currency.XMR)">XMR</option>
-                </select>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;">
+                <div style="flex:3 1 240px;">
+                    <label for="@gLinkId">Proof link</label>
+                    <input autocomplete="off" id="@gLinkId" name="Guarantees[@gi].Link" value="@g.Link" class="form-control" placeholder="https://bitcointalk.org/" aria-describedby="GuaranteesHint" />
+                </div>
+                <div style="flex:1 1 120px;">
+                    <label for="@gAmountId">Amount</label>
+                    <input autocomplete="off" id="@gAmountId" name="Guarantees[@gi].Amount" value="@(g.Amount > 0 ? g.Amount.Value.ToString("0.############", System.Globalization.CultureInfo.InvariantCulture) : string.Empty)" type="number" min="0" step="any" class="form-control" placeholder="30000" aria-describedby="GuaranteesHint" />
+                </div>
+                <div style="flex:0 1 90px;">
+                    <label for="@gCurrencyId">Currency</label>
+                    <select id="@gCurrencyId" name="Guarantees[@gi].Currency" class="form-control">
+                        <option value="2" selected="@(g.Currency == DirectoryManager.Data.Enums.Currency.USD)">USD</option>
+                        <option value="3" selected="@(g.Currency == DirectoryManager.Data.Enums.Currency.BTC)">BTC</option>
+                        <option value="1" selected="@(g.Currency == DirectoryManager.Data.Enums.Currency.XMR)">XMR</option>
+                    </select>
+                </div>
             </div>
+            <span class="text-danger">@Html.ValidationMessage($"Guarantees[{gi}].Link")</span>
+            <span class="text-danger">@Html.ValidationMessage($"Guarantees[{gi}].Amount")</span>
         </fieldset>
     }
 </details>
 
-<div class="form-group">
-    <label asp-for="Note">Note</label>
-    <textarea asp-for="Note" class="form-control input-width"></textarea>
-    <span asp-validation-for="Note" class="text-danger"></span>
-</div>
+@* ---- Categories and tags ---- *@
+<details class="ui-fieldset" id="group-@SubmissionFormLayout.CategoriesAndTags.Id"@(tagsOpen ? " open" : "")>
+    <summary><b>Categories and tags</b> <span class="text-muted">(optional: tags, suggested tags, another category)</span></summary>
 
-<div class="form-group">
-    <label>Founded Date (YYYY MM DD)</label>
+    @if (allTags != null && allTags.Any())
+    {
+        <h4 class="u-mb-8px" id="TagChoiceHeading">Tags</h4>
+        <p id="TagChoiceHint" class="text-muted">Tick every tag that describes the listing.</p>
 
-    <div class="u-flex-gap-8px-items-center-flexwrap-wrap">
-        <input asp-for="FoundedYear"
- class="form-control u-flex-0-0-auto u-minw-0 u-w-110px"
- autocomplete="off"
- inputmode="numeric"
- pattern="[0-9]*"
- maxlength="4"
- placeholder="YYYY" />
+        <div class="tag-grid" role="group" aria-labelledby="TagChoiceHeading" aria-describedby="TagChoiceHint">
+            @foreach (var t in allTags)
+            {
+                var id = (int)t.TagId;
+                var isChecked =
+                    (selectedTagSet != null && selectedTagSet.Contains(id)) ||
+                    (Model.SelectedTagIds != null && Model.SelectedTagIds.Contains(id));
 
-        <input asp-for="FoundedMonth"
- class="form-control u-flex-0-0-auto u-minw-0 u-w-90px"
- autocomplete="off"
- inputmode="numeric"
- pattern="[0-9]*"
- maxlength="2"
- placeholder="MM" />
+                <label class="tag-chip">
+                    <input type="checkbox"
+                           name="SelectedTagIds"
+                           value="@id"
+                           @(isChecked ? "checked" : "") />
+                    <span>@t.Name</span>
+                </label>
+            }
+        </div>
+    }
 
-        <input asp-for="FoundedDay"
- class="form-control u-flex-0-0-auto u-minw-0 u-w-90px"
- autocomplete="off"
- inputmode="numeric"
- pattern="[0-9]*"
- maxlength="2"
- placeholder="DD" />
+    <div class="form-group">
+        <label asp-for="Tags">Suggested Tags</label>
+        <input maxlength="100" asp-for="Tags" class="form-control input-width" aria-describedby="TagsHint" />
+        <small id="TagsHint" class="form-text text-muted">Only if no tag above fits: new tags to suggest, separated by commas. Up to 100 characters. Example: vps, privacy</small>
+        <span asp-validation-for="Tags" class="text-danger"></span>
     </div>
 
-    <span class="text-danger">
-        @Html.ValidationMessage(nameof(Model.FoundedYear))
-    </span>
-</div>
-
-
-<div class="form-group">
-    <label asp-for="PgpKey">PGP Key</label>
-    @if (Model.DirectoryEntryId != null && !string.IsNullOrWhiteSpace(Model.PgpKey))
-    {
-        @* The key is the owner's identity: a public edit can't replace it. *@
-        <textarea class="input-width" asp-for="PgpKey" readonly></textarea>
-        <small>This listing's PGP key can't be changed with an edit. To change it, contact us with a message signed by the current key.</small>
-    }
-    else
-    {
-        <textarea class="input-width" asp-for="PgpKey"></textarea>
-    }
-</div>
-
-@{
-    var allTags = ViewBag.AllTags as IEnumerable<dynamic>;
-}
-
-@if (allTags != null && allTags.Any())
-{
-    <h4 class="u-mb-8px">Tags</h4>
-
-    <div class="tag-grid">
-        @foreach (var t in allTags)
-        {
-            var id = (int)t.TagId;
-
-            // ✅ support BOTH flows:
-            // - existing listing edit (Model.SelectedTagIds)
-            // - submission review page (ViewBag.SelectedTagIds is a HashSet<int>)
-            var selectedSet = ViewBag.SelectedTagIds as HashSet<int>;
-            var isChecked =
-            (selectedSet != null && selectedSet.Contains(id)) ||
-            (Model.SelectedTagIds != null && Model.SelectedTagIds.Contains(id));
-
-            <label class="tag-chip">
-                <input type="checkbox"
-                       name="SelectedTagIds"
-                       value="@id"
-                       @(isChecked ? "checked" : "") />
-                <span>@t.Name</span>
-            </label>
-        }
+    <div class="form-group">
+        <label asp-for="SuggestedSubCategory">Additional or Suggested Category</label>
+        <input autocomplete="off" asp-for="SuggestedSubCategory" class="form-control input-width" aria-describedby="SuggestedSubCategoryHint" />
+        <small id="SuggestedSubCategoryHint" class="form-text text-muted">
+            Does this listing also belong in a second category we already have? Name it here
+            (e.g. <em>Web Hosting &gt; Domain Registration</em>). Or suggest a new category we don't have yet.
+            Up to 100 characters.
+        </small>
+        <span asp-validation-for="SuggestedSubCategory" class="text-danger"></span>
     </div>
-}
+</details>
 
-<div class="form-group">
-    <label asp-for="Tags">Suggested Tags (if choice not provided) <i>comma-separated</i></label>
-    <input maxlength="100" asp-for="Tags" class="form-control input-width" />
-    <span asp-validation-for="Tags" class="text-danger"></span>
-</div>
-
-<div class="form-group">
-    <label asp-for="SuggestedSubCategory">Additional or Suggested Category (optional)</label>
-    <input autocomplete="off" asp-for="SuggestedSubCategory" class="form-control input-width" aria-describedby="suggestedCategoryHint" />
-    <small id="suggestedCategoryHint" class="form-text text-muted">
-        Does this listing also belong in a second category we already have? Name it here
-        (e.g. <em>Web Hosting &gt; Domain Registration</em>). Or suggest a new category we don't have yet.
-    </small>
-    <span asp-validation-for="SuggestedSubCategory" class="text-danger"></span>
-</div>
-
-<h4>Related Links</h4>
-<p class="text-muted">Forum posts, docs, reviews, etc. (not Tor/I2P links)</p>
-
-<!-- ✅ make sure these bind + post back correctly -->
-<div class="form-group">
-    <label asp-for="RelatedLink1"></label>
-    <input autocomplete="off" asp-for="RelatedLink1" class="form-control input-width" />
-    <span asp-validation-for="RelatedLink1" class="text-danger"></span>
-</div>
-
-<div class="form-group">
-    <label asp-for="RelatedLink2"></label>
-    <input autocomplete="off" asp-for="RelatedLink2" class="form-control input-width" />
-    <span asp-validation-for="RelatedLink2" class="text-danger"></span>
-</div>
-
-<div class="form-group">
-    <label asp-for="RelatedLink3"></label>
-    <input autocomplete="off" asp-for="RelatedLink3" class="form-control input-width" />
-    <span asp-validation-for="RelatedLink3" class="text-danger"></span>
-</div>
-
-<hr />
-
-<h3>To Reviewer</h3>
-<div class="form-group">
-    <label asp-for="NoteToAdmin">Note To Admin (private)</label>
-    <textarea asp-for="NoteToAdmin" class="form-control input-width" maxlength="@DirectoryManager.Web.Models.SubmissionRequest.NoteToAdminMaxLength"></textarea>
-    <span asp-validation-for="NoteToAdmin" class="text-danger"></span>
-    <small class="form-text text-muted">Max @DirectoryManager.Web.Models.SubmissionRequest.NoteToAdminMaxLength characters.</small>
-</div>
+@* ---- Note to the reviewer (private) ---- *@
+<details class="ui-fieldset" id="group-@SubmissionFormLayout.NoteToReviewer.Id"@OpenIf(SubmissionFormLayout.NoteToReviewer)>
+    <summary><b>Note to the reviewer</b> <span class="text-muted">(optional, private)</span></summary>
+    <div class="form-group">
+        <label asp-for="NoteToAdmin">Note To Admin (private)</label>
+        <textarea asp-for="NoteToAdmin" class="form-control input-width" maxlength="@noteToAdminMax" aria-describedby="NoteToAdminHint"></textarea>
+        <small id="NoteToAdminHint" class="form-text text-muted">A private message for the person who reviews this submission, such as what you changed or anything that helps them check the site. It isn't shown on the listing. Max @noteToAdminMax characters.</small>
+        <span asp-validation-for="NoteToAdmin" class="text-danger"></span>
+    </div>
+</details>
 
 @* Captcha moved to the preview/confirm step so a wrong answer never discards
    the changes entered here — see Views/Submission/Preview.cshtml. *@

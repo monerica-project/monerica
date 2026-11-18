@@ -1,4 +1,4 @@
-@model DirectoryManager.Web.Models.LoginViewModel
+﻿@model DirectoryManager.Web.Models.LoginViewModel
 @using DirectoryManager.Web.Constants;
 
 @{
@@ -117,32 +117,50 @@
     <i>Signed in as: </i> @User?.Identity?.Name
 
     <p class="mt-2">
-        <b>Public site (monerica.com &rarr; Bunny):</b>
+        <b>Public site (static mirror):</b> <a href="~/admin/publishing">Publishing details &rarr;</a>
         <br />
-        &nbsp;&nbsp;<b>Files last synced</b> (content actually uploaded):
-        @if (ViewBag.LastBunnyFilesSyncedUtc is DateTime filesSynced)
+        @{
+            var spMode = ViewBag.StaticPublishMode is DirectoryManager.Web.Models.StaticPublishing.StaticPublishMode m ? m : DirectoryManager.Web.Models.StaticPublishing.StaticPublishMode.Off;
+            var spWaiting = ViewBag.StaticPublishWaiting is int w ? w : 0;
+            var spFailing = ViewBag.StaticPublishFailing is int f ? f : 0;
+        }
+        &nbsp;&nbsp;Publish on change: <b>@spMode</b>@(spWaiting > 0 ? $" — {spWaiting} page(s) waiting" : string.Empty)
+        @if (spFailing > 0)
         {
-            <span class="u-color-888">@filesSynced.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat) UTC (@FormatAgoCompact(filesSynced))</span>
+            <span class="u-color-c0392b"> — ⚠ @spFailing page(s) failing</span>
+        }
+        <br />
+        &nbsp;&nbsp;<b>Last instant publish:</b>
+        @if (ViewBag.StaticPublishLastInstant is DirectoryManager.Data.Models.StaticPublishing.StaticPublishLogEntry lastInstant)
+        {
+            <span class="u-color-888">@lastInstant.PublishedUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat) UTC (@FormatAgoCompact(lastInstant.PublishedUtc)) — @lastInstant.Path</span>
         }
         else
         {
-            <span class="u-color-888">unknown</span>
+            <span class="u-color-888">none yet</span>
         }
         <br />
-        &nbsp;&nbsp;Last checked (ran, changes or not):
-        @if (ViewBag.LastBunnyCheckedUtc is DateTime lastChecked)
+        &nbsp;&nbsp;Last full crawl:
+        @if (ViewBag.StaticPublishLastFullCrawl is DirectoryManager.Data.Models.StaticPublishing.StaticPublishLogEntry lastCrawl)
         {
-            var stale = (DateTime.UtcNow - lastChecked) > TimeSpan.FromMinutes(15);
-            <span class="@(stale ? "u-color-c0392b" : "u-color-888")">
-                @lastChecked.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat) UTC (@FormatAgoCompact(lastChecked))@(stale ? " — ⚠ stale, the syncer may have stopped" : string.Empty)
+            var lastCheck = DirectoryManager.Web.Services.Implementations.StaticPublishWorkerStatus.LastCrawlReportUtc ?? lastCrawl.PublishedUtc;
+            var crawlStale = (DateTime.UtcNow - lastCheck) > TimeSpan.FromMinutes(15);
+            <span class="@(crawlStale || lastCrawl.Result == DirectoryManager.Data.Models.StaticPublishing.StaticPublishConstants.ResultFailed ? "u-color-c0392b" : "u-color-888")">
+                @lastCrawl.PublishedUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat) UTC (@FormatAgoCompact(lastCrawl.PublishedUtc)) — @lastCrawl.Result, @lastCrawl.Error@(crawlStale ? " — ⚠ stale, the scheduled crawl may have stopped" : string.Empty)
             </span>
         }
         else
         {
-            <span class="u-color-c0392b">status unavailable — the syncer hasn't reported a successful run</span>
+            <span class="u-color-888">none logged yet</span>
+        }
+        @if (spMode != DirectoryManager.Web.Models.StaticPublishing.StaticPublishMode.Off
+            && (ViewBag.StaticPublishWorkerPollUtc is not DateTime poll || (DateTime.UtcNow - poll) > TimeSpan.FromMinutes(2)))
+        {
+            <br />
+            <span class="u-color-c0392b">&nbsp;&nbsp;⚠ The publisher has not asked for work in the last 2 minutes; it may be stopped.</span>
         }
         <br />
-        <small class="u-color-888"><i>The public site is a cached static mirror. The syncer checks every 5 minutes but only uploads files when the content has actually changed.</i></small>
+        <small class="u-color-888"><i>The public site is a static mirror. Changed pages are published within seconds; as a safety net a full crawl runs every 5 minutes whenever anything changed.</i></small>
     </p>
 
     <hr />
@@ -150,6 +168,54 @@
     @* =============================================================
        DAILY TASKS — pinned at top.
        ============================================================= *@
+    @{ var paidWaiting = ViewBag.PaidWaiting as List<(DirectoryManager.Data.Models.TransferModels.PaidWaitingItem Item, string What, string Url)>; }
+    @{
+        var lastPaidItems = ViewBag.LastPaidItems as List<(string What, int Id, string Name, string Url, DateTime PaidUtc, decimal? Usd, decimal? Xmr, bool Waiting, string Status)>;
+        var paidSubsWaiting = paidWaiting?.Count(x => x.What == "Listing submission") ?? 0;
+    }
+    @* Paid escalations: always shown, so "nothing waiting" is stated and not just implied. *@
+    @{ var anyPaidWaiting = paidWaiting is { Count: > 0 }; }
+    <div class="@(anyPaidWaiting ? "alert-warning" : "last-payment")">
+        @if (anyPaidWaiting)
+        {
+            <h3>&#128176; Paid escalations</h3>
+        }
+        @if (paidWaiting is { Count: > 0 })
+        {
+            <p><b class="u-color-c0392b">@paidWaiting.Count paid and waiting for you</b> (newest payment first):</p>
+            <ul>
+                @for (var i = 0; i < paidWaiting.Count; i++)
+                {
+                    var pw = paidWaiting[i];
+                    <li>
+                        @if (i == 0)
+                        {
+                            <b>Latest:</b>
+                        }
+                        <a href="@pw.Url"><b>@pw.What #@pw.Item.Id</b>: @pw.Item.Name</a>
+                        &middot; @Html.Raw(Money(pw.Item.Usd, pw.Item.Xmr))
+                        &middot; paid @FormatAgoCompact(pw.Item.PaidUtc)
+                        <small class="u-color-888">(@pw.Item.PaidUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat) UTC)</small>
+                    </li>
+                }
+            </ul>
+        }
+        else
+        {
+            <small class="u-color-888">Paid escalations: none outstanding.</small>
+        }
+        @foreach (var lp2 in lastPaidItems ?? new())
+        {
+            <small class="u-color-888">
+                Last paid @lp2.What:
+                <a href="@lp2.Url">#@lp2.Id @lp2.Name</a>,
+                @(lp2.Usd is decimal lpUsd && lpUsd > 0 ? "$" + lpUsd.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " at the time" : "USD value not recorded"),
+                paid @FormatAgoCompact(lp2.PaidUtc),
+                @(lp2.Waiting ? "still waiting" : "handled (" + lp2.Status + ")").
+            </small>
+            <br />
+        }
+    </div>
     @{ var lastPay = ViewBag.LastPayment as ValueTuple<DateTime, decimal?, decimal?, string, string>?; }
     @if (lastPay is { } lp)
     {
@@ -212,7 +278,19 @@
             </thead>
             <tbody>
                 <tr>
-                    <td class="task-name"><a href="~/admin/submission-review">Submissions</a> <span class="u-fs-085em">(@(ViewBag.AiReadyToApprove ?? 0) AI-ready@((ViewBag.AiNeedsAttention ?? 0) > 0 ? $", {ViewBag.AiNeedsAttention} needs a look" : string.Empty)@((ViewBag.AiNotReviewedYet ?? 0) > 0 ? $", {ViewBag.AiNotReviewedYet} not reviewed yet" : string.Empty))</span></td>
+                    <td class="task-name">
+                        <a href="~/admin/submission-review">Submissions</a>
+                        @* One count per line: the fixed-width column can't fit them side by side. *@
+                        <br /><span class="u-fs-085em">@(ViewBag.AiReadyToApprove ?? 0) AI-ready</span>
+                        @if ((ViewBag.AiNeedsAttention ?? 0) > 0)
+                        {
+                            <br /><span class="u-fs-085em">@ViewBag.AiNeedsAttention needs a look</span>
+                        }
+                        @if ((ViewBag.AiNotReviewedYet ?? 0) > 0)
+                        {
+                            <br /><span class="u-fs-085em">@ViewBag.AiNotReviewedYet not reviewed yet</span>
+                        }
+                    </td>
                     <td data-label="Waiting">@WaitingCell(pendingSubs)</td>
                     <td data-label="Last paid">@PaidCell(ViewBag.PaySubmission)</td>
                     <td data-label="Newest">@AgoCell(newestSub)</td>
@@ -285,6 +363,7 @@
                 <li><a href="~/admin/reviews">Pending reviews (@ViewBag.TotalPendingReviews)</a></li>
                 <li><a href="~/directory-entry-reviews">All reviews</a></li>
                 <li><a href="~/review-tags">Review tags</a></li>
+                <li><a href="~/admin/users">Users</a> (member accounts and PGP reviewers: posts, posting blocks)</li>
                 <li><a href="~/admin/verification-requests">Verification requests (@(ViewBag.TotalPendingVerificationRequests ?? 0))</a></li>
                 <li><a href="~/admin/problem-reports">Problem reports (@(ViewBag.TotalPendingProblemReports ?? 0))</a></li>
             </ul>
@@ -292,6 +371,7 @@
         <li>
             Submissions
             <ul>
+                <li><a href="~/admin/terms-watch"><b>Terms watch</b></a> (monthly check of listed sites' terms: KYC, countries, VPN/Tor, fees)</li>
                 <li><a href="~/admin/ai-log"><b>AI activity log</b></a> (every AI call: what it was sent, what it answered, what it did)</li>
                 <li><a href="~/admin/submission-review"><b>AI-reviewed submissions</b></a> (@(ViewBag.AiReadyToApprove ?? 0) ready to approve, @(ViewBag.AiNeedsAttention ?? 0) need attention, @(ViewBag.AiNotReviewedYet ?? 0) not reviewed yet)</li>
                 <li><a href="~/submission/index">Pending submissions (@ViewBag.TotalPendingSubmissions)</a></li>
@@ -439,6 +519,7 @@
                 <li><a href="~/affiliatecommissionearned">All commissions</a></li>
                 <li><a href="~/affiliatecommissionearned/create">New commission</a></li>
                 <li><a href="~/affiliatecommissionearned/totals">Totals by directory entry</a></li>
+                <li><a href="~/affiliatecommissionearned/by-month">Sales by month (bar chart)</a></li>
             </ul>
         </li>
     </ul>
@@ -475,6 +556,7 @@
     <h3>Account</h3>
     <ul>
         <li><a href="~/account/changepassword">Change password</a></li>
+        <li><a href="~/account/two-factor">Two-factor login</a></li>
     </ul>
 
     <hr />

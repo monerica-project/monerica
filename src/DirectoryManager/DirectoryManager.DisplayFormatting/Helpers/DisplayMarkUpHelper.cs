@@ -2,6 +2,7 @@
 using System.Net;
 using System.Text;
 using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Helpers;
 using DirectoryManager.Data.Models;
 using DirectoryManager.DisplayFormatting.Enums;
 using DirectoryManager.DisplayFormatting.Models;
@@ -52,6 +53,13 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 }
 
                 AppendOptionalFlag(sb, model, rootUrl);
+            }
+
+            // "New" label for listings added in the last NewListingRule.Days days (not in emails,
+            // which have no stylesheet).
+            if (model.ItemDisplayType != ItemDisplayType.Email)
+            {
+                sb.Append(NewBadgeHtml(model.CreateDate, model.DirectoryStatus, DateTime.UtcNow));
             }
 
             // Category/Subcategory sponsor block (not the normal sponsored list item)
@@ -108,6 +116,24 @@ namespace DirectoryManager.DisplayFormatting.Helpers
         }
 
         /// <summary>
+        /// The small "New" label shown after a listing's name while
+        /// <see cref="NewListingRule.IsNew"/> holds (leading space included), else an empty string.
+        /// Uses the existing badge styles; no stylesheet change.
+        /// </summary>
+        /// <returns>The label HTML or an empty string.</returns>
+        public static string NewBadgeHtml(DateTime createDateUtc, DirectoryStatus status, DateTime nowUtc)
+        {
+            if (!NewListingRule.IsNew(createDateUtc, status, nowUtc))
+            {
+                return string.Empty;
+            }
+
+            return " <span class=\"badge bg-info new-badge\" title=\"Added in the last "
+                + NewListingRule.Days.ToString(CultureInfo.InvariantCulture)
+                + " days\">New</span>";
+        }
+
+        /// <summary>
         /// Builds an HTML img tag for the country flag corresponding to the given country code.
         /// Returns an empty string when the country code is missing.
         /// rootUrl may be null/empty for relative paths (e.g. on Tor).
@@ -161,6 +187,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             sb.Append(GetDirectoryStausIcon(model.DirectoryStatus));
             AppendProfileName(sb, encodedName, profUrl);
             AppendFlagAfterName(sb, model, rootUrl);
+            sb.Append(NewBadgeHtml(model.CreateDate, model.DirectoryStatus, DateTime.UtcNow));
 
             sb.Append(" — ");
 
@@ -295,6 +322,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             sb.Append("<span class=\"text-inline\">");
             sb.Append(WebUtility.HtmlEncode(entry.Name));
             sb.Append("</span>");
+            sb.Append(NewBadgeHtml(entry.CreateDate, entry.DirectoryStatus, DateTime.UtcNow));
 
             sb.Append(" &ndash; ");
 

@@ -1,0 +1,16 @@
+@using DirectoryManager.Web.Constants
+@model string?
+@{
+    PageMeta.MetaContent = StringConstants.MetaTagNoIndex;
+    PageMeta.Title = "Posting Not Available";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <h1>@PageMeta.Title</h1>
+    <hr />
+
+    <p class="text-danger"><strong>@(string.IsNullOrWhiteSpace(Model) ? "This can't be posted here." : Model)</strong> Your message was not saved.</p>
+
+    <p class="u-mt-4px"><a href="~/">Return to the home page</a></p>
+}

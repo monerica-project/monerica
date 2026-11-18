@@ -49,6 +49,8 @@
             ["Rate type"] = s.RateType == RateType.Unknown ? null : s.RateType.ToString(),
             ["JavaScript"] = s.SiteJavaScript == SiteJavaScript.Unknown ? null : s.SiteJavaScript.ToString(), ["Tags"] = s.Tags,
             ["Social"] = s.Social, ["Messenger"] = s.Messenger,
+            ["PGP key"] = PgpLabel(s.PgpKey),
+            ["Restrictions"] = DirectoryManager.Data.Helpers.ListingRestrictions.FullText(s.RestrictedCountries, s.VpnPolicy, s.TorPolicy, s.OtherRestrictions),
         };
         if (!string.IsNullOrWhiteSpace(s.OriginalSnapshotJson))
         {
@@ -77,7 +79,23 @@
         ["Rate type"] = s.ProposedRateType?.ToString(),
         ["JavaScript"] = s.ProposedSiteJavaScript?.ToString(), ["Tags"] = s.ProposedTags,
         ["Social"] = s.ProposedSocial ?? s.Social, ["Messenger"] = s.ProposedMessenger ?? s.Messenger,
+        // A key found on the site only fills an empty key (see SubmissionController.WithProposal).
+        ["PGP key"] = string.IsNullOrWhiteSpace(s.PgpKey) && DirectoryManager.Web.Controllers.SubmissionController.SuggestedPgpFingerprint(s) is string fp
+            ? $"{Spaced(fp)} (found on the site: {s.ProposedPgpKeySource})"
+            : PgpLabel(s.PgpKey),
+        // Not suggested by the reviewer: approving keeps the submitted restrictions.
+        ["Restrictions"] = DirectoryManager.Data.Helpers.ListingRestrictions.FullText(s.RestrictedCountries, s.VpnPolicy, s.TorPolicy, s.OtherRestrictions),
     };
+
+    // A PGP key shown as its primary fingerprint (the full armored block is too long for the table).
+    static string? PgpLabel(string? armored)
+    {
+        if (string.IsNullOrWhiteSpace(armored)) { return null; }
+        var fp = DirectoryManager.Web.Helpers.PgpCapabilities.GetPrimaryFingerprint(armored);
+        return fp == null ? "(key given, but it could not be read)" : Spaced(fp);
+    }
+
+    static string Spaced(string fp) => string.Join(" ", Enumerable.Range(0, (fp.Length + 3) / 4).Select(i => fp.Substring(i * 4, Math.Min(4, fp.Length - i * 4))));
 
     var readyCount = Model.Submissions.Count(s => s.ReviewState == SubmissionReviewState.AiApproveCandidate);
     var autoRejectedCount = Model.Submissions.Count(s => s.ReviewState == SubmissionReviewState.AutoRejected);
@@ -102,7 +120,9 @@
 
 @if (!string.IsNullOrWhiteSpace(Model.Message))
 {
-    <div class="u-callout-orange">@Model.Message</div>
+    <div class="@(Model.MessageIsProblem ? "alert-warning" : "u-callout-orange")" role="alert" id="result">
+        @if (Model.MessageIsProblem) { <b>Not approved. </b> }@Model.Message
+    </div>
 }
 
 <div class="u-flex-gap-8px-flexwrap-wrap">
@@ -137,6 +157,7 @@
         var issues = ListFromJson(s.ReviewIssuesJson);
         var changes = ChangesFromJson(s.ProposedChangesJson);
         var hasProposal = s.ReviewModel != null && s.ProposedName != null;
+        var sensitive = Model.Sensitive(s.SubmissionId);
 
         <div class="u-callout" id="sub-@s.SubmissionId">
             <div class="u-flex-justify-space-between-gap-12px-flexwrap-wrap">
@@ -209,8 +230,21 @@
                 <details><summary class="u-fs-085em">History</summary><pre class="u-prewrap-break u-fs-085em">@s.ReviewLog</pre></details>
             }
 
+            @if (sensitive.Count > 0)
+            {
+                <div class="alert-warning u-mt-05rem">
+                    <b>Can't be approved in one click</b> because this edit changes where visitors are sent or how they make contact:
+                    <ul class="u-m-6px-0-0">@foreach (var c in sensitive) { <li>@c</li> }</ul>
+                    Open it, check these, tick the confirmation box and approve there.
+                </div>
+            }
+
             <div class="u-flex-gap-8px-flexwrap-wrap u-mt-05rem">
-                @if (hasProposal)
+                @if (hasProposal && sensitive.Count > 0)
+                {
+                    <a class="btn btn-primary btn-sm" href="~/submission/@s.SubmissionId?useProposal=true&amp;from=ai-review">Check changes, then approve</a>
+                }
+                else if (hasProposal)
                 {
                     <form method="post" action="~/admin/submission-review/@s.SubmissionId/approve" class="u-m-0">
                         @Html.AntiForgeryToken()
@@ -223,16 +257,17 @@
                             <button type="submit" class="btn btn-sm" title="The reviewer did NOT mark this ready. Read its issues first.">Approve anyway</button>
                         }
                     </form>
-                    <a class="btn btn-sm" href="~/submission/@s.SubmissionId?useProposal=true">Edit then approve</a>
+                    <a class="btn btn-sm" href="~/submission/@s.SubmissionId?useProposal=true&amp;from=ai-review">Edit then approve</a>
                 }
                 else
                 {
-                    <a class="btn btn-sm" href="~/submission/@s.SubmissionId">Open review form</a>
+                    <a class="btn btn-sm" href="~/submission/@s.SubmissionId?from=ai-review">Open review form</a>
                 }
                 <form method="post" action="~/admin/submission-review/@s.SubmissionId/reject" class="u-m-0">
                     @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-sm">Reject</button>
+                    <button type="submit" class="btn btn-sm" title="Reject now, recording the reviewer's reason">Reject</button>
                 </form>
+                <a class="btn btn-sm" href="~/submission/@s.SubmissionId/reject?from=ai-review">Reject with reason&hellip;</a>
                 @if (state != SubmissionReviewState.Pending)
                 {
                     <form method="post" action="~/admin/submission-review/@s.SubmissionId/rerun" class="u-m-0">

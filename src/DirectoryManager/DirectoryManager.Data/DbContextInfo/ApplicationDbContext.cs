@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using System.Reflection.Emit;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.BaseModels;
@@ -35,6 +35,7 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<LogEntry> LogEntries { get; set; }
         public DbSet<SentEmailRecord> SentEmailRecords { get; set; }
         public DbSet<EmailSendLog> EmailSendLogs { get; set; }
+        public DbSet<EmailSendLogContent> EmailSendLogContents { get; set; }
         public DbSet<SponsoredListingOpeningNotification> SponsoredListingOpeningNotifications { get; set; }
         public DbSet<SponsoredListing> SponsoredListings { get; set; }
         public DbSet<SponsoredListingInvoice> SponsoredListingInvoices { get; set; }
@@ -55,6 +56,7 @@ namespace DirectoryManager.Data.DbContextInfo
 
         public DbSet<ListingPageView> ListingPageViews { get; set; }
         public DbSet<ReviewerKey> ReviewerKeys { get; set; }
+        public DbSet<BlockedReviewerKey> BlockedReviewerKeys { get; set; } = null!;
         public DbSet<DirectoryEntryReview> DirectoryEntryReviews { get; set; }
         public DbSet<DirectoryManager.Data.Models.VerificationRequests.VerificationRequest> VerificationRequests { get; set; }
         public DbSet<DirectoryManager.Data.Models.ProblemReports.ProblemReport> ProblemReports { get; set; }
@@ -63,6 +65,10 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<DirectoryManager.Data.Models.VideoSponsorships.VideoSponsorOrder> VideoSponsorOrders { get; set; }
         public DbSet<DirectoryManager.Data.Models.VideoSponsorships.VideoSponsorOrderItem> VideoSponsorOrderItems { get; set; }
         public DbSet<DirectoryEntryReviewComment> DirectoryEntryReviewComments { get; set; } = null!;
+
+        public DbSet<DirectoryManager.Data.Models.Reviews.DeletedReviewRecord> DeletedReviewRecords { get; set; } = null!;
+
+        public DbSet<ListingTermsSnapshot> ListingTermsSnapshots { get; set; } = null!;
         public DbSet<DirectoryManager.Data.Models.Reviews.ReviewNotification> ReviewNotifications { get; set; } = null!;
         public DbSet<SearchBlacklistTerm> SearchBlacklistTerms { get; set; }
         public DbSet<DirectoryManager.Data.Models.Emails.MarketingEmailContact> MarketingEmailContacts { get; set; }
@@ -76,6 +82,9 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<Processor> Processors { get; set; }
         public DbSet<AffiliateCommissionEarned> AffiliateCommissionsEarned { get; set; }
         public DbSet<Raffle> Raffles { get; set; }
+
+        public DbSet<DirectoryManager.Data.Models.StaticPublishing.StaticPublishQueueItem> StaticPublishQueueItems { get; set; } = null!;
+        public DbSet<DirectoryManager.Data.Models.StaticPublishing.StaticPublishLogEntry> StaticPublishLogEntries { get; set; } = null!;
 
         protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
         {
@@ -118,6 +127,26 @@ namespace DirectoryManager.Data.DbContextInfo
             ConfigureVideoSponsorships(builder);
             ConfigureSiteCheckStatus(builder);
             ConfigureSubmissionPayment(builder);
+            ConfigureStaticPublishing(builder);
+        }
+
+        private static void ConfigureStaticPublishing(ModelBuilder builder)
+        {
+            builder.Entity<DirectoryManager.Data.Models.StaticPublishing.StaticPublishQueueItem>(e =>
+            {
+                e.ToTable("StaticPublishQueue");
+                e.HasKey(x => x.StaticPublishQueueItemId);
+                e.HasIndex(x => x.Path).IsUnique().HasDatabaseName("IX_StaticPublishQueue_Path");
+                e.HasIndex(x => x.RequestedUtc).HasDatabaseName("IX_StaticPublishQueue_RequestedUtc");
+            });
+
+            builder.Entity<DirectoryManager.Data.Models.StaticPublishing.StaticPublishLogEntry>(e =>
+            {
+                e.ToTable("StaticPublishLog");
+                e.HasKey(x => x.StaticPublishLogEntryId);
+                e.HasIndex(x => x.Path).HasDatabaseName("IX_StaticPublishLog_Path");
+                e.HasIndex(x => x.PublishedUtc).HasDatabaseName("IX_StaticPublishLog_PublishedUtc");
+            });
         }
 
         private static void ConfigureSubmissionPayment(ModelBuilder builder)
@@ -276,6 +305,12 @@ namespace DirectoryManager.Data.DbContextInfo
 
         private static void ConfigureIndexes(ModelBuilder builder)
         {
+            // A PGP key can be linked to at most one member account (NULLs are not compared).
+            builder.Entity<ApplicationUser>()
+                .HasIndex(u => u.PgpFingerprint)
+                .IsUnique()
+                .HasDatabaseName("IX_AspNetUsers_PgpFingerprint");
+
             ConfigureSponsoredListingOpeningNotificationIndexes(builder);
             ConfigureSponsoredListingIndexes(builder);
             ConfigureDirectoryEntryIndexes(builder);
@@ -531,6 +566,22 @@ namespace DirectoryManager.Data.DbContextInfo
             builder.Entity<EmailSendLog>()
                    .HasIndex(e => new { e.SourceApplication, e.SentDate });
 
+            builder.Entity<EmailSendLog>()
+                   .HasOne(e => e.Content)
+                   .WithMany()
+                   .HasForeignKey(e => e.EmailSendLogContentId)
+                   .OnDelete(DeleteBehavior.SetNull);
+
+            builder.Entity<EmailSendLog>()
+                   .HasIndex(e => e.EmailSendLogContentId);
+
+            builder.Entity<EmailSendLogContent>()
+                   .HasIndex(e => e.ContentHash)
+                   .IsUnique();
+
+            builder.Entity<EmailSendLogContent>()
+                   .HasIndex(e => e.LastUsedUtc);
+
             builder.Entity<EmailMessage>()
                    .HasIndex(e => e.EmailKey)
                    .IsUnique();
@@ -563,6 +614,12 @@ namespace DirectoryManager.Data.DbContextInfo
                    .HasIndex(x => x.Fingerprint)
                    .IsUnique();
 
+            // Admin block list of PGP keys (one row per fingerprint; see BlockedReviewerKey).
+            builder.Entity<BlockedReviewerKey>()
+                   .HasIndex(x => x.Fingerprint)
+                   .IsUnique()
+                   .HasDatabaseName("IX_BlockedReviewerKeys_Fingerprint");
+
             builder.Entity<DirectoryEntryReview>(r =>
             {
                 r.HasIndex(x => x.AuthorFingerprint);
@@ -585,6 +642,14 @@ namespace DirectoryManager.Data.DbContextInfo
 
                 // Optional: if you also frequently query by ModStatus alone:
                 // r.HasIndex(x => x.ModerationStatus).HasDatabaseName("IX_Reviews_Mod");
+
+                // Member reviews: "my reviews" and "one review per member per listing".
+                r.HasIndex(x => new { x.AuthorUserId, x.DirectoryEntryId })
+                 .HasDatabaseName("IX_Reviews_AuthorUser_Entry");
+                r.HasOne<ApplicationUser>()
+                 .WithMany()
+                 .HasForeignKey(x => x.AuthorUserId)
+                 .OnDelete(DeleteBehavior.SetNull);
             });
         }
 
@@ -607,6 +672,18 @@ namespace DirectoryManager.Data.DbContextInfo
                 // ✅ If you ever traverse threads (parent/children)
                 c.HasIndex(x => x.ParentCommentId)
                  .HasDatabaseName("IX_ReviewComments_ParentCommentId");
+
+                // Member replies ("my replies", per-day limits).
+                c.HasIndex(x => x.AuthorUserId)
+                 .HasDatabaseName("IX_ReviewComments_AuthorUser");
+
+                // Admin "Users" page: PGP replies grouped / looked up by key.
+                c.HasIndex(x => x.AuthorFingerprint)
+                 .HasDatabaseName("IX_ReviewComments_AuthorFingerprint");
+                c.HasOne<ApplicationUser>()
+                 .WithMany()
+                 .HasForeignKey(x => x.AuthorUserId)
+                 .OnDelete(DeleteBehavior.SetNull);
             });
         }
 

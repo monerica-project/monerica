@@ -121,12 +121,13 @@ namespace DirectoryManager.Data.Tests.Helpers
         }
 
         [Fact]
-        public void Scam_SinksBelowOtherListings()
+        public void Scam_IsNotShownForAGenericSearch()
         {
+            // Scam listings are only shown when the search names them.
             var names = Search("sms");
 
             Assert.Equal("SMSPVA", names.First());
-            Assert.Equal("SMS Activate", names.Last());
+            Assert.DoesNotContain("SMS Activate", names);
         }
 
         [Fact]

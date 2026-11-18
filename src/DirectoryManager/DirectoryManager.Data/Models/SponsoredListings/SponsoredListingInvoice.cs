@@ -107,6 +107,20 @@ namespace DirectoryManager.Data.Models.SponsoredListings
         public bool IsReminderSent { get; set; }
 
         /// <summary>
+        /// When the first expiry reminder (about 72 hours before the end) was sent for the
+        /// sponsorship period this invoice paid for. Null = not sent (or sent before this column
+        /// existed; then <see cref="IsReminderSent"/> is true). A renewal attaches a new invoice,
+        /// so the next period starts with both reminder timestamps empty.
+        /// </summary>
+        public DateTime? ReminderSentUtc { get; set; }
+
+        /// <summary>
+        /// When the final, urgent reminder (24 hours or less before the end) was sent. The
+        /// reminder job claims this column before it sends, so the email can go out only once.
+        /// </summary>
+        public DateTime? FinalReminderSentUtc { get; set; }
+
+        /// <summary>
         /// The owner's own test checkout: hidden from the abandoned-checkout report and the
         /// "pending" warnings. Separate from <see cref="PaymentStatus"/>, which the payment
         /// processor keeps updating.

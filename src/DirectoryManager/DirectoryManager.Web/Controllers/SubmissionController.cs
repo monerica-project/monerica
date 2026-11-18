@@ -1,4 +1,4 @@
-﻿using BtcPayServer.API.Interfaces;
+using BtcPayServer.API.Interfaces;
 using BtcPayServer.API.Models;
 using DirectoryManager.Common.Helpers;
 using DirectoryManager.Data.Enums;
@@ -32,6 +32,7 @@ namespace DirectoryManager.Web.Controllers
             "This draft belongs to a different browser session, or your session has expired. Please start your submission again.";
 
         private const int MaxLinks = DirectoryManager.Web.Constants.IntegerConstants.MaxAdditionalLinks;
+        private const int MaxTagsAddedPerEdit = 5;
         private readonly UserManager<ApplicationUser> userManager;
         private readonly ISubmissionRepository submissionRepository;
         private readonly ISubcategoryRepository subCategoryRepository;
@@ -52,6 +53,12 @@ namespace DirectoryManager.Web.Controllers
         private readonly ISubmissionBlockedDomainRepository? blockedDomainRepository;
 
         private readonly ISubmissionLinkChecker? linkChecker;
+        private readonly IStaticPublishService? staticPublish;
+        private readonly DirectoryManager.Web.Services.Implementations.SubmissionDraftThrottle? draftThrottle;
+
+        // Site-wide cap on outbound "does this link load" checks, so the form can't be used to make
+        // the server request arbitrary sites in bulk. Over the cap the check is skipped (in doubt: valid).
+        private readonly DirectoryManager.Web.Services.Implementations.SubmissionLinkCheckThrottle? linkCheckThrottle;
 
         public SubmissionController(
             UserManager<ApplicationUser> userManager,
@@ -72,10 +79,16 @@ namespace DirectoryManager.Web.Controllers
             IBtcPayServerService btcPay,
             IDirectoryEntryAdditionalSubcategoryRepository? additionalSubcategoryRepo = null,
             ISubmissionBlockedDomainRepository? blockedDomainRepository = null,
-            ISubmissionLinkChecker? linkChecker = null)
+            ISubmissionLinkChecker? linkChecker = null,
+            IStaticPublishService? staticPublish = null,
+            DirectoryManager.Web.Services.Implementations.SubmissionDraftThrottle? draftThrottle = null,
+            DirectoryManager.Web.Services.Implementations.SubmissionLinkCheckThrottle? linkCheckThrottle = null)
             : base(cache)
         {
+            this.linkCheckThrottle = linkCheckThrottle;
+            this.draftThrottle = draftThrottle;
             this.linkChecker = linkChecker;
+            this.staticPublish = staticPublish;
             this.blockedDomainRepository = blockedDomainRepository;
             this.additionalSubcategoryRepo = additionalSubcategoryRepo;
             this.userManager = userManager;
@@ -151,9 +164,15 @@ namespace DirectoryManager.Web.Controllers
                 // The main Link must be clearnet; Tor/I2P addresses go in Link 2 / Link 3.
                 this.ModelState.AddModelError(
                     nameof(model.Link),
-                    "The main Link must be a clearnet (http/https) address. Put Tor (.onion) and I2P (.i2p) addresses in the Link 2 / Link 3 fields.");
+                    "The main Link must be a clearnet (http/https) address. Put a Tor (.onion) address in the Tor field and an I2P (.i2p) address in the I2P field.");
             }
-            else if (this.linkChecker != null && await this.MainLinkNeedsCheckAsync(model))
+            else if (ProbeContentRules.CheckLink(model.Link) is { } linkShapeError)
+            {
+                // Raw IPs, ports, reserved test domains: refused before anything is fetched.
+                this.ModelState.AddModelError(nameof(model.Link), linkShapeError);
+            }
+            else if (this.linkChecker != null && await this.MainLinkNeedsCheckAsync(model)
+                && (this.linkCheckThrottle == null || this.User.IsAdmin() || this.linkCheckThrottle.TryReserve()))
             {
                 // Links that can never load (made-up domains etc.) stop here, before the preview,
                 // so they never reach the review queue. Uncertain results pass.
@@ -167,12 +186,25 @@ namespace DirectoryManager.Web.Controllers
             // Link2/Link3 are Tor/I2P/alt links (still validate as URLs if supplied)
             if (!string.IsNullOrWhiteSpace(model.Link2) && !UrlHelper.IsValidUrl(model.Link2))
             {
-                this.ModelState.AddModelError(nameof(model.Link2), "The link 2 is not a valid URL.");
+                this.ModelState.AddModelError(nameof(model.Link2), "The Tor link is not a valid URL.");
+            }
+            else if (!string.IsNullOrWhiteSpace(model.Link2) && !UrlHelper.IsOnion(model.Link2))
+            {
+                // The Tor box takes only the site's own .onion address, never a second clearnet page.
+                this.ModelState.AddModelError(
+                    nameof(model.Link2),
+                    "The Tor field only accepts a Tor address ending in .onion. Leave it empty if the site has none. Other pages of the site do not go here.");
             }
 
             if (!string.IsNullOrWhiteSpace(model.Link3) && !UrlHelper.IsValidUrl(model.Link3))
             {
-                this.ModelState.AddModelError(nameof(model.Link3), "The link 3 is not a valid URL.");
+                this.ModelState.AddModelError(nameof(model.Link3), "The I2P link is not a valid URL.");
+            }
+            else if (!string.IsNullOrWhiteSpace(model.Link3) && !UrlHelper.IsI2p(model.Link3))
+            {
+                this.ModelState.AddModelError(
+                    nameof(model.Link3),
+                    "The I2P field only accepts an I2P address ending in .i2p. Leave it empty if the site has none. Other pages of the site do not go here.");
             }
 
             if (!string.IsNullOrWhiteSpace(model.ProofLink) && !UrlHelper.IsValidUrl(model.ProofLink))
@@ -209,9 +241,9 @@ namespace DirectoryManager.Web.Controllers
                 this.ModelState.AddModelError(nameof(model.SourceCodeLink), "The source code link is not a valid URL.");
             }
 
-            GuaranteeValidation.ValidateGuarantees(model.Guarantees, this.ModelState);
+            GuaranteeValidation.ValidateGuarantees(model.Guarantees, this.ModelState, model.Link, model.Link2, model.Link3);
 
-            // ---- Every link must be different (proof link may equal the main link) ----
+            // ---- Every link must be different (proof and source code links may equal the main link) ----
             foreach (var (field, message) in DirectoryManager.Utilities.Helpers.LinkUniqueness.FindDuplicates(new (string, string, string?)[]
             {
                 (nameof(model.Link), "Link", model.Link),
@@ -232,6 +264,7 @@ namespace DirectoryManager.Web.Controllers
 
             // ---- No links straight to programs, installers or archives (new listings and edits) ----
             this.ValidateNoFileDownloadLinks(model);
+            await this.ValidateNotProbeContentAsync(model);
             await this.ValidateNoBlockedDomainsAsync(model);
 
             // Links belong in the dedicated Link fields, not in free-text. Reject URLs
@@ -389,7 +422,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest(DraftNotYoursMessage);
             }
 
-            if (submission.SubmissionStatus != SubmissionStatus.Preview && this.User?.Identity?.IsAuthenticated != true)
+            if (submission.SubmissionStatus != SubmissionStatus.Preview && !this.User.IsAdmin())
             {
                 return this.BadRequest(Constants.StringConstants.SubmissionAlreadySubmitted);
             }
@@ -404,7 +437,11 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> SubmitEdit(int id, CancellationToken ct)
         {
             var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(id);
-            if (directoryEntry == null)
+
+            // A removed listing has no public page; its stored email, contacts and links are not
+            // handed to anonymous visitors through the edit form either.
+            if (directoryEntry == null ||
+                (directoryEntry.DirectoryStatus == DirectoryStatus.Removed && !this.User.IsAdmin()))
             {
                 return this.NotFound();
             }
@@ -455,6 +492,11 @@ namespace DirectoryManager.Web.Controllers
         {
             var entries = await this.directoryEntryRepository.GetAllAsync();
 
+            if (!this.User.IsAdmin())
+            {
+                entries = entries.Where(e => e.DirectoryStatus != DirectoryStatus.Removed).ToList();
+            }
+
             if (subCategoryId.HasValue)
             {
                 entries = entries.Where(e => e.SubCategory?.SubCategoryId == subCategoryId.Value).ToList();
@@ -471,7 +513,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View(entries);
         }
 
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         [HttpGet("submission/audit/{entryId}")]
         public async Task<IActionResult> AuditAync(int entryId)
         {
@@ -507,7 +549,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View("Audit", audits);
         }
 
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         [HttpGet("submission/index")]
         public async Task<IActionResult> Index(int? page, int pageSize = Constants.IntegerConstants.DefaultPageSize)
         {
@@ -542,7 +584,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View(viewModel);
         }
 
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         [HttpGet("submission/pending")]
         public async Task<IActionResult> Pending(int? page, int pageSize = Constants.IntegerConstants.DefaultPageSize)
         {
@@ -576,7 +618,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View("Pending", viewModel);
         }
 
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         [HttpGet("submission/{id}")]
         public async Task<IActionResult> Review(int id, CancellationToken ct, bool useProposal = false)
         {
@@ -815,7 +857,7 @@ namespace DirectoryManager.Web.Controllers
                 .ToList();
         }
 
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         [HttpPost("submission/{id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Review(
@@ -827,17 +869,34 @@ namespace DirectoryManager.Web.Controllers
             string? foundedYear,
             string? foundedMonth,
             string? foundedDay,
-            CancellationToken ct)
+            CancellationToken ct,
+            string? decision = null,
+            bool confirmSensitive = false,
+            string? from = null)
         {
             // The form doesn't post the id, so a validation error re-rendered the page with
             // SubmissionId 0 and the next Save/Delete went to /submission/0. Keep the route id.
             model.SubmissionId = id;
 
+            // The prominent "Approve" button is the same save as choosing "Approved" in the status
+            // dropdown: it only sets the status, everything below (checks, audit, log) is shared.
+            bool quickApprove = string.Equals(decision, "approve", StringComparison.OrdinalIgnoreCase);
+            if (quickApprove)
+            {
+                // If the approve is stopped by a check, the page re-renders with the dropdown's value.
+                this.ViewBag.StatusBeforeQuickApprove = model.SubmissionStatus;
+                model.SubmissionStatus = SubmissionStatus.Approved;
+                this.ModelState.Remove(nameof(model.SubmissionStatus));
+            }
+
+            var returnFrom = SubmissionDecision.NormalizeFrom(from);
+            this.ViewBag.ReturnFrom = returnFrom;
+
             // Guarantees bind to this dedicated parameter, NOT to the Submission's JSON-computed
             // Guarantees property (a computed collection property does not model-bind cleanly and
             // was producing an empty-message ModelState error). Validate the raw rows (catches a
             // link without an amount, etc.), then set them on the model for save + re-render.
-            GuaranteeValidation.ValidateGuarantees(guaranteeItems, this.ModelState);
+            GuaranteeValidation.ValidateGuarantees(guaranteeItems, this.ModelState, model.Link, model.Link2, model.Link3);
 
             // The listing's own limits (same as the public form), so a submission can never get
             // stuck at approval. Line breaks are already normalized to one character by the model.
@@ -865,6 +924,16 @@ namespace DirectoryManager.Web.Controllers
             }
 
             model.Guarantees = guaranteeItems ?? new List<GuaranteeItem>();
+
+            // Restrictions: known countries only (codes or names, saved as sorted codes), a short
+            // "other" line, and no Tor "Not Allowed" on a listing with a .onion link.
+            RestrictionValidation.AddTo(this.ModelState, model.RestrictedCountries, model.TorPolicy, model.OtherRestrictions, model.Link, model.Link2, model.Link3);
+            if (ListingRestrictions.CountriesError(model.RestrictedCountries) == null)
+            {
+                model.RestrictedCountries = ListingRestrictions.NormalizeCountries(model.RestrictedCountries);
+            }
+
+            model.OtherRestrictions = ListingRestrictions.CleanOther(model.OtherRestrictions);
 
             var normalizedRelated = NormalizeRelatedLinks(relatedLinks, max: 3);
 
@@ -919,6 +988,24 @@ namespace DirectoryManager.Web.Controllers
                 return await this.ReturnInvalidReviewAsync(model, selectedTagIds, normalizedRelated);
             }
 
+            // The quick Approve button must not slip protected-field changes (main link, contact,
+            // PGP key, status ...) through: the admin ticks the confirmation box next to it first.
+            if (quickApprove && isApproving && submission.DirectoryEntryId is int quickEntryId)
+            {
+                var quickEntry = await this.directoryEntryRepository.GetByIdAsync(quickEntryId);
+                if (quickEntry != null)
+                {
+                    var sensitive = SubmissionProtectedFields.SensitiveChanges(quickEntry, model);
+                    var block = SubmissionDecision.QuickApproveBlockReason(sensitive, confirmSensitive);
+                    if (block != null)
+                    {
+                        this.ViewBag.SensitiveChanges = sensitive;
+                        this.ModelState.AddModelError(string.Empty, block);
+                        return await this.ReturnInvalidReviewAsync(model, selectedTagIds, normalizedRelated);
+                    }
+                }
+            }
+
             var selected = NormalizeSelectedTagIds(selectedTagIds);
 
             // Keep a copy of what was originally submitted before the admin's edits overwrite it.
@@ -941,6 +1028,10 @@ namespace DirectoryManager.Web.Controllers
                 submission.Liquidity = model.Liquidity;
                 submission.RateType = model.RateType;
                 submission.SiteJavaScript = model.SiteJavaScript;
+                submission.RestrictedCountries = model.RestrictedCountries;
+                submission.VpnPolicy = model.VpnPolicy;
+                submission.TorPolicy = model.TorPolicy;
+                submission.OtherRestrictions = model.OtherRestrictions;
                 submission.Guarantees = model.Guarantees;
 
                 if (model.SubmissionStatus is SubmissionStatus.Approved or SubmissionStatus.Rejected or SubmissionStatus.Spam)
@@ -966,10 +1057,20 @@ namespace DirectoryManager.Web.Controllers
                 return await this.ReturnInvalidReviewAsync(model, selectedTagIds, normalizedRelated);
             }
 
-            return this.RedirectToAction(nameof(this.Index));
+            // Back to the queue the admin came from (a quick Approve defaults to the pending list).
+            var backTo = quickApprove ? (returnFrom ?? SubmissionDecision.FromPending) : returnFrom;
+            if (backTo == null)
+            {
+                return this.RedirectToAction(nameof(this.Index));
+            }
+
+            this.TempData[SubmissionDecision.MessageKey(backTo)] = submission.SubmissionStatus == SubmissionStatus.Approved
+                ? $"Approved \"{submission.Name}\" (#{id}) → listing #{submission.DirectoryEntryId}."
+                : $"Saved \"{submission.Name}\" (#{id}) as {submission.SubmissionStatus}.";
+            return this.LocalRedirect(SubmissionDecision.ReturnPath(backTo));
         }
 
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         [HttpPost("submission/delete/{id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
@@ -1470,6 +1571,86 @@ namespace DirectoryManager.Web.Controllers
             return fields;
         }
 
+        // Test/probe content (see ProbeContentRules), an unknown subcategory id, and edits that
+        // only pile tags onto a listing are refused on the form, before a draft is saved.
+        private async Task ValidateNotProbeContentAsync(SubmissionRequest model)
+        {
+            foreach (var (key, _, value) in LinkFields(model))
+            {
+                if (key == nameof(model.Link) || (this.ModelState[key]?.Errors.Count ?? 0) > 0)
+                {
+                    continue; // the main link is checked where the link checker runs
+                }
+
+                if (ProbeContentRules.CheckLink(value) is { } reason)
+                {
+                    this.ModelState.AddModelError(key, reason);
+                }
+            }
+
+            if (ProbeContentRules.LooksLikeTestName(model.Name))
+            {
+                this.ModelState.AddModelError(nameof(model.Name), ProbeContentRules.TestNameMessage);
+            }
+
+            // A listing is another business's website, never this directory itself.
+            if (Uri.TryCreate((model.Link ?? string.Empty).Trim(), UriKind.Absolute, out var mainLink)
+                && (mainLink.Host.Equals("monerica.com", StringComparison.OrdinalIgnoreCase)
+                    || mainLink.Host.EndsWith(".monerica.com", StringComparison.OrdinalIgnoreCase))
+                && (this.ModelState[nameof(model.Link)]?.Errors.Count ?? 0) == 0)
+            {
+                this.ModelState.AddModelError(nameof(model.Link), "Enter the website of the business you are submitting.");
+            }
+
+            // One letter or a single word is not a description.
+            var descriptionLength = (model.Description ?? string.Empty).Trim().Length;
+            if (descriptionLength > 0 && descriptionLength < 20
+                && (this.ModelState[nameof(model.Description)]?.Errors.Count ?? 0) == 0)
+            {
+                this.ModelState.AddModelError(nameof(model.Description), "Please describe the business in at least a short sentence (20 characters or more).");
+            }
+
+            if (ProbeContentRules.LooksLikeTestText(model.Description))
+            {
+                this.ModelState.AddModelError(nameof(model.Description), ProbeContentRules.TestTextMessage);
+            }
+
+            if (ProbeContentRules.LooksLikeTestText(model.Note))
+            {
+                this.ModelState.AddModelError(nameof(model.Note), ProbeContentRules.TestTextMessage);
+            }
+
+            if (ProbeContentRules.LooksLikeTestText(model.NoteToAdmin))
+            {
+                this.ModelState.AddModelError(nameof(model.NoteToAdmin), ProbeContentRules.TestTextMessage);
+            }
+
+            if (ProbeContentRules.IsReservedEmail(model.Email))
+            {
+                this.ModelState.AddModelError(nameof(model.Email), ProbeContentRules.ReservedEmailMessage);
+            }
+
+            // A made-up subcategory id used to crash the save (foreign key) instead of showing an error.
+            if (model.SubCategoryId is int subId && subId > 0
+                && await this.subCategoryRepository.GetByIdAsync(subId) == null)
+            {
+                this.ModelState.AddModelError(nameof(model.SubCategoryId), "Please choose a subcategory from the list.");
+            }
+
+            // Tag stuffing: an edit of an existing listing may add a few tags, not tick the whole list.
+            if (model.DirectoryEntryId is int entryId && entryId > 0 && !this.User.IsAdmin())
+            {
+                var current = (await this.entryTagRepo.GetTagsForEntryAsync(entryId)).Select(t => t.TagId).ToHashSet();
+                var added = (model.SelectedTagIds ?? new List<int>()).Where(id => id > 0).Distinct().Count(id => !current.Contains(id));
+                if (added > MaxTagsAddedPerEdit)
+                {
+                    this.ModelState.AddModelError(
+                        string.Empty,
+                        $"You can add up to {MaxTagsAddedPerEdit} tags in one edit. Tick only the tags that clearly apply to this listing.");
+                }
+            }
+        }
+
         // Links to websites on the admin-managed blocked-domains list are refused on the form.
         private async Task ValidateNoBlockedDomainsAsync(SubmissionRequest model)
         {
@@ -1643,6 +1824,10 @@ namespace DirectoryManager.Web.Controllers
                 Liquidity = directoryEntry.Liquidity,
                 RateType = directoryEntry.RateType,
                 SiteJavaScript = directoryEntry.SiteJavaScript,
+                RestrictedCountries = ListingRestrictions.ToInputText(directoryEntry.RestrictedCountries),
+                VpnPolicy = directoryEntry.VpnPolicy,
+                TorPolicy = directoryEntry.TorPolicy,
+                OtherRestrictions = directoryEntry.OtherRestrictions,
                 CountryCode = directoryEntry.CountryCode,
                 PgpKey = directoryEntry.PgpKey,
                 RelatedLink1 = null,
@@ -1688,6 +1873,10 @@ namespace DirectoryManager.Web.Controllers
                 Liquidity = submission.Liquidity,
                 RateType = submission.RateType,
                 SiteJavaScript = submission.SiteJavaScript,
+                RestrictedCountries = ListingRestrictions.ToInputText(submission.RestrictedCountries),
+                VpnPolicy = submission.VpnPolicy,
+                TorPolicy = submission.TorPolicy,
+                OtherRestrictions = submission.OtherRestrictions,
                 Guarantees = submission.Guarantees,
                 PgpKey = submission.PgpKey,
                 RelatedLink1 = related.ElementAtOrDefault(0),
@@ -1816,6 +2005,10 @@ namespace DirectoryManager.Web.Controllers
                     Liquidity = submission.Liquidity,
                     RateType = submission.RateType,
                     SiteJavaScript = submission.SiteJavaScript,
+                    RestrictedCountries = submission.RestrictedCountries,
+                    VpnPolicy = submission.VpnPolicy,
+                    TorPolicy = submission.TorPolicy,
+                    OtherRestrictions = submission.OtherRestrictions,
                     Guarantees = submission.Guarantees,
                     FoundedDate = submission.FoundedDate,
                 },
@@ -1881,6 +2074,25 @@ namespace DirectoryManager.Web.Controllers
                 submissionModel.DirectoryEntryId = existingDirectoryEntryId;
                 await this.KeepCurrentStatusIfUnsetAsync(submissionModel);
                 await this.ProtectListingFieldsAsync(submissionModel);
+
+                if (this.draftThrottle != null && !this.User.IsAdmin() && !this.draftThrottle.TryReserve())
+                {
+                    // The free hourly allowance is used up (normally by a script). A real visitor is
+                    // not turned away: solving a captcha lets the draft through, up to a second,
+                    // larger ceiling. Without a correct captcha the form comes back with one on it.
+                    var solved = this.Request.HasFormContentType
+                        && string.Equals(this.Request.Form["CaptchaContext"].ToString(), "draft", StringComparison.Ordinal)
+                        && this.captcha.IsValid(this.Request);
+
+                    if (!solved || !this.draftThrottle.TryReserveWithCaptcha())
+                    {
+                        this.ViewBag.RequireDraftCaptcha = true;
+                        return await this.SubmitEditWithErrorAsync(
+                            model,
+                            DirectoryManager.Web.Services.Implementations.SubmissionDraftThrottle.BusyMessage);
+                    }
+                }
+
                 var createdSub = await this.submissionRepository.CreateAsync(submissionModel);
                 submissionId = createdSub.SubmissionId;
                 this.RememberDraft(createdSub.SubmissionId);
@@ -2070,6 +2282,11 @@ namespace DirectoryManager.Web.Controllers
             int[] selectedTagIds,
             List<string> normalizedRelated)
         {
+            if (this.ViewBag.StatusBeforeQuickApprove is SubmissionStatus statusBeforeQuickApprove)
+            {
+                model.SubmissionStatus = statusBeforeQuickApprove;
+            }
+
             await this.LoadDropDowns(model.Processor, CancellationToken.None);
             await this.SetSelectSubCategoryViewBag();
             await this.LoadAllTagsForCheckboxesAsync();
@@ -2163,6 +2380,11 @@ namespace DirectoryManager.Web.Controllers
                 // or: return this.BadRequest(new { Error = "Submission does not have a subcategory" });
             }
 
+            // Pages an edited listing is on BEFORE approval (old subcategory/tags/country/key).
+            var pagesBefore = postedModel.DirectoryEntryId is int existingId && this.staticPublish != null
+                ? await this.staticPublish.PathsForEntryAsync(existingId, ct)
+                : null;
+
             int entryId = await this.UpsertDirectoryEntryForApprovalAsync(postedModel);
 
             // Link the submission to the listing it created/updated.
@@ -2175,6 +2397,14 @@ namespace DirectoryManager.Web.Controllers
             await this.SyncEntryTagsAsync(entryId, selectedTagIds);
 
             this.ClearCachedItems();
+            if (this.staticPublish != null)
+            {
+                await this.staticPublish.EnqueueForEntryAsync(
+                    entryId,
+                    (pagesBefore == null ? "submission approved (new listing): " : "submission approved (edit): ") + postedModel.Name,
+                    pagesBefore,
+                    ct);
+            }
         }
 
         private async Task<int> UpsertDirectoryEntryForApprovalAsync(Submission postedModel)
@@ -2233,7 +2463,7 @@ namespace DirectoryManager.Web.Controllers
         /// </summary>
         private async Task ProtectListingFieldsAsync(Submission submissionModel)
         {
-            if (this.User?.Identity?.IsAuthenticated == true || submissionModel.DirectoryEntryId is not int entryId)
+            if (this.User.IsAdmin() || submissionModel.DirectoryEntryId is not int entryId)
             {
                 return;
             }
@@ -2272,6 +2502,10 @@ namespace DirectoryManager.Web.Controllers
                 submissionModel.Liquidity = existingDirectoryEntry.Liquidity;
                 submissionModel.RateType = existingDirectoryEntry.RateType;
                 submissionModel.SiteJavaScript = existingDirectoryEntry.SiteJavaScript;
+                submissionModel.RestrictedCountries = existingDirectoryEntry.RestrictedCountries;
+                submissionModel.VpnPolicy = existingDirectoryEntry.VpnPolicy;
+                submissionModel.TorPolicy = existingDirectoryEntry.TorPolicy;
+                submissionModel.OtherRestrictions = existingDirectoryEntry.OtherRestrictions;
 
                 var existingGuarantees = await this.guaranteeRepo.GetByDirectoryEntryIdAsync(existingDirectoryEntry.DirectoryEntryId);
                 submissionModel.Guarantees = existingGuarantees
@@ -2321,6 +2555,10 @@ namespace DirectoryManager.Web.Controllers
                 Liquidity = model.Liquidity,
                 RateType = model.RateType,
                 SiteJavaScript = model.SiteJavaScript,
+                RestrictedCountries = ListingRestrictions.NormalizeCountries(model.RestrictedCountries),
+                VpnPolicy = model.VpnPolicy,
+                TorPolicy = model.TorPolicy,
+                OtherRestrictions = ListingRestrictions.CleanOther(model.OtherRestrictions),
                 PgpKey = model.PgpKey?.Trim(),
                 ProofLink = model.ProofLink?.Trim(),
                 VideoLink = model.VideoLink?.Trim(),
@@ -2366,6 +2604,10 @@ namespace DirectoryManager.Web.Controllers
             existing.Liquidity = model.Liquidity;
             existing.RateType = model.RateType;
             existing.SiteJavaScript = model.SiteJavaScript;
+            existing.RestrictedCountries = ListingRestrictions.NormalizeCountries(model.RestrictedCountries);
+            existing.VpnPolicy = model.VpnPolicy;
+            existing.TorPolicy = model.TorPolicy;
+            existing.OtherRestrictions = ListingRestrictions.CleanOther(model.OtherRestrictions);
             existing.PgpKey = model.PgpKey?.Trim();
             existing.ProofLink = model.ProofLink?.Trim();
             existing.SourceCodeLink = model.SourceCodeLink?.Trim();
@@ -2422,7 +2664,12 @@ namespace DirectoryManager.Web.Controllers
                 SuggestedSubCategory = (model.SuggestedSubCategory ?? string.Empty).Trim(),
                 SubCategoryId = (model.SubCategoryId == 0) ? null : model.SubCategoryId,
                 DirectoryEntryId = (model.DirectoryEntryId == 0) ? null : model.DirectoryEntryId,
-                DirectoryStatus = model.DirectoryStatus ?? DirectoryStatus.Unknown,
+                // The public form has no status field: a posted DirectoryStatus (e.g. Verified) from a
+                // visitor is ignored, so a new listing can't publish itself as Verified via
+                // "Approve suggested". Admins (signed in) may still set it. (Audit 2026-11-11.)
+                DirectoryStatus = this.User.IsAdmin()
+                    ? model.DirectoryStatus ?? DirectoryStatus.Unknown
+                    : DirectoryStatus.Unknown,
                 NoteToAdmin = model.NoteToAdmin,
                 Tags = model.Tags?.Trim(),
                 CountryCode = model.CountryCode,
@@ -2430,6 +2677,10 @@ namespace DirectoryManager.Web.Controllers
                 Liquidity = model.Liquidity,
                 RateType = model.RateType,
                 SiteJavaScript = model.SiteJavaScript,
+                RestrictedCountries = ListingRestrictions.NormalizeCountries(model.RestrictedCountries),
+                VpnPolicy = model.VpnPolicy,
+                TorPolicy = model.TorPolicy,
+                OtherRestrictions = ListingRestrictions.CleanOther(model.OtherRestrictions),
                 Guarantees = model.Guarantees,
                 PgpKey = (model.PgpKey ?? string.Empty).Trim(),
                 SelectedTagIdsCsv = model.SelectedTagIdsCsv,
@@ -2481,7 +2732,7 @@ namespace DirectoryManager.Web.Controllers
         }
 
         private bool OwnsDraft(int submissionId) =>
-            this.User?.Identity?.IsAuthenticated == true || this.ReadDraftIds().Contains(submissionId);
+            this.User.IsAdmin() || this.ReadDraftIds().Contains(submissionId);
 
         private List<int> ReadDraftIds() =>
             (this.HttpContext.Session.GetString(DraftSessionKey) ?? string.Empty)
@@ -2517,6 +2768,10 @@ namespace DirectoryManager.Web.Controllers
             existingSubmission.Liquidity = submissionModel.Liquidity;
             existingSubmission.RateType = submissionModel.RateType;
             existingSubmission.SiteJavaScript = submissionModel.SiteJavaScript;
+            existingSubmission.RestrictedCountries = submissionModel.RestrictedCountries;
+            existingSubmission.VpnPolicy = submissionModel.VpnPolicy;
+            existingSubmission.TorPolicy = submissionModel.TorPolicy;
+            existingSubmission.OtherRestrictions = submissionModel.OtherRestrictions;
             existingSubmission.Guarantees = submissionModel.Guarantees;
             existingSubmission.PgpKey = submissionModel.PgpKey;
             existingSubmission.ProofLink = submissionModel.ProofLink;
@@ -2743,6 +2998,20 @@ namespace DirectoryManager.Web.Controllers
             }
 
             if (existingEntry.SiteJavaScript != model.SiteJavaScript)
+            {
+                return true;
+            }
+
+            if (!string.Equals(
+                    ListingRestrictions.NormalizeCountries(existingEntry.RestrictedCountries),
+                    ListingRestrictions.NormalizeCountries(model.RestrictedCountries),
+                    StringComparison.Ordinal)
+                || existingEntry.VpnPolicy != model.VpnPolicy
+                || existingEntry.TorPolicy != model.TorPolicy
+                || !string.Equals(
+                    ListingRestrictions.CleanOther(existingEntry.OtherRestrictions),
+                    ListingRestrictions.CleanOther(model.OtherRestrictions),
+                    StringComparison.Ordinal))
             {
                 return true;
             }

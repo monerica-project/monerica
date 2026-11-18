@@ -176,6 +176,14 @@
             .OrderByDescending(s => chartMonths.Sum(m => m.BySource[s]))
             .ToList();
     }
+    @if (Model.ChartAveragePerMonth > 0m)
+    {
+        <p class="u-mt-4px"><strong>Dashed line: @Money(Model.ChartAveragePerMonth, true) average per month.</strong>
+            <span class="text-muted">Each sponsorship package is spread over the days it runs, so a long package paid up front counts month by month. Covers the months shown, up to today; the current month counts only for the days so far.</span></p>
+        <p class="u-mt-4px"><strong>Dashed blue line: the average so far, month by month.</strong>
+            <span class="text-muted">Each point is the average per month from the start of the chart through that month, so a line that climbs means the monthly average is growing. It ends at the white line's value.</span></p>
+    }
+
     @if (chartMonths.Count > 0)
     {
         <p class="text-muted u-mt-4px">@(earned ? "Revenue earned" : "Cash collected") per month, the values in the chart above.</p>

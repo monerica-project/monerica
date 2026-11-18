@@ -1,0 +1,35 @@
+@model DirectoryManager.Web.Models.Members.MemberReplyPageViewModel
+@using DirectoryManager.Web.Constants
+@inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService Urls
+@{
+    PageMeta.Title = "Reply to a review";
+    PageMeta.IsIndexable = false;
+    Layout = "_CenteredLayout";
+    var listingHref = Urls.ResolveToRoot(DirectoryManager.Utilities.Helpers.UrlBuilder.ListingPath(Model.DirectoryEntryKey));
+}
+
+@section PageContent {
+<h1>@PageMeta.Title</h1>
+<hr />
+
+<p><b>Listing:</b> <a class="no-app-link" href="@listingHref">@Model.DirectoryEntryName</a></p>
+<p><b>Posting as:</b> @Model.Username <small class="text-muted">(account)</small></p>
+
+<div class="card p-3 mb-3">
+    <div class="text-muted mb-1"><small>Replying to:</small></div>
+    <div class="u-ws-pre-wrap">@Model.ReviewExcerpt</div>
+</div>
+
+<div asp-validation-summary="All" class="text-danger"></div>
+
+<form method="post" action="@(MemberAuth.ReplyPathPrefix + Model.DirectoryEntryReviewId)">
+    @Html.AntiForgeryToken()
+    <div class="u-mb-16px">
+        <label asp-for="Input.Body" class="form-label"><strong>Your reply</strong></label>
+        <textarea asp-for="Input.Body" class="form-control" cols="40" rows="10" maxlength="4000"></textarea>
+    </div>
+
+    <p class="text-muted"><i>Every reply from a member account is checked by a moderator before it appears.</i></p>
+    <button type="submit" class="btn btn-success btn-cta">Submit reply</button>
+</form>
+}

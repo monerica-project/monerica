@@ -1,4 +1,5 @@
-﻿using System.Security.Cryptography;
+using DirectoryManager.Web.Extensions;
+using System.Security.Cryptography;
 using System.Text;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.Reviews;
@@ -7,6 +8,7 @@ using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models.Reviews;
 using DirectoryManager.Web.Services.Interfaces;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -19,6 +21,8 @@ namespace DirectoryManager.Web.Controllers
             "Session expired, your reply message was not saved, please start over!";
 
         private const int MaxReplyLength = 4000;
+
+        private const string FlowKind = "review-reply";
 
         private const string NoEncryptionKeyMessage =
             "This PGP key can't be used: it has no usable encryption key (it is sign-only, or its encryption " +
@@ -38,6 +42,9 @@ namespace DirectoryManager.Web.Controllers
         private readonly IDirectoryEntryReviewCommentRepository commentRepo;
         private readonly IDirectoryEntryRepository entryRepo;
         private readonly IUserContentModerationService moderation;
+        private readonly IReviewTagRepository reviewTagRepo;
+        private readonly IDirectoryEntryReviewTagRepository reviewTagLinkRepo;
+        private readonly IDataProtectionProvider dataProtection;
 
         public DirectoryEntryReviewRepliesController(
             IMemoryCache cache,
@@ -46,7 +53,10 @@ namespace DirectoryManager.Web.Controllers
             IDirectoryEntryReviewRepository reviewRepo,
             IDirectoryEntryReviewCommentRepository commentRepo,
             IDirectoryEntryRepository entryRepo,
-            IUserContentModerationService moderation)
+            IUserContentModerationService moderation,
+            IReviewTagRepository reviewTagRepo,
+            IDirectoryEntryReviewTagRepository reviewTagLinkRepo,
+            IDataProtectionProvider dataProtection)
             : base(cache)
         {
             this.cache = cache;
@@ -56,6 +66,9 @@ namespace DirectoryManager.Web.Controllers
             this.commentRepo = commentRepo;
             this.entryRepo = entryRepo;
             this.moderation = moderation;
+            this.reviewTagRepo = reviewTagRepo;
+            this.reviewTagLinkRepo = reviewTagLinkRepo;
+            this.dataProtection = dataProtection;
         }
 
         // POST-only begin (from review list)
@@ -89,21 +102,25 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            var flowId = this.CreateFlow(review.DirectoryEntryReviewId, review.DirectoryEntryId);
-            return this.RedirectToAction(nameof(this.Captcha), new { flowId });
+            // No server state yet: the flow is only stored once the captcha is solved.
+            var flowId = Guid.NewGuid();
+            var ticket = PreCaptchaFlowTicket.Issue(
+                this.dataProtection, FlowKind, flowId, review.DirectoryEntryReviewId, review.DirectoryEntryId);
+            return this.RedirectToAction(nameof(this.Captcha), new { flowId, ticket });
         }
 
         // Step 1: captcha
         [HttpGet("captcha")]
-        public IActionResult Captcha(Guid flowId)
+        public IActionResult Captcha(Guid flowId, string? ticket)
         {
-            if (!this.TryGetFlow(flowId, out var state))
+            if (!this.TryGetFlowOrTicket(flowId, ticket, out var reviewId, out _))
             {
                 return this.BadRequest(SesssionExpiredMessage);
             }
 
             this.ViewBag.FlowId = flowId;
-            this.ViewBag.DirectoryEntryReviewId = state.DirectoryEntryReviewId;
+            this.ViewBag.FlowTicket = ticket;
+            this.ViewBag.DirectoryEntryReviewId = reviewId;
 
             // tell the shared view where to POST
             this.ViewBag.PostController = "DirectoryEntryReviewReplies";
@@ -117,9 +134,9 @@ namespace DirectoryManager.Web.Controllers
 
         [HttpPost("captcha")]
         [ValidateAntiForgeryToken]
-        public IActionResult CaptchaPost(Guid flowId)
+        public IActionResult CaptchaPost(Guid flowId, string? ticket)
         {
-            if (!this.TryGetFlow(flowId, out var state))
+            if (!this.TryGetFlowOrTicket(flowId, ticket, out var reviewId, out var entryId))
             {
                 return this.BadRequest(SesssionExpiredMessage);
             }
@@ -129,12 +146,19 @@ namespace DirectoryManager.Web.Controllers
                 this.ModelState.AddModelError(string.Empty, "Captcha failed. Please try again.");
 
                 this.ViewBag.FlowId = flowId;
-                this.ViewBag.DirectoryEntryReviewId = state.DirectoryEntryReviewId;
+                this.ViewBag.FlowTicket = ticket;
+                this.ViewBag.DirectoryEntryReviewId = reviewId;
                 this.ViewBag.PostController = "DirectoryEntryReviewReplies";
                 this.ViewBag.PostAction = "CaptchaPost";
                 this.ViewBag.CaptchaPurpose = "reply";
 
                 return this.View("~/Views/DirectoryEntryReviews/Captcha.cshtml");
+            }
+
+            // First server-side state for this flow is created only now, after the captcha.
+            if (!this.TryGetFlow(flowId, out var state))
+            {
+                state = CreateFlow(reviewId, entryId);
             }
 
             state.CaptchaOk = true;
@@ -164,7 +188,7 @@ namespace DirectoryManager.Web.Controllers
 
         [HttpPost("submit-key")]
         [ValidateAntiForgeryToken]
-        public IActionResult SubmitKeyPost(Guid flowId, string pgpArmored)
+        public async Task<IActionResult> SubmitKeyPost(Guid flowId, string pgpArmored)
         {
             if (!this.TryGetFlow(flowId, out var state))
             {
@@ -176,10 +200,21 @@ namespace DirectoryManager.Web.Controllers
                 return this.RedirectToAction(nameof(this.Captcha), new { flowId });
             }
 
-            var fp = this.pgp.GetFingerprint(pgpArmored);
+            var fp = (pgpArmored?.Length ?? 0) > IntegerConstants.MaxPgpArmoredChars
+                ? null
+                : this.pgp.GetFingerprint(pgpArmored);
             if (string.IsNullOrWhiteSpace(fp))
             {
                 this.ModelState.AddModelError(string.Empty, "Invalid PGP public key.");
+                this.ViewBag.FlowId = flowId;
+                this.ViewBag.DirectoryEntryReviewId = state.DirectoryEntryReviewId;
+                return this.View("SubmitKey");
+            }
+
+            // Refused as soon as the key is known (checked again on submit).
+            if (await this.PgpAuthorBlockedAsync(fp, this.HttpContext.RequestAborted))
+            {
+                this.ModelState.AddModelError(string.Empty, ReviewerBlocks.KeyBlockedMessage);
                 this.ViewBag.FlowId = flowId;
                 this.ViewBag.DirectoryEntryReviewId = state.DirectoryEntryReviewId;
                 return this.View("SubmitKey");
@@ -318,6 +353,12 @@ namespace DirectoryManager.Web.Controllers
                 return this.RedirectToAction(nameof(this.VerifyCode), new { flowId });
             }
 
+            if (await this.PgpAuthorBlockedAsync(state.PgpFingerprint, ct))
+            {
+                this.cache.Remove(CacheKey(flowId));
+                return this.PostingUnavailable();
+            }
+
             var entry = await this.entryRepo.GetByIdAsync(state.DirectoryEntryId);
 
             var gateEntry = await this.entryRepo.GetByIdAsync(state.DirectoryEntryId);
@@ -353,6 +394,18 @@ namespace DirectoryManager.Web.Controllers
                 DirectoryEntryReviewId = state.DirectoryEntryReviewId
             };
 
+            // The review's own author may adjust their rating and tags here (never the text).
+            if (IsReviewAuthor(state.PgpFingerprint, review))
+            {
+                var currentTags = await this.reviewTagLinkRepo.GetTagIdsForReviewAsync(review!.DirectoryEntryReviewId, ct);
+                var allTags = await this.reviewTagRepo.ListEnabledAsync(ct);
+                var currentPublic = OwnReviewEdit.CurrentPublicTags(currentTags, allTags);
+                vm.NewRating = review.Rating;
+                vm.SelectedReviewTagIds = currentPublic.Where(id => allTags.Any(t => t.ReviewTagId == id && !t.IsMoneyBand)).ToList();
+                vm.SelectedMoneyBandTagId = currentPublic.FirstOrDefault(id => allTags.Any(t => t.ReviewTagId == id && t.IsMoneyBand)) is var band && band > 0 ? band : null;
+                await this.PopulateOwnReviewEditorAsync(review, ct);
+            }
+
             return this.View(vm);
         }
 
@@ -387,6 +440,12 @@ namespace DirectoryManager.Web.Controllers
             if (!state.ChallengeSolved)
             {
                 return this.RedirectToAction(nameof(this.VerifyCode), new { flowId });
+            }
+
+            if (await this.PgpAuthorBlockedAsync(state.PgpFingerprint, ct))
+            {
+                this.cache.Remove(CacheKey(flowId));
+                return this.PostingUnavailable();
             }
 
             // Always trust the flow for the review id
@@ -431,6 +490,11 @@ namespace DirectoryManager.Web.Controllers
                 this.ViewBag.DirectoryEntryName = entry?.Name ?? "Listing";
                 this.ViewBag.PgpFingerprint = state.PgpFingerprint;
 
+                if (IsReviewAuthor(state.PgpFingerprint, threadReview))
+                {
+                    await this.PopulateOwnReviewEditorAsync(threadReview!, ct);
+                }
+
                 return this.View("Compose", input);
             }
 
@@ -444,6 +508,11 @@ namespace DirectoryManager.Web.Controllers
                 this.ViewBag.FlowId = flowId;
                 this.ViewBag.DirectoryEntryName = replyGateEntry.Name ?? "Listing";
                 this.ViewBag.PgpFingerprint = state.PgpFingerprint;
+                if (IsReviewAuthor(state.PgpFingerprint, threadReview))
+                {
+                    await this.PopulateOwnReviewEditorAsync(threadReview!, ct);
+                }
+
                 return this.View("Compose", input);
             }
 
@@ -468,9 +537,42 @@ namespace DirectoryManager.Web.Controllers
 
             bool hasLink = DirectoryManager.Utilities.Helpers.StringHelpers.ContainsHyperlink(bodyTrimmed);
 
+            // The review's AUTHOR may adjust their own review's rating (applied now) and public tags
+            // (applied when a moderator approves this reply; tags are trust signals and self-chosen
+            // tags never publish unchecked). Nobody else can, including the listing owner.
+            byte? ratingChange = null;
+            string? requestedTagsCsv = null;
+            if (input.EditOwnReview && ownThread && !isListingOwner && IsReviewAuthor(state.PgpFingerprint, thread))
+            {
+                ratingChange = OwnReviewEdit.RatingChange(thread!.Rating, input.NewRating);
+
+                var enabledTags = await this.reviewTagRepo.ListEnabledAsync(ct);
+                var requested = OwnReviewEdit.RequestedTags(enabledTags, input.SelectedReviewTagIds, input.SelectedMoneyBandTagId);
+                var currentTags = await this.reviewTagLinkRepo.GetTagIdsForReviewAsync(thread.DirectoryEntryReviewId, ct);
+                var allTags = await this.reviewTagRepo.ListAllAsync(ct);
+                if (!requested.SequenceEqual(OwnReviewEdit.CurrentPublicTags(currentTags, allTags)))
+                {
+                    requestedTagsCsv = OwnReviewEdit.ToCsv(requested);
+                }
+            }
+
             // Hold for manual review only if the shared rules flag it AND it is NOT a link-free
             // reply from a trusted author (thread owner or listing owner).
             bool needsManualReview = mod.NeedsManualReview && !((ownThread || isListingOwner) && !hasLink);
+
+            // A requested tag change always waits for a moderator, together with this reply.
+            if (requestedTagsCsv != null)
+            {
+                needsManualReview = true;
+            }
+
+            // A key with no approved review yet is unknown: its reply waits for a moderator, the
+            // same rule the review flow got on 2026-11-16. Thread and listing owners are exempt.
+            if (!ownThread && !isListingOwner
+                && !await this.reviewRepo.HasApprovedByAuthorFingerprintAsync(state.PgpFingerprint, ct))
+            {
+                needsManualReview = true;
+            }
 
             var entity = new DirectoryEntryReviewComment
             {
@@ -486,25 +588,66 @@ namespace DirectoryManager.Web.Controllers
                 AuthorFingerprint = state.PgpFingerprint!,
                 CreateDate = DateTime.UtcNow,
                 CreatedByUserId = "automated",
-                UpdatedByUserId = needsManualReview ? null : "automated"
+                UpdatedByUserId = needsManualReview ? null : "automated",
+                RatingChangedFrom = ratingChange.HasValue ? thread!.Rating : null,
+                RatingChangedTo = ratingChange,
+                RequestedReviewTagIdsCsv = requestedTagsCsv,
             };
 
             await this.commentRepo.AddAsync(entity, ct);
             markSaved();
 
+            // The author's new rating takes effect right away (the review text is untouched).
+            if (ratingChange.HasValue)
+            {
+                thread!.Rating = ratingChange.Value;
+                thread.UpdateDate = DateTime.UtcNow;
+                thread.UpdatedByUserId = "author-via-reply";
+                await this.reviewRepo.UpdateAsync(thread, ct);
+            }
+
             this.ClearCachedItems();
             this.cache.Remove(CacheKey(flowId));
+            if (entity.ModerationStatus == ReviewModerationStatus.Approved || ratingChange.HasValue)
+            {
+                await this.StaticPublish().EnqueueForReviewAsync(
+                    state.DirectoryEntryReviewId,
+                    ratingChange.HasValue ? "review rating changed by its author" : "reply auto-published",
+                    ct);
+            }
 
             // ✅ flowId tombstone stays in SubmittedFlows — intentional, prevents replay.
 
             // ✅ Your Replies Thanks view reads TempData["ReplyMessage"]. When a trusted author's
             // link-free reply bypassed a moderation flag, show a "posted" message instead of the
             // service's "awaiting moderation" one.
-            this.TempData["ReplyMessage"] = (!needsManualReview && mod.NeedsManualReview)
-                ? "Thanks — your reply is posted."
-                : mod.ThankYouMessage;
+            this.TempData["ReplyMessage"] = requestedTagsCsv != null
+                ? "Thanks. Your reply and your tag changes will appear after a moderator checks them." +
+                  (ratingChange.HasValue ? " Your new rating is already updated." : string.Empty)
+                : (!needsManualReview && mod.NeedsManualReview)
+                    ? "Thanks — your reply is posted." + (ratingChange.HasValue ? " Your rating is updated." : string.Empty)
+                    : mod.ThankYouMessage + (ratingChange.HasValue ? " Your new rating is already updated." : string.Empty);
 
             return this.RedirectToAction(nameof(this.Thanks));
+        }
+
+        /// <summary>True when the verified replier is the review's own author (same PGP identity).</summary>
+        private static bool IsReviewAuthor(string? replierFingerprint, DirectoryEntryReview? review)
+        {
+            var fp = PgpFingerprintTools.Normalize(replierFingerprint ?? string.Empty);
+            return review != null
+                && !string.IsNullOrWhiteSpace(fp)
+                && !string.IsNullOrWhiteSpace(review.AuthorFingerprint)
+                && PgpFingerprintTools.Matches(fp, PgpFingerprintTools.Normalize(review.AuthorFingerprint));
+        }
+
+        /// <summary>ViewBag for the "update your review" fields (author only).</summary>
+        private async Task PopulateOwnReviewEditorAsync(DirectoryEntryReview review, CancellationToken ct)
+        {
+            this.ViewBag.CanEditOwnReview = true;
+            this.ViewBag.AvailableReviewTags = (await this.reviewTagRepo.ListEnabledAsync(ct))
+                .Where(t => t.ReviewerSelectable)
+                .ToList();
         }
 
         [HttpGet("thanks")]
@@ -575,18 +718,40 @@ namespace DirectoryManager.Web.Controllers
 
         private static string CacheKey(Guid flowId) => $"review-reply-flow:{flowId}";
 
-        private Guid CreateFlow(int reviewId, int entryId)
+        // Called only after the captcha is solved (the caller stores it).
+        private static ReviewReplyFlowState CreateFlow(int reviewId, int entryId)
         {
-            var id = Guid.NewGuid();
-            var state = new ReviewReplyFlowState
+            return new ReviewReplyFlowState
             {
                 DirectoryEntryReviewId = reviewId,
                 DirectoryEntryId = entryId,
                 ExpiresUtc = DateTime.UtcNow.AddMinutes(IntegerConstants.SessinExpiresMinutes)
             };
-            this.cache.Set(CacheKey(id), state, state.ExpiresUtc);
-            return id;
         }
+
+        // Captcha step: either the flow already exists (back button / re-display) or the visitor
+        // carries the signed pre-captcha ticket minted by Begin.
+        private bool TryGetFlowOrTicket(Guid flowId, string? ticket, out int reviewId, out int entryId)
+        {
+            if (this.TryGetFlow(flowId, out var state))
+            {
+                reviewId = state.DirectoryEntryReviewId;
+                entryId = state.DirectoryEntryId;
+                return true;
+            }
+
+            return PreCaptchaFlowTicket.TryRead(this.dataProtection, FlowKind, ticket, flowId, out reviewId, out entryId);
+        }
+
+        // Admin block list: a blocked key (or one linked to a member blocked from posting) can't post.
+        private Task<bool> PgpAuthorBlockedAsync(string? fingerprint, CancellationToken ct) =>
+            ReviewerBlocks.IsPgpAuthorBlockedAsync(
+                this.HttpContext.RequestServices.GetRequiredService<DirectoryManager.Data.DbContextInfo.ApplicationDbContext>(),
+                fingerprint,
+                ct);
+
+        private ViewResult PostingUnavailable() =>
+            this.View("~/Views/Shared/PostingUnavailable.cshtml", ReviewerBlocks.KeyBlockedMessage);
 
         private bool TryGetFlow(Guid flowId, out ReviewReplyFlowState state)
         {

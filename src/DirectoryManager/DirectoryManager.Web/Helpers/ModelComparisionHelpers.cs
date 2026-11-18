@@ -191,6 +191,31 @@ namespace DirectoryManager.Web.Helpers
                 AddDifference("JavaScript", EnumHelper.GetDescription(entry.SiteJavaScript), EnumHelper.GetDescription(submission.SiteJavaScript));
             }
 
+            var entryCountries = DirectoryManager.Data.Helpers.ListingRestrictions.NormalizeCountries(entry.RestrictedCountries);
+            var submissionCountries = DirectoryManager.Data.Helpers.ListingRestrictions.NormalizeCountries(submission.RestrictedCountries);
+            if (!string.Equals(entryCountries, submissionCountries, StringComparison.Ordinal))
+            {
+                AddDifference(
+                    "Countries not served",
+                    DirectoryManager.Data.Helpers.ListingRestrictions.ToInputText(entryCountries),
+                    DirectoryManager.Data.Helpers.ListingRestrictions.ToInputText(submissionCountries));
+            }
+
+            if (entry.VpnPolicy != submission.VpnPolicy)
+            {
+                AddDifference("VPN", EnumHelper.GetDescription(entry.VpnPolicy), EnumHelper.GetDescription(submission.VpnPolicy));
+            }
+
+            if (entry.TorPolicy != submission.TorPolicy)
+            {
+                AddDifference("Tor", EnumHelper.GetDescription(entry.TorPolicy), EnumHelper.GetDescription(submission.TorPolicy));
+            }
+
+            if (NotEqualTrimmed(entry.OtherRestrictions, submission.OtherRestrictions))
+            {
+                AddDifference("Other restrictions", entry.OtherRestrictions, submission.OtherRestrictions);
+            }
+
             if (NotEqualTrimmed(entry.VideoLink, submission.VideoLink))
             {
                 AddDifference("VideoLink", entry.VideoLink, submission.VideoLink);

@@ -474,6 +474,26 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .FirstOrDefaultAsync(x => x.ProcessorInvoiceId == value);
         }
 
+        public async Task<List<int>> GetLatePaymentCandidateIdsAsync(DateTime createdSinceUtc, CancellationToken ct = default)
+        {
+            var open = new[]
+            {
+                PaymentStatus.InvoiceCreated, PaymentStatus.Pending, PaymentStatus.UnderPayment,
+                PaymentStatus.Expired, PaymentStatus.Canceled,
+            };
+
+            return await this.context.SponsoredListingInvoices
+                .AsNoTracking()
+                .Where(i => i.PaymentProcessor == PaymentProcessor.BTCPayServer
+                    && !i.IsTest
+                    && i.ProcessorInvoiceId != null && i.ProcessorInvoiceId != string.Empty
+                    && i.CreateDate >= createdSinceUtc
+                    && open.Contains(i.PaymentStatus))
+                .OrderBy(i => i.SponsoredListingInvoiceId)
+                .Select(i => i.SponsoredListingInvoiceId)
+                .ToListAsync(ct);
+        }
+
         public async Task<List<AdvertiserWindowSum>> GetAdvertiserInvoiceWindowSumsAsync(
             DateTime windowStartUtc,
             DateTime windowEndOpenUtc,

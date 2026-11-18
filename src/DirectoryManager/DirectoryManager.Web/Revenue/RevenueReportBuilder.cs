@@ -130,6 +130,101 @@ namespace DirectoryManager.Web.Revenue
             return months;
         }
 
+        /// <summary>
+        /// Average revenue per month over [fromUtc, toUtc), never past now. Always on the EARNED
+        /// basis: each sponsorship package counts a little every day it runs (amount / days paid
+        /// for), so a year paid up front weighs the same as twelve single months. The total is
+        /// divided by the time that has actually passed (in average-length months), so the
+        /// unfinished current month counts only for the days gone by.
+        /// </summary>
+        /// <param name="fromFirstPayment">Start the clock at the first month with revenue ("All time").</param>
+        /// <returns>The average per month, or 0 when there is nothing to average.</returns>
+        public static decimal AverageEarnedPerMonth(
+            IReadOnlyList<SponsoredListingInvoice> sponsorInvoices,
+            IReadOnlyList<RevenueItem> oneTime,
+            DateTime fromUtc,
+            DateTime toUtc,
+            DateTime nowUtc,
+            bool fromFirstPayment = false)
+        {
+            var end = toUtc > nowUtc ? nowUtc : toUtc;
+            var start = fromUtc;
+            if (end <= start)
+            {
+                return 0m;
+            }
+
+            var months = BuildMonths(sponsorInvoices, oneTime, start, end, RevenueBasis.Earned, nowUtc);
+            if (fromFirstPayment)
+            {
+                months = TrimLeadingEmptyMonths(months);
+                if (months.Count == 0)
+                {
+                    return 0m;
+                }
+
+                if (months[0].Month > start)
+                {
+                    start = months[0].Month;
+                }
+            }
+
+            const double DaysPerMonth = 365.25 / 12;
+            var elapsedMonths = (decimal)((end - start).TotalDays / DaysPerMonth);
+            return elapsedMonths <= 0m ? 0m : months.Sum(m => m.Total) / elapsedMonths;
+        }
+
+        /// <summary>
+        /// The average earned per month as it stood at the end of each month: everything earned
+        /// from the start through that month, divided by the time passed until then. One point per
+        /// month, so the line shows whether the monthly average is climbing or falling; its last
+        /// point is the overall average (<see cref="AverageEarnedPerMonth"/>). Same rules: earned
+        /// basis, never past now, current month counted only for the days gone by.
+        /// </summary>
+        /// <returns>One (month, average so far) pair per month, oldest first.</returns>
+        public static List<(DateTime Month, decimal Average)> RunningAverageEarnedPerMonth(
+            IReadOnlyList<SponsoredListingInvoice> sponsorInvoices,
+            IReadOnlyList<RevenueItem> oneTime,
+            DateTime fromUtc,
+            DateTime toUtc,
+            DateTime nowUtc,
+            bool fromFirstPayment = false)
+        {
+            var result = new List<(DateTime Month, decimal Average)>();
+            var end = toUtc > nowUtc ? nowUtc : toUtc;
+            var start = fromUtc;
+            if (end <= start)
+            {
+                return result;
+            }
+
+            var months = BuildMonths(sponsorInvoices, oneTime, start, end, RevenueBasis.Earned, nowUtc);
+            if (fromFirstPayment)
+            {
+                months = TrimLeadingEmptyMonths(months);
+                if (months.Count > 0 && months[0].Month > start)
+                {
+                    start = months[0].Month;
+                }
+            }
+
+            const double DaysPerMonth = 365.25 / 12;
+            decimal earnedSoFar = 0m;
+            foreach (var m in months)
+            {
+                earnedSoFar += m.Total;
+                var monthEnd = m.Month.AddMonths(1);
+                var until = monthEnd > end ? end : monthEnd;
+                var elapsedMonths = (decimal)((until - start).TotalDays / DaysPerMonth);
+                if (elapsedMonths > 0m)
+                {
+                    result.Add((m.Month, earnedSoFar / elapsedMonths));
+                }
+            }
+
+            return result;
+        }
+
         /// <summary>Drops the empty months before the first payment (so "All time" starts there).</summary>
         public static List<RevenueMonth> TrimLeadingEmptyMonths(IReadOnlyList<RevenueMonth> months) =>
             months.SkipWhile(m => m.Total <= 0m).ToList();

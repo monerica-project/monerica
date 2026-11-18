@@ -125,12 +125,68 @@ namespace DirectoryManager.Web.Tests.Revenue
             Assert.Equal(new[] { 310m, 310m, 300m }, months.Select(m => m.BySource[RevenueSource.SiteSponsors]).ToArray());
         }
 
+        // ---------------- average per month (the dashed line on the monthly chart) ----------------
+        [Fact]
+        public void AveragePerMonth_SpreadsAYearPackage_AndStopsAtToday()
+        {
+            // $10 a day for a year: about $304 in an average month, however far ahead it was paid.
+            var inv = Invoice(start: new DateTime(2026, 1, 1), days: 365, amount: 3650m);
+            var avg = RevenueReportBuilder.AverageEarnedPerMonth(
+                new[] { inv }, new List<RevenueItem>(), new DateTime(2026, 1, 1), new DateTime(2027, 1, 1), Now);
+
+            Assert.InRange(avg, 300m, 309m);
+        }
+
+        [Fact]
+        public void AveragePerMonth_AllTime_StartsAtTheFirstPayment()
+        {
+            var inv = Invoice(start: new DateTime(2026, 7, 1), days: 92, amount: 920m);
+            var none = new List<RevenueItem>();
+            var from = new DateTime(2020, 1, 1);
+
+            // Counted from 2020 the same money is spread over years of empty months.
+            var diluted = RevenueReportBuilder.AverageEarnedPerMonth(new[] { inv }, none, from, Now, Now);
+            var fromFirst = RevenueReportBuilder.AverageEarnedPerMonth(new[] { inv }, none, from, Now, Now, fromFirstPayment: true);
+
+            Assert.True(diluted < 20m);
+            Assert.InRange(fromFirst, 240m, 270m); // $920 over about 3.5 months
+        }
+
+        [Fact]
+        public void RunningAverage_HasOnePointPerMonth_AndEndsAtTheOverallAverage()
+        {
+            // $310/month for three months, then a second package doubles the daily rate.
+            var first = Invoice(start: new DateTime(2026, 1, 1), days: 365, amount: 3650m);
+            var second = Invoice(start: new DateTime(2026, 7, 1), days: 184, amount: 1840m);
+            var none = new List<RevenueItem>();
+            var from = new DateTime(2026, 1, 1);
+
+            var running = RevenueReportBuilder.RunningAverageEarnedPerMonth(new[] { first, second }, none, from, Now.AddDays(1), Now);
+            var overall = RevenueReportBuilder.AverageEarnedPerMonth(new[] { first, second }, none, from, Now.AddDays(1), Now);
+
+            Assert.Equal(10, running.Count); // January .. October (to date)
+            Assert.Equal(new DateTime(2026, 1, 1), running[0].Month);
+            Assert.InRange(running[0].Average, 300m, 309m);   // flat at about $304 while only one package runs
+            Assert.InRange(running[5].Average, 300m, 309m);
+            Assert.True(running[6].Average > running[5].Average); // rises once the second package starts
+            Assert.True(running[9].Average > running[6].Average);
+            Assert.Equal(Math.Round(overall, 2), Math.Round(running[^1].Average, 2));
+        }
+
+        [Fact]
+        public void AveragePerMonth_NoRevenueOrNoTime_IsZero()
+        {
+            var none = new List<RevenueItem>();
+            Assert.Equal(0m, RevenueReportBuilder.AverageEarnedPerMonth(Array.Empty<SponsoredListingInvoice>(), none, new DateTime(2026, 1, 1), Now, Now, fromFirstPayment: true));
+            Assert.Equal(0m, RevenueReportBuilder.AverageEarnedPerMonth(Array.Empty<SponsoredListingInvoice>(), none, Now.AddDays(5), Now.AddDays(9), Now));
+        }
+
         [Theory]
         [InlineData("this-month", "2026-10-01", "2026-10-17")]
         [InlineData("last-month", "2026-09-01", "2026-10-01")]
         [InlineData("ytd", "2026-01-01", "2026-10-17")]
         [InlineData("last-year", "2025-01-01", "2026-01-01")]
-        [InlineData("last-12", "2025-10-01", "2026-10-01")]
+        [InlineData("last-12", "2025-10-01", "2026-10-17")] // 12 full months + this month to date
         [InlineData("this-quarter", "2026-10-01", "2026-10-17")]
         [InlineData("bogus", "2026-10-01", "2026-10-17")]
         public void Periods_Resolve(string key, string from, string to)

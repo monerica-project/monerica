@@ -1,0 +1,18 @@
+@using DirectoryManager.Web.Constants;
+@{
+    PageMeta.Title = "Check your email";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <div class="page-header-bar">
+        <h1 class="page-title">@PageMeta.Title</h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
+
+    <p>If this address can be subscribed, we sent it an email with a link. Open the link to confirm your subscription.</p>
+    <p>You are not subscribed until you confirm. The link works for 48 hours. If nothing arrives, check your spam folder, or try again in an hour.</p>
+
+    <hr />
+    @await Html.PartialAsync("_BackToHome")
+}

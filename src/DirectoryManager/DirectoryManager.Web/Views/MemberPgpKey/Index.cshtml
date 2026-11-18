@@ -1,0 +1,103 @@
+@model DirectoryManager.Web.Models.Members.MemberPgpKeyViewModel
+@using DirectoryManager.Web.Constants
+@using DirectoryManager.Web.Helpers
+@{
+    PageMeta.Title = "My PGP key";
+    PageMeta.IsIndexable = false;
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+<h1>@PageMeta.Title</h1>
+<hr />
+
+@if (TempData["MemberMessage"] is string msg && !string.IsNullOrWhiteSpace(msg))
+{
+    <div class="alert alert-success">@msg</div>
+}
+
+<div asp-validation-summary="All" class="text-danger"></div>
+
+@if (Model.HasKey)
+{
+    <p>
+        Linked key: <span class="review-fp" title="@Model.LinkedFingerprint">@AuthorDisplay.ShortFingerprint(Model.LinkedFingerprint)</span>
+        @if (Model.LinkedUtc is DateTime linked)
+        {
+            <span class="text-muted">(verified @linked.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat))</span>
+        }
+    </p>
+    <p><code>@Model.LinkedFingerprint</code></p>
+    <p>
+        Your reviews and replies show <b>@Model.Username (member account, PGP-verified)</b> with this key.
+        The key belongs to your account, not to single posts: if you remove or replace it, every post shows your account's current state.
+    </p>
+}
+else
+{
+    <p>
+        No PGP key is linked. Your reviews and replies show <b>@Model.Username (@MemberAuthor.PublicLabel)</b>.
+    </p>
+    <p>
+        Link a key to show readers that this account holds it: paste your public key, decrypt the one-time code we encrypt to it,
+        and enter the code. A key can be linked to only one account.
+    </p>
+}
+
+@if (!string.IsNullOrEmpty(Model.PendingFingerprint))
+{
+    <p class="text-muted">
+        A code was sent for key <span class="review-fp" title="@Model.PendingFingerprint">@AuthorDisplay.ShortFingerprint(Model.PendingFingerprint)</span>.
+        <a href="@MemberAuth.PgpKeyVerifyPath">Enter the code</a>, or paste a key again below to get a new one.
+    </p>
+}
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <h2>@(Model.HasKey ? "Replace key" : "Add a PGP key")</h2>
+        <form method="post" action="@MemberAuth.PgpKeyPath">
+            @Html.AntiForgeryToken()
+
+            <div class="form-group">
+                <label for="password">Your password</label>
+                <input id="password" name="password" type="password" class="form-control input-width" autocomplete="current-password" maxlength="256" />
+            </div>
+
+            <p>Paste your PGP public key:</p>
+            <textarea name="pgpArmored" rows="14" class="form-control" placeholder="-----BEGIN PGP PUBLIC KEY BLOCK-----">@Model.PgpArmored</textarea>
+
+            <br />
+            <button type="submit" class="btn btn-primary btn-cta">Get Challenge</button>
+        </form>
+        @if (Model.HasKey)
+        {
+            <p><small>The current key stays linked until the new one is verified.</small></p>
+        }
+
+        @if (Model.HasKey)
+        {
+            <h2 class="u-mt-12px">Remove key</h2>
+            <form method="post" action="/members/pgp-key/remove">
+                @Html.AntiForgeryToken()
+                <div class="form-group">
+                    <label for="removePassword">Your password</label>
+                    <input id="removePassword" name="password" type="password" class="form-control input-width" autocomplete="current-password" maxlength="256" />
+                </div>
+                <button type="submit" class="btn btn-outline-secondary">Remove key</button>
+            </form>
+        }
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card p-3">
+            @await Html.PartialAsync("_PgpMessage")
+        </div>
+    </div>
+</div>
+
+<p class="u-mt-12px"><small>
+    A linked key is shown next to your username. It does not make you a listing's owner or a moderator, and your posts are still checked by a moderator before they appear.
+</small></p>
+
+<p class="u-mt-12px"><a href="@MemberAuth.AccountPath">Back to my account</a></p>
+}

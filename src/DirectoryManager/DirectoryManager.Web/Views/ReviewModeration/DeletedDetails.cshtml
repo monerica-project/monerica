@@ -1,0 +1,100 @@
+@using DirectoryManager.Data.Helpers
+@using DirectoryManager.Data.Models.Reviews
+@using DirectoryManager.Web.Constants
+@using DirectoryManager.Web.Models
+@model DeletedReviewRecord
+@{
+    Layout = "_CenteredLayout";
+    var isReview = Model.Kind == DeletedReviewRecord.KindReview;
+    var byAuthor = Model.DeletedBy == DeletedReviewRecord.ByAuthor;
+    PageMeta.Title = $"Deleted {(isReview ? "review" : "reply")} #{Model.OriginalId}";
+    var copy = ViewBag.Copy as DeletedReviewArchive.ReviewCopy;
+}
+
+@section PageContent {
+    <h1>@PageMeta.Title</h1>
+    @await Html.PartialAsync("_AdminMenu")
+    <p><a asp-action="Deleted">Back to deleted list</a></p>
+
+    @if (TempData["SuccessMessage"] is string msg)
+    {
+        <div class="alert alert-info">@msg</div>
+    }
+
+    <dl class="row">
+        <dt class="col-sm-3">Deleted by</dt>
+        <dd class="col-sm-9"><b>@(byAuthor ? "The author" : "An admin")</b> on @Model.DeletedUtc.ToString("yyyy-MM-dd HH:mm") UTC</dd>
+
+        <dt class="col-sm-3">Listing</dt>
+        <dd class="col-sm-9"><a href="~/directoryentry/edit/@Model.DirectoryEntryId">@(Model.ListingName ?? Model.DirectoryEntryId.ToString())</a></dd>
+
+        <dt class="col-sm-3">Author</dt>
+        <dd class="col-sm-9"><code>@(string.IsNullOrEmpty(Model.AuthorUsername) ? Model.AuthorFingerprint : Model.AuthorUsername + " (account)")</code></dd>
+
+        <dt class="col-sm-3">Posted</dt>
+        <dd class="col-sm-9">@Model.PostedUtc.ToString("yyyy-MM-dd HH:mm") UTC</dd>
+
+        <dt class="col-sm-3">Status when deleted</dt>
+        <dd class="col-sm-9">@Model.StatusAtDelete</dd>
+
+        @if (isReview)
+        {
+            <dt class="col-sm-3">Rating</dt>
+            <dd class="col-sm-9">@(Model.Rating?.ToString() ?? "-")</dd>
+
+            @if (copy != null && copy.AiOrderCheckResult != DirectoryManager.Data.Enums.AiOrderCheckResult.NotChecked)
+            {
+                <dt class="col-sm-3">AI order check</dt>
+                <dd class="col-sm-9">@copy.AiOrderCheckResult · <a href="~/admin/ai-log?reviewId=@Model.OriginalId">AI log</a></dd>
+            }
+        }
+        else if (Model.ParentReviewId is int parentId)
+        {
+            <dt class="col-sm-3">Was under review</dt>
+            <dd class="col-sm-9"><a asp-action="Show" asp-route-id="@parentId">#@parentId</a></dd>
+        }
+
+        <dt class="col-sm-3">Text</dt>
+        <dd class="col-sm-9">
+            @if (string.IsNullOrEmpty(Model.Body))
+            {
+                <i>Removed. The author deleted this @(isReview ? "review" : "reply"), so its text was not kept.</i>
+            }
+            else
+            {
+                <pre class="u-ws-pre-wrap">@Model.Body</pre>
+            }
+        </dd>
+    </dl>
+
+    @if (isReview && copy != null && copy.Replies.Count > 0)
+    {
+        <h2 class="h5">@(byAuthor ? "Replies other people wrote under it" : "Replies that were under it") (@copy.Replies.Count)</h2>
+        @foreach (var c in copy.Replies)
+        {
+            <div class="border rounded p-2 mb-2">
+                <small class="text-muted">
+                    <code>@(string.IsNullOrEmpty(c.AuthorUsername) ? c.AuthorFingerprint : c.AuthorUsername)</code>
+                    · @c.CreateDate.ToString("yyyy-MM-dd HH:mm") UTC · @c.ModerationStatus
+                </small>
+                <pre class="u-ws-pre-wrap mb-0">@c.Body</pre>
+            </div>
+        }
+    }
+    else if (isReview && Model.ReplyCount > 0)
+    {
+        <p class="text-muted">It had @Model.ReplyCount @(Model.ReplyCount == 1 ? "reply" : "replies"); none were written by other people, so none were kept.</p>
+    }
+
+    @if (Model.RestoredAsId is int restoredId)
+    {
+        <p>Restored on @Model.RestoredUtc?.ToString("yyyy-MM-dd HH:mm") UTC as review <a asp-action="Show" asp-route-id="@restoredId">#@restoredId</a>.</p>
+    }
+    else if (isReview && !byAuthor && copy != null)
+    {
+        <form asp-action="RestoreDeleted" asp-route-recordId="@Model.Id" method="post">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-primary">Restore this review (as Pending)</button>
+        </form>
+    }
+}

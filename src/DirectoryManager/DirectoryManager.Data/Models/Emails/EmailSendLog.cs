@@ -57,5 +57,14 @@ namespace DirectoryManager.Data.Models.Emails
         public string? ErrorMessage { get; set; }
 
         public DateTime SentDate { get; set; } = DateTime.UtcNow;
+
+        /// <summary>
+        /// The stored message content (shared by every send of identical content). Null for rows
+        /// written before content was stored, when storing failed, or after the content was pruned.
+        /// </summary>
+        public int? EmailSendLogContentId { get; set; }
+
+        [ForeignKey(nameof(EmailSendLogContentId))]
+        public EmailSendLogContent? Content { get; set; }
     }
 }

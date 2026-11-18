@@ -1,0 +1,28 @@
+@model DirectoryManager.Web.Models.Members.MemberRegisterViewModel
+@using DirectoryManager.Web.Constants
+@{
+    PageMeta.Title = "Your account is ready";
+    PageMeta.IsIndexable = false;
+    Layout = "_CenteredLayout";
+    var continueUrl = ViewBag.ContinueUrl as string ?? MemberAuth.AccountPath;
+}
+
+@section PageContent {
+<h1>@PageMeta.Title</h1>
+<hr />
+
+<div class="alert alert-warning" role="note">
+    <strong>This is the only time your password is shown.</strong>
+    Save both now. There is no email on the account, so they can't be recovered or reset.
+</div>
+
+<dl>
+    <dt>Username</dt>
+    <dd><code>@Model.Username</code></dd>
+    <dt>Password</dt>
+    <dd><code>@Model.Password</code></dd>
+</dl>
+
+<p>You are signed in on this device.</p>
+<p><a class="btn btn-primary" href="@continueUrl">I have saved them, continue</a></p>
+}

@@ -34,6 +34,19 @@ namespace DirectoryManager.Web.Models
         /// <summary>Whether the website needs JavaScript. Unknown = Not Stated.</summary>
         public SiteJavaScript SiteJavaScript { get; set; } = SiteJavaScript.Unknown;
 
+        /// <summary>Countries not served, as typed: codes or names, comma-separated (normalized on save).</summary>
+        [Display(Name = "Countries not served")]
+        public string? RestrictedCountries { get; set; }
+
+        [Display(Name = "VPN")]
+        public VpnPolicy VpnPolicy { get; set; } = VpnPolicy.Unknown;
+
+        [Display(Name = "Tor")]
+        public TorPolicy TorPolicy { get; set; } = TorPolicy.Unknown;
+
+        [Display(Name = "Other restrictions")]
+        public string? OtherRestrictions { get; set; }
+
         public List<DirectoryManager.Data.Models.GuaranteeItem> Guarantees { get; set; } = new ();
 
         [Required]
@@ -133,6 +146,8 @@ namespace DirectoryManager.Web.Models
                     $"The note is {this.Note.Length} characters, which is over the {NoteMaxLength}-character limit. Please shorten it.",
                     new[] { nameof(this.Note) }));
             }
+
+            results.AddRange(RestrictionValidation.Validate(this.RestrictedCountries, this.TorPolicy, this.OtherRestrictions, this.Link, this.Link2, this.Link3));
 
             // PgpKey is [AllowHtml]-exempt from the guard, so require it to be a genuine
             // ASCII-armored PGP public key — the exemption must not smuggle real markup.

@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using BtcPayServer.API.Interfaces;
 using BtcPayServer.API.Models;
 using DirectoryManager.Common.Helpers;
@@ -50,6 +50,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly ISponsoredListingActivator activator;
         private readonly ILogger<SponsoredListingCheckoutController> logger;
         private readonly IDirectoryEntryAdditionalSubcategoryRepository? additionalSubcategoryRepo;
+        private readonly ISponsorLatePaymentService? latePayments;
 
         public SponsoredListingCheckoutController(
             ISubcategoryRepository subCategoryRepository,
@@ -65,7 +66,8 @@ namespace DirectoryManager.Web.Controllers
             ICacheService cacheService,
             ISponsoredListingActivator activator,
             ILogger<SponsoredListingCheckoutController> logger,
-            IDirectoryEntryAdditionalSubcategoryRepository? additionalSubcategoryRepo = null)
+            IDirectoryEntryAdditionalSubcategoryRepository? additionalSubcategoryRepo = null,
+            ISponsorLatePaymentService? latePayments = null)
             : base(cache)
         {
             this.subCategoryRepository = subCategoryRepository;
@@ -81,6 +83,7 @@ namespace DirectoryManager.Web.Controllers
             this.activator = activator;
             this.logger = logger;
             this.additionalSubcategoryRepo = additionalSubcategoryRepo;
+            this.latePayments = latePayments;
         }
 
         // =====================================================================
@@ -103,10 +106,19 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest(new { Error = StringConstants.InvalidSelection });
             }
 
-            // A subcategory sponsorship can be for one of the listing's ADDITIONAL subcategories.
-            if (sponsorshipType == SponsorshipType.SubcategorySponsor)
+            // A subcategory sponsorship can be for one of the listing's ADDITIONAL subcategories,
+            // and a category sponsorship for a category the listing is in through one of them.
+            entry = await this.ScopeForTypeAsync(entry, sponsorshipType, subCategoryId).ConfigureAwait(false);
+            if (entry is null)
             {
-                entry = await this.ScopeEntryAsync(entry, subCategoryId).ConfigureAwait(false);
+                return this.BadRequest(new { Error = StringConstants.InvalidSelection });
+            }
+
+            // A category sponsorship is only sold for a category the listing is actually listed in.
+            if (sponsorshipType == SponsorshipType.CategorySponsor && categoryId.HasValue
+                && entry.SubCategory?.CategoryId != categoryId.Value)
+            {
+                return this.BadRequest(new { Error = StringConstants.InvalidSelection });
             }
 
             var scopeSubCategoryId = ScopeOf(entry);
@@ -251,10 +263,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest(new { Error = StringConstants.InvalidSelection });
             }
 
-            if (sponsorshipType == SponsorshipType.SubcategorySponsor)
-            {
-                entry = await this.ScopeEntryAsync(entry, scopeSubCategoryId).ConfigureAwait(false);
-            }
+            entry = await this.ScopeForTypeAsync(entry, sponsorshipType, scopeSubCategoryId).ConfigureAwait(false);
 
             this.ViewBag.ScopeSubCategoryId = ScopeOf(entry);
 
@@ -521,11 +530,11 @@ namespace DirectoryManager.Web.Controllers
                     return this.RedirectToCheckoutWaiting(directoryEntryId, offer.SponsorshipType, selectedOfferId, scopeSubCategoryId);
                 }
 
-                rsvId = await this.CreateReservationGuidAsync(offer.SponsorshipType, entry, entry.SubCategoryId, entry.SubCategory?.CategoryId);
-
-                if (offer.SponsorshipType == SponsorshipType.MainSponsor)
+                // Count + insert under a lock, so two buyers racing for the last slot can't both get it.
+                rsvId = await this.TryCreateReservationGuidAsync(offer.SponsorshipType, entry, typeIdForCap, reservationGroup);
+                if (!rsvId.HasValue)
                 {
-                    await this.CreateShadowSubcategoryReservationAsync(entry.SubCategoryId, entry, rsvId!.Value);
+                    return this.RedirectToCheckoutWaiting(directoryEntryId, offer.SponsorshipType, selectedOfferId, scopeSubCategoryId);
                 }
             }
 
@@ -602,11 +611,16 @@ namespace DirectoryManager.Web.Controllers
 
             var (group, typeIdForCap) = this.BuildGroupAndCapacity(offer.SponsorshipType, entry);
 
-            var reservationError = await this.HandleReservationForPostAsync(directoryEntryId, offer, rsvId, group, typeIdForCap, ScopeOf(entry));
+            // The slot gate: an invoice is only created for a buyer who holds a live reservation for
+            // this exact placement, or who gets one right now because a slot is free (or for a
+            // renewal of their own active campaign, which needs no free slot).
+            var (reservationError, heldRsvId) = await this.HandleReservationForPostAsync(directoryEntryId, offer, entry, rsvId, group, typeIdForCap, ScopeOf(entry));
             if (reservationError != null)
             {
                 return reservationError;
             }
+
+            rsvId = heldRsvId;
 
             var (emailOk, normalizedEmail, emailView) = await this.ValidateEmailAsync(email, directoryEntryId, selectedOfferId, rsvId, ScopeOf(entry));
             if (!emailOk)
@@ -628,7 +642,7 @@ namespace DirectoryManager.Web.Controllers
             // The owner's own test checkouts (signed in, or an email already used for a test)
             // are flagged so they stay out of the revenue reports and pending warnings.
             var revenueRepo = this.HttpContext.RequestServices.GetService<IRevenueOpportunityRepository>();
-            invoice.IsTest = this.User.Identity?.IsAuthenticated == true
+            invoice.IsTest = this.User.IsAdmin()
                 || (revenueRepo != null && await revenueRepo.IsTestEmailAsync(normalizedEmail).ConfigureAwait(false));
 
             await SponsorInterestTracker.LogAsync(
@@ -670,10 +684,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest(new { Error = StringConstants.InvalidSelection });
             }
 
-            if (sponsorshipType == SponsorshipType.SubcategorySponsor)
-            {
-                entry = await this.ScopeEntryAsync(entry, scopeSubCategoryId).ConfigureAwait(false);
-            }
+            entry = await this.ScopeForTypeAsync(entry, sponsorshipType, scopeSubCategoryId).ConfigureAwait(false);
 
             scopeSubCategoryId = ScopeOf(entry);
             var scopeParam = scopeSubCategoryId.HasValue ? $"&scopeSubCategoryId={scopeSubCategoryId.Value}" : string.Empty;
@@ -794,7 +805,22 @@ namespace DirectoryManager.Web.Controllers
         [Route("sponsoredlisting/nowpaymentssuccess")]
         public async Task<IActionResult> NowPaymentsSuccess([FromQuery] string nP_id)
         {
-            var processorInvoice = await this.paymentService.GetPaymentStatusAsync(nP_id);
+            // The id goes into the processor's API path: digits only, anything else is refused.
+            if (string.IsNullOrEmpty(nP_id) || nP_id.Length > 20 || !nP_id.All(char.IsDigit))
+            {
+                return this.NotFound();
+            }
+
+            NowPayments.API.Models.PaymentStatusResponse? processorInvoice;
+            try
+            {
+                processorInvoice = await this.paymentService.GetPaymentStatusAsync(nP_id);
+            }
+            catch (Exception)
+            {
+                return this.NotFound();
+            }
+
             if (processorInvoice?.OrderId == null
                 || !Guid.TryParse(processorInvoice.OrderId, out var orderGuid))
             {
@@ -972,6 +998,7 @@ namespace DirectoryManager.Web.Controllers
                 if (btcInvoice != null)
                 {
                     vm.Status = btcInvoice.Status ?? "New";
+                    vm.AdditionalStatus = btcInvoice.AdditionalStatus ?? string.Empty;
                     vm.ExpiresAt = btcInvoice.ExpirationTime > 0
                         ? DateTimeOffset.FromUnixTimeSeconds(btcInvoice.ExpirationTime).UtcDateTime
                         : (DateTime?)null;
@@ -1050,11 +1077,19 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet]
         [AllowAnonymous]
         [Route("sponsoredlisting/btcpay-qr")]
-        public async Task<IActionResult> BtcPayNoJsQr([FromQuery] string processorInvoiceId)
+        public async Task<IActionResult> BtcPayNoJsQr([FromQuery] string processorInvoiceId, [FromQuery] Guid orderId)
         {
-            if (string.IsNullOrWhiteSpace(processorInvoiceId))
+            if (string.IsNullOrWhiteSpace(processorInvoiceId) || orderId == Guid.Empty)
             {
                 return this.BadRequest();
+            }
+
+            // Only for one of our own invoices: the posted id is never sent to BTCPay unless it is
+            // the id stored for that order.
+            var dbInvoice = await this.sponsoredListingInvoiceRepository.GetByInvoiceIdAsync(orderId).ConfigureAwait(false);
+            if (dbInvoice == null || dbInvoice.ProcessorInvoiceId != processorInvoiceId)
+            {
+                return this.NotFound();
             }
 
             string paymentUri;
@@ -1280,27 +1315,84 @@ namespace DirectoryManager.Web.Controllers
             return this.View(ConfirmCheckoutView, vm);
         }
 
-        private async Task<IActionResult?> HandleReservationForPostAsync(
-            int directoryEntryId, SponsoredListingOffer offer, Guid? rsvId, string group, int? typeIdForCap, int? scopeSubCategoryId = null)
+        // Returns (error, reservation the invoice is tied to). The error is the waiting page when the
+        // slot is full / held by someone else. A renewal of the buyer's own active campaign in this
+        // scope needs no slot, so it passes with no reservation (as before).
+        private async Task<(IActionResult? error, Guid? rsvId)> HandleReservationForPostAsync(
+            int directoryEntryId, SponsoredListingOffer offer, DirectoryEntry entry, Guid? rsvId, string group, int? typeIdForCap, int? scopeSubCategoryId = null)
         {
-            if (!await this.TryAttachReservationAsync(rsvId, group, directoryEntryId))
-            {
-                var isActive = await this.sponsoredListingRepository.IsSponsoredListingActiveInScopeAsync(directoryEntryId, offer.SponsorshipType, typeIdForCap);
-                var totalActive = await this.sponsoredListingRepository.GetActiveSponsorsCountAsync(offer.SponsorshipType, typeIdForCap);
-                var totalReserved = await this.sponsoredListingReservationRepository.GetActiveReservationsCountAsync(group);
+            var waiting = this.RedirectToCheckoutWaiting(directoryEntryId, offer.SponsorshipType, offer.SponsoredListingOfferId, scopeSubCategoryId);
+            var isMain = offer.SponsorshipType == SponsorshipType.MainSponsor;
 
-                if (!SponsoredListingCheckoutHelper.CanPurchaseListing(totalActive, totalReserved, offer.SponsorshipType) && !isActive)
+            // 1. The buyer's own live hold for this placement (from the form, or recovered by listing).
+            var held = await this.ResolveHeldReservationAsync(rsvId, group, directoryEntryId).ConfigureAwait(false);
+            if (held.HasValue)
+            {
+                // Main sponsor: the per-subcategory cap is guarded by "shadow" holds. If our own shadow
+                // lapsed and other buyers in this subcategory now hold shadows, only go ahead while the
+                // subcategory still has room for all of them plus us.
+                if (isMain && !await this.sponsoredListingRepository.IsSponsoredListingActiveInScopeAsync(directoryEntryId, offer.SponsorshipType, typeIdForCap).ConfigureAwait(false))
                 {
-                    return this.RedirectToCheckoutWaiting(directoryEntryId, offer.SponsorshipType, offer.SponsoredListingOfferId, scopeSubCategoryId);
+                    var subGroup = ReservationGroupHelper.BuildMainSponsorSubcategoryGroupName(entry.SubCategoryId);
+                    var otherShadows = await this.sponsoredListingReservationRepository
+                        .GetActiveReservationsCountExcludingEntryAsync(subGroup, directoryEntryId).ConfigureAwait(false);
+                    var activeInSub = await this.GetActiveMainCountForSubcategoryAsync(entry.SubCategoryId).ConfigureAwait(false);
+                    if (activeInSub + otherShadows + 1 > Common.Constants.IntegerConstants.MaxMainSponsorsPerSubcategory)
+                    {
+                        return (waiting, null);
+                    }
                 }
-            }
-            else
-            {
-                await this.CancelStaleInvoiceOnReservationAsync(rsvId!.Value);
+
+                await this.CancelStaleInvoiceOnReservationAsync(held.Value);
+                return (null, held);
             }
 
-            return null;
+            // 2. Renewal / extension of this listing's own active campaign in the same scope.
+            var isActive = await this.sponsoredListingRepository.IsSponsoredListingActiveInScopeAsync(directoryEntryId, offer.SponsorshipType, typeIdForCap).ConfigureAwait(false);
+            if (isActive)
+            {
+                return (null, null);
+            }
+
+            // 3. No hold (direct post, expired or unknown rsvId): take one now if a slot is free.
+            if (isMain && !await this.CanPurchaseMainWithinSubcategoryAsync(entry.SubCategoryId).ConfigureAwait(false))
+            {
+                return (waiting, null);
+            }
+
+            var created = await this.TryCreateReservationGuidAsync(offer.SponsorshipType, entry, typeIdForCap, group).ConfigureAwait(false);
+            return created.HasValue ? (null, created) : (waiting, null);
         }
+
+        // The buyer's live hold for this exact placement and listing, or null. A GUID for another
+        // slot group, another listing, or one that has expired does not count.
+        private async Task<Guid?> ResolveHeldReservationAsync(Guid? rsvId, string group, int directoryEntryId)
+        {
+            if (rsvId.HasValue && await this.IsLiveHoldAsync(rsvId.Value, group, directoryEntryId).ConfigureAwait(false))
+            {
+                return rsvId;
+            }
+
+            // A missing / stale GUID in the form: fall back to this listing's own hold, if any.
+            var own = await this.sponsoredListingReservationRepository
+                .GetActiveReservationGuidForEntryAsync(directoryEntryId, group).ConfigureAwait(false);
+            return own.HasValue && await this.IsLiveHoldAsync(own.Value, group, directoryEntryId).ConfigureAwait(false) ? own : null;
+        }
+
+        private async Task<bool> IsLiveHoldAsync(Guid rsvId, string group, int directoryEntryId)
+        {
+            var r = await this.sponsoredListingReservationRepository.GetReservationByGuidAsync(rsvId).ConfigureAwait(false);
+            return r != null
+                && string.Equals(r.ReservationGroup, group, StringComparison.Ordinal)
+                && r.ExpirationDateTime > DateTime.UtcNow
+                && IsHoldForEntry(r, directoryEntryId);
+        }
+
+        // Holds record their listing as "ListingId={id};" in the details. Checked so one buyer can't
+        // reuse another listing's hold (two invoices for one slot). Entry 0 = caller doesn't know it.
+        private static bool IsHoldForEntry(SponsoredListingReservation r, int directoryEntryId) =>
+            directoryEntryId <= 0
+            || (r.Details != null && r.Details.Contains($"ListingId={directoryEntryId};", StringComparison.Ordinal));
 
         private async Task CancelStaleInvoiceOnReservationAsync(Guid rsvId)
         {
@@ -1581,6 +1673,21 @@ namespace DirectoryManager.Web.Controllers
         // =====================================================================
         private async Task ApplyBtcPayWebhookUpdateAsync(SponsoredListingInvoice invoice, BtcPayWebhookPayload payload)
         {
+            // A payment that arrives after the invoice timer ran out never produces "InvoiceSettled":
+            // BTCPay leaves the invoice "Expired (paid late)". The late-payment service checks it
+            // against BTCPay and activates it when it is paid in full, confirmed, inside the grace
+            // period and the slot is still free. Anything it does not handle falls through below.
+            if (this.latePayments != null && IsLatePaymentEvent(invoice, payload))
+            {
+                var outcome = await this.latePayments.TryAcceptAsync(invoice.SponsoredListingInvoiceId).ConfigureAwait(false);
+                if (outcome != LatePaymentOutcome.NotApplicable)
+                {
+                    this.logger.LogInformation(
+                        "BTCPay late payment on invoice {InvoiceId} ({Type}): {Outcome}.", invoice.InvoiceId, payload.Type, outcome);
+                    return;
+                }
+            }
+
             var proposed = SponsoredListingCheckoutHelper.MapBtcPayEventToInternalStatus(
                 payload.Type,
                 partiallyPaid: payload.PartiallyPaid);
@@ -1636,9 +1743,17 @@ namespace DirectoryManager.Web.Controllers
                 }
             }
 
-            // NOTE: the slot hold is a FIXED 15-minute window and is deliberately NOT extended by
-            // invoice creation or payment status — an unpaid (or slowly-paid) invoice must never keep a
-            // slot held beyond that window. Only a settled payment permanently consumes the slot.
+            // The slot hold is a fixed 15-minute window: an unpaid or partly paid invoice never keeps a
+            // slot beyond it. The one exception is a payment BTCPay has received IN FULL and is only
+            // waiting on confirmations ("InvoiceProcessing", never sent for a partial payment): its
+            // slot stays held, otherwise a second buyer could pay for the same slot meanwhile.
+            if (string.Equals(payload.Type, "InvoiceProcessing", StringComparison.OrdinalIgnoreCase)
+                && invoice.ReservationGuid != Guid.Empty)
+            {
+                await this.sponsoredListingReservationRepository
+                    .ExtendExpirationAsync(invoice.ReservationGuid, DateTime.UtcNow.AddHours(2)).ConfigureAwait(false);
+            }
+
             // Throws if a save fails, so the webhook answers 500 and BTCPay redelivers it.
             await this.activator.SaveAndActivateAsync(invoice);
         }
@@ -1655,6 +1770,14 @@ namespace DirectoryManager.Web.Controllers
 
             return SponsoredListingCheckoutHelper.CanAdvanceStatus(invoice.PaymentStatus, proposed)
                 || this.activator.NeedsActivation(invoice);
+        }
+
+        private static bool IsLatePaymentEvent(SponsoredListingInvoice invoice, BtcPayWebhookPayload payload)
+        {
+            bool paymentEvent = string.Equals(payload.Type, "InvoiceReceivedPayment", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(payload.Type, "InvoicePaymentSettled", StringComparison.OrdinalIgnoreCase);
+            return paymentEvent
+                && (payload.AfterExpiration || invoice.PaymentStatus is PaymentStatus.Expired or PaymentStatus.Canceled);
         }
 
         private void LogLatePayment(SponsoredListingInvoice invoice, PaymentStatus proposed)
@@ -1806,7 +1929,8 @@ namespace DirectoryManager.Web.Controllers
             }
 
             var existing = await this.sponsoredListingReservationRepository.GetReservationByGuidAsync(rsvId.Value).ConfigureAwait(false);
-            return existing != null && existing.ReservationGroup == reservationGroup && existing.ExpirationDateTime > DateTime.UtcNow ? rsvId : null;
+            return existing != null && existing.ReservationGroup == reservationGroup && existing.ExpirationDateTime > DateTime.UtcNow
+                && IsHoldForEntry(existing, directoryEntryId) ? rsvId : null;
         }
 
         private async Task<string?> CheckListingCapacityAsync(SponsorshipType type, int? typeIdForCap, string group)
@@ -1831,26 +1955,38 @@ namespace DirectoryManager.Web.Controllers
             return count > 0 ? await this.BuildCheckoutInProcessMessageForMainSubcategoryAsync(subCategoryId).ConfigureAwait(false) : null;
         }
 
-        private async Task<Guid> CreateReservationGuidAsync(SponsorshipType type, DirectoryEntry entry, int? subCategoryId, int? categoryId)
+        // Takes a hold for this placement only if a slot is free (main sponsor: also writes the
+        // per-subcategory shadow hold, and only when no other main checkout holds that subcategory).
+        // Null when the slot is full or held.
+        private async Task<Guid?> TryCreateReservationGuidAsync(SponsorshipType type, DirectoryEntry entry, int? typeIdForCap, string group)
         {
-            var typeId = SponsoredListingCheckoutHelper.ResolveTypeIdForGroup(type, entry, subCategoryId, categoryId);
-            var group = ReservationGroupHelper.BuildReservationGroupName(type, typeId);
-            var details = await this.BuildReservationDetailsAsync(type, entry, subCategoryId, categoryId);
-            var res = await this.sponsoredListingReservationRepository.CreateReservationAsync(DateTime.UtcNow.AddMinutes(IntegerConstants.ReservationMinutes), group, details).ConfigureAwait(false);
-            return res.ReservationGuid;
-        }
+            var totalActive = await this.sponsoredListingRepository.GetActiveSponsorsCountAsync(type, typeIdForCap).ConfigureAwait(false);
+            var freeSlots = SponsoredListingCheckoutHelper.GetMaxSlotsForType(type) - totalActive;
+            var details = await this.BuildReservationDetailsAsync(type, entry, entry.SubCategoryId, entry.SubCategory?.CategoryId).ConfigureAwait(false);
 
-        private async Task CreateShadowSubcategoryReservationAsync(int subCategoryId, DirectoryEntry entry, Guid parentGuid)
-        {
-            var parent = await this.sponsoredListingReservationRepository.GetReservationByGuidAsync(parentGuid);
-            if (parent == null)
+            string? shadowGroup = null;
+            string? shadowDetails = null;
+            if (type == SponsorshipType.MainSponsor)
             {
-                return;
+                shadowGroup = ReservationGroupHelper.BuildMainSponsorSubcategoryGroupName(entry.SubCategoryId);
+                shadowDetails = await this.BuildReservationDetailsAsync(SponsorshipType.MainSponsor, entry, entry.SubCategoryId, null).ConfigureAwait(false);
             }
 
-            var subGroup = ReservationGroupHelper.BuildMainSponsorSubcategoryGroupName(subCategoryId);
-            var details = await this.BuildReservationDetailsAsync(SponsorshipType.MainSponsor, entry, subCategoryId, null);
-            await this.sponsoredListingReservationRepository.CreateReservationAsync(parent.ExpirationDateTime, subGroup, details).ConfigureAwait(false);
+            var created = await this.sponsoredListingReservationRepository.TryCreateReservationWithinCapacityAsync(
+                DateTime.UtcNow.AddMinutes(IntegerConstants.ReservationMinutes),
+                group,
+                details,
+                freeSlots,
+                shadowGroup,
+                shadowDetails).ConfigureAwait(false);
+
+            if (created != null)
+            {
+                this.ViewBag.ReservationGuid = created.ReservationGuid;
+                this.ViewBag.ReservationExpiresUtc = created.ExpirationDateTime;
+            }
+
+            return created?.ReservationGuid;
         }
 
         // =====================================================================
@@ -1963,7 +2099,8 @@ namespace DirectoryManager.Web.Controllers
             // The hold must be for THIS slot and still running. (This used to read a non-existent
             // "ExpirationDate" property by reflection, so any GUID ever issued was accepted while
             // someone else held the slot.)
-            if (!string.Equals(existing.ReservationGroup, reservationGroup, StringComparison.Ordinal))
+            if (!string.Equals(existing.ReservationGroup, reservationGroup, StringComparison.Ordinal)
+                || !IsHoldForEntry(existing, directoryEntryId))
             {
                 return false;
             }
@@ -2043,7 +2180,7 @@ namespace DirectoryManager.Web.Controllers
             }
             else if (categoryId.HasValue)
             {
-                entries = entries.Where(e => e.SubCategory.CategoryId == categoryId.Value).ToList();
+                entries = await this.InCategoryIncludingAdditionalAsync(entries.ToList(), categoryId.Value).ConfigureAwait(false);
             }
 
             entries = entries.OrderBy(e => e.Name).ToList();
@@ -2065,7 +2202,7 @@ namespace DirectoryManager.Web.Controllers
             }
             else if (type == SponsorshipType.CategorySponsor)
             {
-                entries = entries.Where(e => e.SubCategory != null && e.SubCategory.CategoryId == typeId).ToList();
+                entries = await this.InCategoryIncludingAdditionalAsync(entries.ToList(), typeId).ConfigureAwait(false);
             }
 
             return entries.OrderBy(e => e.Name).ToList();
@@ -2091,6 +2228,47 @@ namespace DirectoryManager.Web.Controllers
             }
 
             return result;
+        }
+
+        // Listings in a category for sponsorship: those whose main subcategory is in it, plus those that
+        // are in it only through an ADDITIONAL subcategory (returned as shown there).
+        private async Task<List<DirectoryEntry>> InCategoryIncludingAdditionalAsync(List<DirectoryEntry> eligible, int categoryId)
+        {
+            var result = eligible.Where(e => e.SubCategory != null && e.SubCategory.CategoryId == categoryId).ToList();
+            if (this.additionalSubcategoryRepo == null)
+            {
+                return result;
+            }
+
+            foreach (var e in eligible.Where(e => e.SubCategory == null || e.SubCategory.CategoryId != categoryId))
+            {
+                var alt = (await this.additionalSubcategoryRepo.GetByDirectoryEntryIdAsync(e.DirectoryEntryId).ConfigureAwait(false))
+                    .FirstOrDefault(a => a.SubCategory != null && a.SubCategory.CategoryId == categoryId);
+                if (alt != null)
+                {
+                    result.Add(alt.ApplyTo(e));
+                }
+            }
+
+            return result;
+        }
+
+        // Applies the additional-subcategory scope for the tier being bought. Subcategory: any of the
+        // listing's additional subcategories. Category: only an additional subcategory that sits in a
+        // DIFFERENT category than the main one (that is what puts the listing in that category);
+        // otherwise the plain listing. Main sponsor: never scoped.
+        private async Task<DirectoryEntry?> ScopeForTypeAsync(DirectoryEntry? entry, SponsorshipType type, int? scopeSubCategoryId)
+        {
+            if (entry == null || type == SponsorshipType.MainSponsor)
+            {
+                return entry;
+            }
+
+            var scoped = await this.ScopeEntryAsync(entry, scopeSubCategoryId).ConfigureAwait(false);
+            var isScoped = scoped?.ShownViaAdditionalSubcategoryId.HasValue == true;
+            return isScoped && SponsoredListingCheckoutHelper.AdditionalScopeApplies(type, entry.SubCategory?.CategoryId, scoped!.SubCategory?.CategoryId)
+                ? scoped
+                : entry;
         }
 
         // A SUBCATEGORY sponsorship may be bought for one of the listing's additional subcategories.
@@ -2129,12 +2307,13 @@ namespace DirectoryManager.Web.Controllers
 
             var scoped = await this.ScopeEntryAsync(main, scopeSubCategoryId).ConfigureAwait(false);
             var offer = await this.GetOfferForEntryAsync(selectedOfferId, scoped).ConfigureAwait(false);
-            if (offer != null && offer.SponsorshipType != SponsorshipType.SubcategorySponsor)
+            if (offer == null)
             {
-                return (main, offer);
+                return (scoped, offer);
             }
 
-            return (scoped, offer);
+            // Keep the scope only where the tier allows it (see ScopeForTypeAsync).
+            return (await this.ScopeForTypeAsync(main, offer.SponsorshipType, scopeSubCategoryId).ConfigureAwait(false), offer);
         }
 
         // The offer id is the only thing a buyer submits, so it is checked against the price list
@@ -2155,7 +2334,9 @@ namespace DirectoryManager.Web.Controllers
 
             foreach (var type in new[] { SponsorshipType.MainSponsor, SponsorshipType.CategorySponsor, SponsorshipType.SubcategorySponsor })
             {
-                var placementEntry = type == SponsorshipType.SubcategorySponsor ? entry : main;
+                // Subcategory: the scoped subcategory. Category: the category the listing is being
+                // sponsored in (its main one, or the one an additional subcategory puts it in).
+                var placementEntry = type == SponsorshipType.MainSponsor ? main : entry;
                 var offers = await this.sponsoredListingOfferRepository
                     .GetOffersForPlacementAsync(type, PlacementIdFor(type, placementEntry)).ConfigureAwait(false);
                 var match = offers.FirstOrDefault(o => o.SponsoredListingOfferId == selectedOfferId);

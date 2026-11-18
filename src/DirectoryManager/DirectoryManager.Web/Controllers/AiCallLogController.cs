@@ -1,4 +1,5 @@
-using DirectoryManager.Data.Repositories.Interfaces;
+﻿using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -6,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace DirectoryManager.Web.Controllers
 {
     /// <summary>Admin view of every AI call (what was sent, what came back, what the job did).</summary>
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     public class AiCallLogController : Controller
     {
         private const int PageSize = 50;
@@ -18,9 +19,9 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [HttpGet("admin/ai-log")]
-        public async Task<IActionResult> Index(int page = 1, int? submissionId = null, bool errors = false, CancellationToken ct = default)
+        public async Task<IActionResult> Index(int page = 1, int? submissionId = null, bool errors = false, int? reviewId = null, CancellationToken ct = default)
         {
-            var (items, total) = await this.repo.GetPageAsync(page, PageSize, submissionId, errors, ct);
+            var (items, total) = await this.repo.GetPageAsync(page, PageSize, submissionId, errors, ct, reviewId);
             var vm = new AiCallLogListViewModel
             {
                 Items = items,

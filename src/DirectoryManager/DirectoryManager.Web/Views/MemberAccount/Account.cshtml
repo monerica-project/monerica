@@ -1,0 +1,53 @@
+@model DirectoryManager.Web.Models.Members.MemberAccountViewModel
+@using DirectoryManager.Web.Constants
+@{
+    PageMeta.Title = "My member account";
+    PageMeta.IsIndexable = false;
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+<h1>@PageMeta.Title</h1>
+<hr />
+
+@if (TempData["MemberMessage"] is string msg && !string.IsNullOrWhiteSpace(msg))
+{
+    <div class="alert alert-success">@msg</div>
+}
+
+<dl>
+    <dt>Username</dt>
+    <dd>@Model.Username</dd>
+    <dt>Member since</dt>
+    <dd>@Model.MemberSinceUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</dd>
+    <dt>Reviews / replies</dt>
+    <dd>@Model.ReviewCount / @Model.ReplyCount</dd>
+    <dt>PGP key</dt>
+    <dd>
+        @if (string.IsNullOrEmpty(Model.PgpFingerprint))
+        {
+            <span>None (your posts show "account").</span> <a href="@MemberAuth.PgpKeyPath">Add a PGP key</a>
+        }
+        else
+        {
+            <span class="review-fp" title="@Model.PgpFingerprint">@DirectoryManager.Web.Helpers.AuthorDisplay.ShortFingerprint(Model.PgpFingerprint)</span>
+            <span> (PGP-verified)</span> <a href="@MemberAuth.PgpKeyPath">Replace or remove key</a>
+        }
+    </dd>
+</dl>
+
+<p>To write a review, open a listing and choose <b>or use a username and password</b> under the review button.</p>
+
+<ul>
+    <li><a href="@MemberAuth.MyReviewsPath">My reviews and replies</a></li>
+    <li><a href="/members/change-password">Change password</a></li>
+    <li><a href="/members/delete">Delete my account</a></li>
+</ul>
+
+<form method="post" action="/members/sign-out">
+    @Html.AntiForgeryToken()
+    <button type="submit" class="btn btn-outline-secondary">Sign out</button>
+</form>
+
+<p class="u-mt-12px"><small>There is no email on this account, so a forgotten password can't be recovered. Keep it saved.</small></p>
+}

@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace DirectoryManager.Web.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     public class SearchLogController : Controller
     {
         private readonly ISearchLogRepository searchLogRepository;

@@ -104,14 +104,6 @@ namespace DirectoryManager.Web.Controllers
             return this.View();
         }
 
-        [HttpGet("review-us")]
-        public async Task<IActionResult> ReviewUsAsync()
-        {
-            var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
-            this.PageMeta().CanonicalUrl = UrlBuilder.CombineUrl(canonicalDomain, "review-us");
-            return this.View();
-        }
-
         [HttpGet("pgp")]
         public async Task<IActionResult> PgpAsync()
         {
@@ -155,7 +147,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View("Newest", groupedNewestAdditions);
         }
 
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         [HttpGet("expire-cache")]
         public IActionResult ExpireCache()
         {
@@ -164,7 +156,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View();
         }
 
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         [HttpPost("expire-cache")]
         [ValidateAntiForgeryToken]
         public IActionResult ExpireCacheConfirmed()

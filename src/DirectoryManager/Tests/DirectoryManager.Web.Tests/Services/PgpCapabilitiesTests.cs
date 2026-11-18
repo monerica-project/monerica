@@ -117,6 +117,112 @@ namespace DirectoryManager.Web.Tests.Services
             Assert.Contains(ToHex(chosen!.GetFingerprint()), victimKeys);
         }
 
+        // Security audit 2026-11-11 (Critical): one ring = attacker's own primary + the victim's
+        // PUBLIC encryption subkey copied in (with the victim's binding signature, which doesn't
+        // verify against the attacker's primary) + the attacker's own properly bound subkey.
+        // The identity fingerprint must NOT be the victim's subkey; otherwise the ownership check
+        // passes while the challenge is encrypted to the attacker's subkey.
+        [Fact]
+        public void ForgedRing_WithCopiedVictimSubkey_IsNotIdentifiedAsTheVictim()
+        {
+            PgpPublicKeyRing victimRing = ReadRing(BuildSignOnlyPrimaryKey());
+            PgpPublicKeyRing attackerRing = ReadRing(BuildSignOnlyPrimaryKey());
+            PgpPublicKey victimSubkey = victimRing.GetPublicKeys().Cast<PgpPublicKey>().Single(k => !k.IsMasterKey);
+            PgpPublicKey attackerPrimary = attackerRing.GetPublicKey();
+            PgpPublicKey attackerSubkey = attackerRing.GetPublicKeys().Cast<PgpPublicKey>().Single(k => !k.IsMasterKey);
+
+            using var ms = new MemoryStream();
+            using (var aos = new ArmoredOutputStream(ms))
+            {
+                attackerPrimary.Encode(aos);
+                victimSubkey.Encode(aos);
+                attackerSubkey.Encode(aos);
+            }
+
+            string forged = Encoding.ASCII.GetString(ms.ToArray());
+            var victimFingerprints = PgpFingerprintTools.GetAllFingerprints(BuildArmor(victimRing));
+
+            string? identity = new DirectoryManager.Web.Services.Interfaces.PgpService().GetFingerprint(forged);
+
+            Assert.NotNull(identity);
+            Assert.NotEqual(ToHex(victimSubkey.GetFingerprint()), identity);
+            Assert.DoesNotContain(victimFingerprints, fp => PgpFingerprintTools.Matches(PgpFingerprintTools.Normalize(identity), fp));
+
+            // The challenge would go to the attacker's own subkey, which is now also the identity.
+            Assert.Equal(ToHex(attackerSubkey.GetFingerprint()), ToHex(PgpCapabilities.SelectEncryptionKey(forged)!.GetFingerprint()));
+            Assert.Equal(ToHex(attackerSubkey.GetFingerprint()), identity);
+        }
+
+        // The stronger forgery: the attacker's primary SIGNS a binding over the victim's public
+        // encryption subkey (needs no secret of the victim), then adds a newer subkey of their own.
+        // The fingerprint reported and the key the challenge is encrypted to must be the same key,
+        // so the attacker either is named as themselves or cannot read the challenge.
+        [Fact]
+        public void ForgedRing_AttackerReBindsVictimSubkey_IdentityAndChallengeKeyAreTheSameKey()
+        {
+            var random = new SecureRandom();
+            DateTime old = DateTime.UtcNow.AddYears(-1);
+            AsymmetricCipherKeyPair victimEnc = GenerateRsa(random, 2048);
+
+            var flags = new PgpSignatureSubpacketGenerator();
+            flags.SetKeyFlags(false, KeyFlags.CertifyOther | KeyFlags.SignData);
+            var ringGen = new PgpKeyRingGenerator(
+                PgpSignature.PositiveCertification,
+                new PgpKeyPair(PublicKeyAlgorithmTag.RsaSign, GenerateRsa(random, 2048), old),
+                "Attacker <a@example.com>",
+                SymmetricKeyAlgorithmTag.Aes256,
+                Array.Empty<char>(),
+                true,
+                flags.Generate(),
+                null,
+                random);
+
+            var enc = new PgpSignatureSubpacketGenerator();
+            enc.SetKeyFlags(false, KeyFlags.EncryptComms | KeyFlags.EncryptStorage);
+            var victimSubkeyPair = new PgpKeyPair(PublicKeyAlgorithmTag.RsaGeneral, victimEnc, old);
+            ringGen.AddSubKey(victimSubkeyPair, enc.Generate(), null); // victim's subkey, bound by the attacker
+            var attackerSubkeyPair = new PgpKeyPair(PublicKeyAlgorithmTag.RsaGeneral, GenerateRsa(random, 2048), DateTime.UtcNow);
+            ringGen.AddSubKey(attackerSubkeyPair, enc.Generate(), null); // newer: the old code encrypted to this one
+
+            string forged = BuildArmor(ringGen.GeneratePublicKeyRing());
+            string victimFp = ToHex(victimSubkeyPair.PublicKey.GetFingerprint());
+
+            string? identity = new DirectoryManager.Web.Services.Interfaces.PgpService().GetFingerprint(forged);
+            string challengeKey = ToHex(PgpCapabilities.SelectChallengeKey(forged)!.GetFingerprint());
+
+            Assert.Equal(identity, challengeKey);
+            Assert.Equal(victimFp, challengeKey); // named as the victim => challenge only the victim can read
+        }
+
+        [Fact]
+        public void OversizedKeyBlock_IsRejected()
+        {
+            string huge = new string('A', PgpCapabilities.MaxArmoredKeyChars + 1);
+            Assert.Null(new DirectoryManager.Web.Services.Interfaces.PgpService().GetFingerprint(huge));
+            Assert.Null(PgpCapabilities.SelectChallengeKey(huge));
+        }
+
+        // A normal key keeps its identity (first encryption subkey), so stored fingerprints still match.
+        [Fact]
+        public void NormalKey_IdentityIsItsEncryptionSubkey()
+        {
+            PgpPublicKeyRing ring = ReadRing(BuildSignOnlyPrimaryKey());
+            PgpPublicKey subkey = ring.GetPublicKeys().Cast<PgpPublicKey>().Single(k => !k.IsMasterKey);
+
+            Assert.Equal(ToHex(subkey.GetFingerprint()), new DirectoryManager.Web.Services.Interfaces.PgpService().GetFingerprint(BuildArmor(ring)));
+        }
+
+        private static string BuildArmor(PgpPublicKeyRing ring)
+        {
+            using var ms = new MemoryStream();
+            using (var aos = new ArmoredOutputStream(ms))
+            {
+                ring.Encode(aos);
+            }
+
+            return Encoding.ASCII.GetString(ms.ToArray());
+        }
+
         private static PgpPublicKeyRing ReadRing(string armored)
         {
             using var keyIn = PgpUtilities.GetDecoderStream(new MemoryStream(Encoding.UTF8.GetBytes(armored)));
@@ -130,6 +236,13 @@ namespace DirectoryManager.Web.Tests.Services
             => BuildRsaKey(withEncryptionSubkey, out _);
 
         private static string BuildRsaKey(bool withEncryptionSubkey, out string primaryFingerprintHex, DateTime? createdUtc = null)
+            => BuildRsaKey(withEncryptionSubkey, out primaryFingerprintHex, createdUtc, PublicKeyAlgorithmTag.RsaGeneral);
+
+        // Primary that cannot encrypt at all (like an Ed25519 [C] primary), so the identity is the encryption subkey.
+        private static string BuildSignOnlyPrimaryKey()
+            => BuildRsaKey(true, out _, null, PublicKeyAlgorithmTag.RsaSign);
+
+        private static string BuildRsaKey(bool withEncryptionSubkey, out string primaryFingerprintHex, DateTime? createdUtc, PublicKeyAlgorithmTag primaryAlgorithm)
         {
             var random = new SecureRandom();
             DateTime when = createdUtc ?? DateTime.UtcNow;
@@ -139,7 +252,7 @@ namespace DirectoryManager.Web.Tests.Services
 
             var ringGen = new PgpKeyRingGenerator(
                 PgpSignature.PositiveCertification,
-                new PgpKeyPair(PublicKeyAlgorithmTag.RsaGeneral, GenerateRsa(random, 2048), when),
+                new PgpKeyPair(primaryAlgorithm, GenerateRsa(random, 2048), when),
                 "Test RSA <test@example.com>",
                 SymmetricKeyAlgorithmTag.Aes256,
                 Array.Empty<char>(),

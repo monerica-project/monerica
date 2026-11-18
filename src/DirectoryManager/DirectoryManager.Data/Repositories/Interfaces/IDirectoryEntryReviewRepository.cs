@@ -11,7 +11,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<int> CountAsync(CancellationToken ct = default);
         Task AddAsync(DirectoryEntryReview entity, CancellationToken ct = default);
         Task UpdateAsync(DirectoryEntryReview entity, CancellationToken ct = default);
-        Task DeleteAsync(int id, CancellationToken ct = default);
+        Task DeleteAsync(int id, CancellationToken ct = default, string deletedBy = DirectoryManager.Data.Models.Reviews.DeletedReviewRecord.ByAdmin);
 
         // Optional helpers (leave if your model includes these fields; safe to remove if not)
         Task<List<DirectoryEntryReview>> ListForEntryAsync(int directoryEntryId, int page = 1, int pageSize = 50, CancellationToken ct = default);
@@ -65,10 +65,30 @@ namespace DirectoryManager.Data.Repositories.Interfaces
 
         Task<int> CountByAuthorFingerprintAsync(string fingerprint, CancellationToken ct = default);
 
+        /// <summary>True when this PGP fingerprint already has at least one approved review.</summary>
+        /// <returns>True when an approved review exists.</returns>
+        Task<bool> HasApprovedByAuthorFingerprintAsync(string? fingerprint, CancellationToken ct = default);
+
         Task<bool> DeleteOwnedAsync(int reviewId, string fingerprint, CancellationToken ct = default);
 
         Task<Dictionary<string, int>> GetApprovedReviewCountsByAuthorAsync(CancellationToken ct = default);
         Task EnsureTagAsync(int directoryEntryReviewId, int reviewTagId, CancellationToken ct);
         Task<bool> ExistsByBodyAsync(string body, int? excludeReviewId = null, CancellationToken ct = default);
+
+        /// <summary>
+        /// The public /reviews list: approved reviews on listings that are not Removed, filtered
+        /// and sorted by <paramref name="filter"/>, <see cref="PublicReviewFilter.PageSize"/> per page.
+        /// The page is clamped to the last page.
+        /// </summary>
+        Task<PagedResult<DirectoryEntryReview>> ListPublicAsync(PublicReviewFilter filter, CancellationToken ct = default);
+
+        /// <summary>
+        /// Approved reviews carrying a problem tag (<see cref="DirectoryManager.Data.Helpers.ProblemTagRule"/>)
+        /// on listings that are not Removed, newest first, optionally only since <paramref name="sinceUtc"/>.
+        /// </summary>
+        Task<PagedResult<DirectoryEntryReview>> ListProblemReportsAsync(DateTime? sinceUtc, int page, int pageSize, CancellationToken ct = default);
+
+        /// <summary>Approved reply counts per review id (reviews without replies are absent).</summary>
+        Task<Dictionary<int, int>> GetApprovedReplyCountsAsync(IEnumerable<int> reviewIds, CancellationToken ct = default);
     }
 }

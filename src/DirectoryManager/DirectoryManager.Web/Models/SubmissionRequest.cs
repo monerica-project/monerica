@@ -182,6 +182,21 @@ namespace DirectoryManager.Web.Models
         /// <summary>Whether the website needs JavaScript. Unknown = Not Stated.</summary>
         public SiteJavaScript SiteJavaScript { get; set; } = SiteJavaScript.Unknown;
 
+        /// <summary>Countries not served, as typed: codes or names, comma-separated (normalized on save).</summary>
+        [Display(Name = "Countries not served", Prompt = "e.g. US, GB, Iran")]
+        [CleanSingleLine]
+        public string? RestrictedCountries { get; set; }
+
+        [Display(Name = "VPN")]
+        public VpnPolicy VpnPolicy { get; set; } = VpnPolicy.Unknown;
+
+        [Display(Name = "Tor")]
+        public TorPolicy TorPolicy { get; set; } = TorPolicy.Unknown;
+
+        [Display(Name = "Other restrictions", Prompt = "e.g. Minimum age 18")]
+        [CleanSingleLine]
+        public string? OtherRestrictions { get; set; }
+
         public List<DirectoryManager.Data.Models.GuaranteeItem> Guarantees { get; set; } = new ();
 
         [MaxLength(255)]
@@ -249,6 +264,8 @@ namespace DirectoryManager.Web.Models
                     "Please rephrase so no sentence ends with \"!\".",
                     new[] { nameof(this.Description) }));
             }
+
+            results.AddRange(RestrictionValidation.Validate(this.RestrictedCountries, this.TorPolicy, this.OtherRestrictions, this.Link, this.Link2, this.Link3));
 
             // The proof link is only useful when it points to a DIFFERENT page than the main link.
             // Submitters keep pasting the same URL for both; reject that so they either provide a

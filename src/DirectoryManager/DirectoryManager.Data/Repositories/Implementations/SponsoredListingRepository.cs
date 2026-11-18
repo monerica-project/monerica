@@ -127,8 +127,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
                             "CategorySponsor requires a category ID.", nameof(typeId));
                     }
 
+                    // The category it was bought for; that can differ from the listing's main
+                    // category when it is listed there through an additional subcategory.
                     query = query.Where(x =>
-                        x.DirectoryEntry!.SubCategory!.CategoryId == typeId.Value);
+                        (x.CategoryId ?? x.DirectoryEntry!.SubCategory!.CategoryId) == typeId.Value);
                     break;
 
                 default:
@@ -373,7 +375,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                         .ThenInclude(sc => sc.Category)
                 .Where(x =>
                     x.SponsorshipType == SponsorshipType.CategorySponsor &&
-                    x.DirectoryEntry.SubCategory.CategoryId == categoryId &&
+                    (x.CategoryId ?? x.DirectoryEntry.SubCategory.CategoryId) == categoryId &&
                     x.CampaignStartDate <= now &&
                     x.CampaignEndDate >= now)
                 .Where(IsLiveSponsor)

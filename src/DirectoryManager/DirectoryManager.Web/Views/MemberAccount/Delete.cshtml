@@ -1,0 +1,38 @@
+@model DirectoryManager.Web.Models.Members.MemberDeleteAccountViewModel
+@using DirectoryManager.Web.Constants
+@{
+    PageMeta.Title = "Delete my account";
+    PageMeta.IsIndexable = false;
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+<h1>@PageMeta.Title</h1>
+<hr />
+
+<div class="alert alert-warning" role="note">
+    Deleting your account removes your username and password and can't be undone.
+    Your reviews and replies stay up, shown as by a "deleted member".
+    To remove them as well, delete them first on <a href="@MemberAuth.MyReviewsPath">My reviews</a>.
+</div>
+
+<form method="post" action="/members/delete">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="form-group">
+        <label asp-for="Password"></label>
+        <input asp-for="Password" type="password" class="form-control input-width" autocomplete="current-password" />
+        <span asp-validation-for="Password" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <input asp-for="Confirm" />
+        <label asp-for="Confirm"></label>
+        <span asp-validation-for="Confirm" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-danger">Delete my account</button>
+</form>
+
+<p class="u-mt-12px"><a href="@MemberAuth.AccountPath">Back to my account</a></p>
+}

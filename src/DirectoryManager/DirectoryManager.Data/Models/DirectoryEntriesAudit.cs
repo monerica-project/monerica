@@ -52,6 +52,20 @@ namespace DirectoryManager.Data.Models
         /// <summary>Whether the website needs JavaScript. Unknown = Not Stated.</summary>
         public SiteJavaScript SiteJavaScript { get; set; }
 
+        /// <summary>Countries the service does not serve: sorted ISO 3166-1 alpha-2 codes, comma-separated ("CU,IR,KP"). Null = none recorded.</summary>
+        [MaxLength(DirectoryManager.Data.Helpers.ListingRestrictions.RestrictedCountriesMaxLength)]
+        public string? RestrictedCountries { get; set; }
+
+        /// <summary>Whether a VPN may be used. Unknown = Not Stated.</summary>
+        public VpnPolicy VpnPolicy { get; set; }
+
+        /// <summary>Whether Tor may be used. Unknown = Not Stated.</summary>
+        public TorPolicy TorPolicy { get; set; }
+
+        /// <summary>Other usage restrictions, short plain text (e.g. "Minimum age 18").</summary>
+        [MaxLength(DirectoryManager.Data.Helpers.ListingRestrictions.OtherRestrictionsMaxLength)]
+        public string? OtherRestrictions { get; set; }
+
         [MaxLength(500)]
         public string? Description { get; set; }
 

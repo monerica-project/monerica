@@ -1,0 +1,39 @@
+@model DirectoryManager.Web.Models.TwoFactorEnableViewModel
+@using DirectoryManager.Web.Constants;
+@{
+    PageMeta.Title = "Turn On Two-Factor Login";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+<h1>@PageMeta.Title</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+<ol>
+    <li>
+        <p>Open an authenticator app on your phone (any app that supports standard 6-digit time-based codes) and add an account.</p>
+    </li>
+    <li>
+        <p>Scan this QR code:</p>
+        <div><img class="u-qr-img" src="@Model.QrCodeDataUri" alt="Authenticator setup QR code" width="240" height="240" /></div>
+        <p>Or type this key in by hand (spaces don't matter):</p>
+        <p><code>@Model.SharedKey</code></p>
+        <p>Account: <code>@Model.Issuer</code> / <code>@Model.AccountName</code> (time-based, 6 digits, 30 seconds)</p>
+        <p>Keep this key private. Anyone who has it can make codes.</p>
+    </li>
+    <li>
+        <p>Enter the 6-digit code the app shows now to confirm it works:</p>
+        <form asp-controller="TwoFactor" asp-action="Enable" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="form-group">
+                <label for="code">Authenticator code</label>
+                <input id="code" name="code" class="form-control input-width" autocomplete="one-time-code" inputmode="numeric" maxlength="12" />
+            </div>
+            <button type="submit" class="btn btn-primary">Turn on</button>
+        </form>
+    </li>
+</ol>
+
+<p><a href="~/account/two-factor">Cancel</a> (two-factor login stays off)</p>
+}

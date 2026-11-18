@@ -128,7 +128,7 @@
 @section PageContent {
 
     <div class="directory-entry-details container py-4">
-        <h1 class="mb-3 multi-line-text">@Model.Name</h1>
+        <h1 class="mb-3 multi-line-text">@Model.Name@Html.Raw(DirectoryManager.DisplayFormatting.Helpers.DisplayMarkUpHelper.NewBadgeHtml(Model.CreateDate, Model.DirectoryStatus, DateTime.UtcNow))</h1>
         <hr class="entry-divider entry-divider--title" />
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
@@ -596,6 +596,37 @@
             </div>
         }
 
+        @* Restrictions (countries not served, VPN / Tor use, other limits): one expandable box below the
+           profile and above the reviews. Nothing is rendered when nothing is recorded. *@
+        @if (!Model.Restrictions.IsEmpty)
+        {
+            var restr = Model.Restrictions;
+            <hr class="entry-divider" />
+            <div class="entry-section">
+                <details class="entry-guarantee-list" id="restrictions">
+                    <summary><strong>Restrictions:</strong> @restr.SummaryLine</summary>
+                    <ul>
+                        @if (restr.CountryNames.Count > 0)
+                        {
+                            <li>Not served in: @string.Join(", ", restr.CountryNames)</li>
+                        }
+                        @if (restr.Vpn != null)
+                        {
+                            <li>VPN: @restr.Vpn</li>
+                        }
+                        @if (restr.Tor != null)
+                        {
+                            <li>Tor: @restr.Tor</li>
+                        }
+                        @if (restr.Other != null)
+                        {
+                            <li>Other: @restr.Other</li>
+                        }
+                    </ul>
+                </details>
+            </div>
+        }
+
         @* Verification request lives in its own section ABOVE Reviews so the two
            are visually distinct (verification ≠ reviews). *@
         @await Html.PartialAsync("_EntryVerificationRequest", (DirectoryManager.Web.Models.Reviews.EntryReviewsBlockViewModel)ViewBag.ReviewsVm)
@@ -644,7 +675,7 @@
            Sponsorship options call-to-action. Shown near the bottom of
            every eligible profile. Scam AND questionable listings are NOT
            eligible to sponsor, so the section is hidden for them.
-           Links to /sponsorship/options/{id}.
+           Posts to /sponsorship/options/{id} (a button, not a link, so crawlers are not counted as sponsor interest).
            --------------------------------------------------------------- *@
         @if (!isScam && !isQuestionable)
         {
@@ -658,19 +689,17 @@
                     {
                         <p class="sponsor-since"><strong>Sponsor since</strong> @Model.SponsorSinceUtc.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat) (UTC)</p>
                     }
-                    <a class="btn-sponsor"
-                       href="@UrlResolver.ResolveToApp($"/sponsorship/options/{Model.DirectoryEntryId}")">
-                        Manage sponsorship options
-                    </a>
+                    <form method="post" action="@UrlResolver.ResolveToApp($"/sponsorship/options/{Model.DirectoryEntryId}")" class="u-m-0">
+                        <button type="submit" class="btn-sponsor" style="cursor:pointer">Manage sponsorship options</button>
+                    </form>
                 }
                 else
                 {
                     <h3>Sponsor this listing</h3>
                     <p>Boost @Model.Name to the top of its category and across @(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName)).</p>
-                    <a class="btn-sponsor"
-                       href="@UrlResolver.ResolveToApp($"/sponsorship/options/{Model.DirectoryEntryId}")">
-                        View sponsorship options
-                    </a>
+                    <form method="post" action="@UrlResolver.ResolveToApp($"/sponsorship/options/{Model.DirectoryEntryId}")" class="u-m-0">
+                        <button type="submit" class="btn-sponsor" style="cursor:pointer">View sponsorship options</button>
+                    </form>
                 }
             </div>
         }

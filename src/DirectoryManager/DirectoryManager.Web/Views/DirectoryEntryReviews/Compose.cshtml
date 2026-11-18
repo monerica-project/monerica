@@ -51,15 +51,15 @@
                 <input asp-for="OrderProof" class="form-control" maxlength="2048" required />
                 <span asp-validation-for="OrderProof" class="text-danger"></span>
                 <div class="form-text">
-                    A real order URL on @listingName's own site — its own domain, .onion, or I2P address.
-                    Not a blockchain or block-explorer link.
+                    The full link to <strong>your own order</strong> on @listingName's site, including the order ID
+                    (the page that shows your swap, not the exchange's home or swap page). Not a blockchain or block-explorer link.
                     <br />
                     <span class="text-muted">Used only for internal verification — never shown publicly.</span>
                 </div>
             </div>
 
             <div class="u-mb-16px">
-                <label asp-for="OrderProofContext" class="form-label"><strong>Verification Details</strong> @if (requireDetails) { <span class="text-danger">(required)</span> } else { <span class="text-muted">(optional)</span> }</label>
+                <label asp-for="OrderProofContext" class="form-label"><strong>Destination Wallet Address</strong> <span class="text-danger">(required)</span></label>
                 @if (requireDetails)
                 {
                     <textarea asp-for="OrderProofContext" class="form-control" maxlength="2048" rows="3" required></textarea>
@@ -70,8 +70,9 @@
                 }
                 <span asp-validation-for="OrderProofContext" class="text-danger"></span>
                 <div class="form-text">
-                    Anything a moderator needs to open your order — for example your receiving wallet address, or an order ID
-                    (including a third-party one if you ordered through an aggregator).
+                    Paste the <strong>destination wallet address you entered for this order</strong> (where your coins were sent,
+                    or were supposed to be sent). A moderator needs it to open and confirm your order; without it the review cannot be approved.
+                    You can add anything else that helps below it, such as an order ID (including a third-party one if you ordered through an aggregator).
                     <br />
                     <span class="text-muted">Used only for internal verification — never shown publicly.</span>
                 </div>
@@ -94,12 +95,13 @@
             @if (requireDetails)
             {
                 <div class="u-mb-16px">
-                    <label asp-for="OrderProofContext" class="form-label"><strong>Verification Details</strong> <span class="text-danger">(required)</span></label>
+                    <label asp-for="OrderProofContext" class="form-label"><strong>Destination Wallet Address</strong> <span class="text-danger">(required)</span></label>
                     <textarea asp-for="OrderProofContext" class="form-control" maxlength="2048" rows="3" required></textarea>
                     <span asp-validation-for="OrderProofContext" class="text-danger"></span>
                     <div class="form-text">
-                        Something a moderator can use to confirm your order with @listingName — for example
-                        your receiving wallet address, a transaction ID, or your order ID.
+                        Paste the <strong>destination wallet address you entered for this order</strong> with @listingName
+                        (where your coins were sent, or were supposed to be sent). A moderator needs it to confirm your order.
+                        You can add a transaction ID or order ID below it.
                         <br />
                         <span class="text-muted">Used only for internal verification — never shown publicly.</span>
                     </div>

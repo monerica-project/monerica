@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
 
 namespace DirectoryManager.Data.Models
@@ -14,6 +14,10 @@ namespace DirectoryManager.Data.Models
     {
         public const string FeatureSubmissionReview = "submission-review";
 
+        public const string FeatureReviewOrderCheck = "review-order-check";
+
+        public const string FeatureTermsWatch = "terms-watch";
+
         public int Id { get; set; }
 
         public DateTime CreatedUtc { get; set; }
@@ -23,6 +27,9 @@ namespace DirectoryManager.Data.Models
         public string Feature { get; set; } = string.Empty;
 
         public int? SubmissionId { get; set; }
+
+        /// <summary>The review whose order link was checked (review order check calls only).</summary>
+        public int? DirectoryEntryReviewId { get; set; }
 
         /// <summary>Name of the submission at the time of the call (kept even if the submission is deleted).</summary>
         [MaxLength(255)]

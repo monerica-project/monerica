@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace DirectoryManager.Web.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     [Route("account/emailcampaignmanagement")]
     public class EmailCampaignManagementController : Controller
     {

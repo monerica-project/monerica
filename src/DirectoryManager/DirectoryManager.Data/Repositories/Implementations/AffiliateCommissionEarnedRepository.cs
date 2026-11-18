@@ -179,6 +179,49 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ToListAsync();
         }
 
+        public async Task<List<AffiliateCommissionEarnedRow>> GetRowsAsync(
+            DateTime? fromInclusive,
+            DateTime? toExclusive,
+            int? directoryEntryId = null)
+        {
+            var q = this.context.AffiliateCommissionsEarned.AsNoTracking();
+            if (fromInclusive.HasValue)
+            {
+                var f = fromInclusive.Value;
+                q = q.Where(c => c.CommissionDate >= f);
+            }
+
+            if (toExclusive.HasValue)
+            {
+                var t = toExclusive.Value;
+                q = q.Where(c => c.CommissionDate < t);
+            }
+
+            if (directoryEntryId.HasValue)
+            {
+                var id = directoryEntryId.Value;
+                q = q.Where(c => c.DirectoryEntryId == id);
+            }
+
+            return await q
+                .OrderBy(c => c.CommissionDate)
+                .Select(c => new AffiliateCommissionEarnedRow
+                {
+                    DirectoryEntryId = c.DirectoryEntryId,
+                    DirectoryEntryName = c.DirectoryEntry != null ? c.DirectoryEntry.Name : string.Empty,
+                    CommissionDate = c.CommissionDate,
+                    UsdValue = c.UsdValue,
+                })
+                .ToListAsync();
+        }
+
+        public async Task<DateTime?> GetFirstCommissionDateAsync()
+        {
+            return await this.context.AffiliateCommissionsEarned
+                .AsNoTracking()
+                .MinAsync(c => (DateTime?)c.CommissionDate);
+        }
+
         public async Task<AffiliateCommissionEarned> CreateAsync(AffiliateCommissionEarned commission)
         {
             commission.CreateDate = DateTime.UtcNow;

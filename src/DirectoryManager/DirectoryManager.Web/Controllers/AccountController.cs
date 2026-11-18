@@ -1,7 +1,9 @@
 ﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models;
+using DirectoryManager.Web.Services.Implementations;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -13,6 +15,9 @@ namespace DirectoryManager.Web.Controllers
 {
     public class AccountController : BaseController
     {
+        public const string FailedLoginMessage =
+            "Invalid login attempt. After several failed attempts, login is paused for a few minutes.";
+
         private readonly IDirectoryEntryRepository directoryEntryRepository;
         private readonly ISubmissionRepository submissionRepository;
         private readonly IDirectoryEntryReviewRepository directoryEntryReviewRepository;
@@ -23,6 +28,9 @@ namespace DirectoryManager.Web.Controllers
         private readonly SignInManager<ApplicationUser> signInManager;
         private readonly UserManager<ApplicationUser> userManager;
         private readonly ICaptchaService captchaService;
+        private readonly AdminLoginService adminLoginService;
+        private readonly IStaticPublishRepository staticPublishRepository;
+        private readonly Microsoft.Extensions.Options.IOptionsMonitor<DirectoryManager.Web.Models.StaticPublishing.StaticPublishOptions> staticPublishOptions;
         public readonly ISponsoredListingInvoiceRepository SponsoredListingInvoiceRepository;
 
         public AccountController(
@@ -37,9 +45,15 @@ namespace DirectoryManager.Web.Controllers
             IVideoSponsorshipRepository videoSponsorshipRepository,
             ISponsoredListingInvoiceRepository sponsoredListingInvoiceRepository,
             ICaptchaService captchaService,
-            IMemoryCache cache)
+            IMemoryCache cache,
+            IStaticPublishRepository staticPublishRepository,
+            Microsoft.Extensions.Options.IOptionsMonitor<DirectoryManager.Web.Models.StaticPublishing.StaticPublishOptions> staticPublishOptions,
+            AdminLoginService adminLoginService)
             : base(cache)
         {
+            this.adminLoginService = adminLoginService;
+            this.staticPublishRepository = staticPublishRepository;
+            this.staticPublishOptions = staticPublishOptions;
             this.signInManager = signInManager;
             this.userManager = userManager;
             this.directoryEntryRepository = directoryEntryRepository;
@@ -62,7 +76,7 @@ namespace DirectoryManager.Web.Controllers
 
         [Route("account/login")]
         [HttpPost]
-        public async Task<IActionResult> Login(string username, string password, bool rememberMe)
+        public async Task<IActionResult> Login(string username, string password, bool rememberMe, string? twoFactorCode = null)
         {
             if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
             {
@@ -77,34 +91,33 @@ namespace DirectoryManager.Web.Controllers
                 return this.View();
             }
 
-            // 🔒 lockoutOnFailure: true engages Identity's failed-attempt counter
-            var result = await this.signInManager.PasswordSignInAsync(
-                username, password, rememberMe, lockoutOnFailure: true);
+            // 🔒 Password (+ authenticator/recovery code when 2FA is on) with Identity's failed-attempt
+            // counter. With 2FA on, password + valid code gets in even during a lockout (see AdminLoginService).
+            var result = await this.adminLoginService.CheckAsync(username, password, twoFactorCode);
 
-            if (result.IsLockedOut)
+            if (result.Outcome == AdminLoginOutcome.Success && result.User != null)
             {
-                // Generic message — don't reveal whether the user exists
-                this.ModelState.AddModelError("", "Too many attempts. Please try again later.");
-                return this.View();
+                await this.signInManager.SignInWithClaimsAsync(
+                    result.User,
+                    rememberMe,
+                    new[] { new System.Security.Claims.Claim("amr", AdminLoginService.AuthenticationMethod(result)) });
+                return this.RedirectToAction("Home", "Account");
             }
 
-            if (result.IsNotAllowed)
+            if (result.Outcome == AdminLoginOutcome.NotAllowed)
             {
                 this.ModelState.AddModelError("", "Login not allowed.");
                 return this.View();
             }
 
-            if (result.Succeeded)
-            {
-                return this.RedirectToAction("Home", "Account");
-            }
-
-            this.ModelState.AddModelError("", "Invalid login attempt.");
+            // One message for every failure (unknown user, wrong password, missing/wrong code, locked out),
+            // so a stranger can't learn that the username exists or that the account is locked.
+            this.ModelState.AddModelError("", FailedLoginMessage);
             return this.View();
         }
 
         [Route("account/home")]
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> HomeAsync()
         {
             var totalPendingSubmissions =
@@ -204,6 +217,40 @@ namespace DirectoryManager.Web.Controllers
                 .OrderByDescending(x => x.When)
                 .Select(x => ((DateTime, decimal?, decimal?, string, string)?)(x.When!.Value, x.Usd, x.Xmr, x.What, x.Url))
                 .FirstOrDefault();
+            // Paid and still waiting: every donation-backed item nobody has handled yet, newest payment first.
+            this.ViewBag.PaidWaiting =
+                (await this.submissionRepository.ListPaidPendingAsync())
+                    .Select(x => (Item: x, What: "Listing submission", Url: $"/submission/{x.Id}"))
+                .Concat((await this.verificationRequestRepository.ListPaidPendingAsync())
+                    .Select(x => (Item: x, What: "Verification request", Url: $"/admin/verification-requests/{x.Id}")))
+                .Concat((await this.problemReportRepository.ListPaidPendingAsync())
+                    .Select(x => (Item: x, What: "Problem report", Url: $"/admin/problem-reports/{x.Id}")))
+                .OrderByDescending(x => x.Item.PaidUtc)
+                .ToList();
+            // The most recent paid item of each kind, whatever became of it, so the page can say
+            // how it ended (submission, verification request and problem report alike).
+            var lastPaidItems = new List<(string What, int Id, string Name, string Url, DateTime PaidUtc, decimal? Usd, decimal? Xmr, bool Waiting, string Status)>();
+            var lastPaidSubmission = sub.Id > 0 ? await this.submissionRepository.GetByIdAsync(sub.Id) : null;
+            if (lastPaidSubmission?.PaidUtc is DateTime subPaid)
+            {
+                lastPaidItems.Add(("submission", lastPaidSubmission.SubmissionId, lastPaidSubmission.Name, $"/submission/{lastPaidSubmission.SubmissionId}", subPaid, lastPaidSubmission.PaidUsd, lastPaidSubmission.PaidXmr, lastPaidSubmission.SubmissionStatus == Data.Enums.SubmissionStatus.Pending, lastPaidSubmission.SubmissionStatus.ToString()));
+            }
+
+            var lastPaidVerification = verif.Id > 0 ? await this.verificationRequestRepository.GetByIdAsync(verif.Id) : null;
+            if (lastPaidVerification?.PaidUtc is DateTime verifPaid)
+            {
+                var listing = await this.directoryEntryRepository.GetByIdAsync(lastPaidVerification.DirectoryEntryId);
+                lastPaidItems.Add(("verification request", lastPaidVerification.VerificationRequestId, listing?.Name ?? string.Empty, $"/admin/verification-requests/{lastPaidVerification.VerificationRequestId}", verifPaid, lastPaidVerification.PaidUsd, lastPaidVerification.PaidXmr, lastPaidVerification.Status == Data.Enums.VerificationRequestStatus.Pending, lastPaidVerification.Status.ToString()));
+            }
+
+            var lastPaidProblem = prob.Id > 0 ? await this.problemReportRepository.GetByIdAsync(prob.Id) : null;
+            if (lastPaidProblem?.PaidUtc is DateTime probPaid)
+            {
+                var listing = await this.directoryEntryRepository.GetByIdAsync(lastPaidProblem.DirectoryEntryId);
+                lastPaidItems.Add(("problem report", lastPaidProblem.ProblemReportId, listing?.Name ?? string.Empty, $"/admin/problem-reports/{lastPaidProblem.ProblemReportId}", probPaid, lastPaidProblem.PaidUsd, lastPaidProblem.PaidXmr, lastPaidProblem.Status == Data.Enums.ProblemReportStatus.Pending, lastPaidProblem.Status.ToString()));
+            }
+
+            this.ViewBag.LastPaidItems = lastPaidItems;
             this.ViewBag.VideoAttention = await this.videoSponsorshipRepository.GetPaymentAttentionAsync();
 
             // "Newest waiting" = create time of the newest item NOT yet handled (null when none).
@@ -217,54 +264,27 @@ namespace DirectoryManager.Web.Controllers
                 .Where(c => (c.ModerationStatus == ReviewModerationStatus.Pending || c.ModerationStatus == ReviewModerationStatus.Flagged))
                 .MaxAsync(c => (DateTime?)c.CreateDate);
             this.ViewBag.NewestPendingReviewUtc = new[] { newestPendingReview, newestPendingComment }.Max();
-            // The Bunny syncer stamps two files: last-success.txt on every OK run
-            // ("last checked"), and last-sync.txt only when it actually uploaded changed
-            // files ("last files synced"). Both are written by the syncer's systemd unit.
-            this.ViewBag.LastBunnyCheckedUtc = ReadStampUtc("/var/lib/gitsitesyncer-monerica-bunny/last-success.txt");
-            this.ViewBag.LastBunnyFilesSyncedUtc = ReadStampUtc("/var/lib/gitsitesyncer-monerica-bunny/last-sync.txt");
+            // Public-site (static mirror) status for the dashboard comes from the publish log.
+            this.ViewBag.StaticPublishLastInstant = await this.staticPublishRepository.GetLastInstantPublishAsync();
+            this.ViewBag.StaticPublishLastFullCrawl = await this.staticPublishRepository.GetLastFullCrawlAsync();
+            var publishQueue = await this.staticPublishRepository.ListQueueAsync();
+            this.ViewBag.StaticPublishWaiting = publishQueue.Count(q => q.Path != DirectoryManager.Data.Models.StaticPublishing.StaticPublishConstants.FullCrawlPath && q.Attempts == 0);
+            this.ViewBag.StaticPublishFailing = publishQueue.Count(q => q.Path != DirectoryManager.Data.Models.StaticPublishing.StaticPublishConstants.FullCrawlPath && q.Attempts > 0);
+            this.ViewBag.StaticPublishWorkerPollUtc = DirectoryManager.Web.Services.Implementations.StaticPublishWorkerStatus.LastPollUtc;
+            this.ViewBag.StaticPublishMode = this.staticPublishOptions.CurrentValue.Mode;
 
             return this.View();
         }
 
-        // Reads an ISO-8601 UTC timestamp the syncer stamps into a file. Best-effort:
-        // returns null if the file is missing/unreadable so the dashboard just omits
-        // that status rather than erroring (the syncer is a separate service).
-        private static DateTime? ReadStampUtc(string path)
-        {
-            try
-            {
-                if (!System.IO.File.Exists(path))
-                {
-                    return null;
-                }
-
-                var text = System.IO.File.ReadAllText(path).Trim();
-                if (System.DateTimeOffset.TryParse(
-                        text,
-                        System.Globalization.CultureInfo.InvariantCulture,
-                        System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal,
-                        out var dto))
-                {
-                    return dto.UtcDateTime;
-                }
-            }
-            catch
-            {
-                // Ignore — dashboard shows "status unavailable" if it can't be read.
-            }
-
-            return null;
-        }
-
         [Route("account/edit")]
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public IActionResult Edit()
         {
             return this.View();
         }
 
         [Route("account/changepassword")]
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         [HttpGet]
         public IActionResult ChangePassword()
         {
@@ -272,7 +292,7 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [Route("account/changepassword")]
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         [HttpPost]
         public async Task<IActionResult> ChangePasswordAsync(ChangePasswordModel model)
         {
@@ -302,7 +322,7 @@ namespace DirectoryManager.Web.Controllers
         // 🔒 POST-only so CSRF (now globally enforced) protects logout.
         [Route("account/logout")]
         [HttpPost]
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> Logout()
         {
             await this.signInManager.SignOutAsync();

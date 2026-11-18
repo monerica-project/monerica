@@ -59,6 +59,10 @@ namespace DirectoryManager.Web.Helpers
             ParentCommentId = null,
             Body = BuildBody(source),
             AuthorFingerprint = source.AuthorFingerprint,
+
+            // A member's review moved to a reply stays the member's (same author type and name).
+            AuthorUserId = source.AuthorUserId,
+            AuthorUsername = source.AuthorUsername,
             ModerationStatus = ReviewModerationStatus.Pending,
             CreateDate = source.CreateDate,
             CreatedByUserId = string.IsNullOrWhiteSpace(source.CreatedByUserId) ? adminUserId : source.CreatedByUserId,

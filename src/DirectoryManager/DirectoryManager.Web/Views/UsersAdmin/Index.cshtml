@@ -1,0 +1,198 @@
+@using DirectoryManager.Web.Models.Members
+@using DirectoryManager.Common.Constants
+@model UsersAdminViewModel
+@{
+    PageMeta.Title = "Users";
+    PageMeta.IsIndexable = false;
+    Layout = "_CenteredLayout";
+    var q = Model.Query;
+    var isKeys = q.Tab == UsersAdminTabs.Keys;
+}
+
+@section PageContent {
+@await Html.PartialAsync("_AdminMenu")
+<h1>@PageMeta.Title</h1>
+
+<ul class="nav nav-pills mb-3">
+    <li class="nav-item"><a class="nav-link @(isKeys ? "" : "active")" href="/admin/users?tab=@UsersAdminTabs.Accounts">Accounts</a></li>
+    <li class="nav-item"><a class="nav-link @(isKeys ? "active" : "")" href="/admin/users?tab=@UsersAdminTabs.Keys">PGP reviewers (no account)</a></li>
+</ul>
+
+@if (TempData["UsersMessage"] is string ok && !string.IsNullOrWhiteSpace(ok))
+{
+    <div class="alert alert-success">@ok</div>
+}
+@if (TempData["UsersError"] is string err && !string.IsNullOrWhiteSpace(err))
+{
+    <div class="alert alert-danger">@err</div>
+}
+
+@if (!isKeys)
+{
+    <p class="text-muted">
+        Member accounts (username + password; admin accounts are not listed). Their posts are in the normal
+        <a href="/admin/reviews">review moderation</a> queue, marked "Member". Open an account to see all its posts, block it from posting, or remove its linked PGP key.
+    </p>
+
+    <form method="get" action="/admin/users" class="u-mb-16px">
+        <input type="hidden" name="tab" value="@UsersAdminTabs.Accounts" />
+        <input name="q" value="@q.Q" class="form-control input-width" placeholder="Username contains" />
+        <input name="key" value="@q.Key" class="form-control input-width" placeholder="Linked key: fingerprint or key ID (hex)" />
+        <select name="match" class="form-control input-width">
+            <option value="@UsersAdminMatch.Contains" selected="@(q.Match == UsersAdminMatch.Contains)">key contains</option>
+            <option value="@UsersAdminMatch.Prefix" selected="@(q.Match == UsersAdminMatch.Prefix)">key starts with</option>
+            <option value="@UsersAdminMatch.Suffix" selected="@(q.Match == UsersAdminMatch.Suffix)">key ends with (key ID)</option>
+        </select>
+        <select name="status" class="form-control input-width">
+            <option value="@UsersAdminStatuses.Current" selected="@(q.Status == UsersAdminStatuses.Current)">Status: any (not deleted)</option>
+            <option value="@UsersAdminStatuses.Active" selected="@(q.Status == UsersAdminStatuses.Active)">Active</option>
+            <option value="@UsersAdminStatuses.Blocked" selected="@(q.Status == UsersAdminStatuses.Blocked)">Blocked from posting</option>
+            <option value="@UsersAdminStatuses.Disabled" selected="@(q.Status == UsersAdminStatuses.Disabled)">Disabled</option>
+            <option value="@UsersAdminStatuses.Deleted" selected="@(q.Status == UsersAdminStatuses.Deleted)">Deleted</option>
+            <option value="@UsersAdminStatuses.All" selected="@(q.Status == UsersAdminStatuses.All)">All, including deleted</option>
+        </select>
+        <select name="sort" class="form-control input-width">
+            <option value="@UsersAdminSorts.Newest" selected="@(q.Sort == UsersAdminSorts.Newest)">Newest accounts first</option>
+            <option value="@UsersAdminSorts.MostPosts" selected="@(q.Sort == UsersAdminSorts.MostPosts)">Most posts first</option>
+            <option value="@UsersAdminSorts.LastActive" selected="@(q.Sort == UsersAdminSorts.LastActive)">Last active first</option>
+        </select>
+        <button type="submit" class="btn btn-sm btn-outline-secondary">Search</button>
+        <a href="/admin/users?tab=@UsersAdminTabs.Accounts">Clear</a>
+    </form>
+
+    <p>@Model.Total account(s)</p>
+
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Created</th>
+                <th>Status</th>
+                <th>PGP key</th>
+                <th>Reviews</th>
+                <th>Replies</th>
+                <th>Last post</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var a in Model.Accounts)
+            {
+                <tr>
+                    <td><a href="@DirectoryManager.Web.Controllers.UsersAdminController.AccountUrl(a.Id)">@a.Username</a></td>
+                    <td>@a.CreateDate.ToString(StringConstants.DateFormat)</td>
+                    <td>
+                        @if (a.IsDeleted || a.IsDisabled || a.IsPostingBlocked) { <span class="text-danger">@a.StatusLabel</span> }
+                        else { <span>@a.StatusLabel</span> }
+                        @if (a.IsLockedOut && !a.IsDeleted) { <span class="text-muted"> (sign-in paused)</span> }
+                    </td>
+                    <td>
+                        @if (string.IsNullOrEmpty(a.PgpFingerprint)) { <span class="text-muted">none</span> }
+                        else
+                        {
+                            <a href="@DirectoryManager.Web.Controllers.UsersAdminController.KeyUrl(a.PgpFingerprint)"><code title="@a.PgpFingerprint">@KeyRow.ShortFingerprint(a.PgpFingerprint)</code></a>
+                            @if (a.LinkedKeyBlocked) { <span class="text-danger"> (key blocked)</span> }
+                        }
+                    </td>
+                    <td>@await Html.PartialAsync("_StatusCounts", a.Reviews)</td>
+                    <td>@await Html.PartialAsync("_StatusCounts", a.Replies)</td>
+                    <td>@(a.LastPostUtc?.ToString(StringConstants.DateTimeShortFormat) ?? "never")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p class="text-muted">
+        One row per PGP key that has posted a review or reply without a member account (member posts are not included).
+        Counts are by moderation state. Open a key to see all its posts or to block it.
+    </p>
+
+    <form method="get" action="/admin/users" class="u-mb-16px">
+        <input type="hidden" name="tab" value="@UsersAdminTabs.Keys" />
+        <input name="key" value="@q.Key" class="form-control input-width" placeholder="Fingerprint or key ID (hex)" />
+        <select name="match" class="form-control input-width">
+            <option value="@UsersAdminMatch.Contains" selected="@(q.Match == UsersAdminMatch.Contains)">contains</option>
+            <option value="@UsersAdminMatch.Prefix" selected="@(q.Match == UsersAdminMatch.Prefix)">starts with</option>
+            <option value="@UsersAdminMatch.Suffix" selected="@(q.Match == UsersAdminMatch.Suffix)">ends with (key ID)</option>
+        </select>
+        <select name="sort" class="form-control input-width">
+            <option value="@UsersAdminSorts.Newest" selected="@(q.Sort == UsersAdminSorts.Newest)">Newest (first seen) first</option>
+            <option value="@UsersAdminSorts.MostPosts" selected="@(q.Sort == UsersAdminSorts.MostPosts)">Most posts first</option>
+            <option value="@UsersAdminSorts.LastActive" selected="@(q.Sort == UsersAdminSorts.LastActive)">Last active first</option>
+        </select>
+        <button type="submit" class="btn btn-sm btn-outline-secondary">Search</button>
+        <a href="/admin/users?tab=@UsersAdminTabs.Keys">Clear</a>
+    </form>
+
+    <form method="get" action="/admin/users/key" class="u-mb-16px">
+        <input name="fingerprint" class="form-control input-width" placeholder="Open a full fingerprint (also one that never posted)" />
+        <button type="submit" class="btn btn-sm btn-outline-secondary">Open</button>
+    </form>
+
+    <p>@Model.Total key(s)</p>
+
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Fingerprint</th>
+                <th>First seen</th>
+                <th>Last seen</th>
+                <th>Reviews</th>
+                <th>Replies</th>
+                <th>Listings</th>
+                <th>Notes</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var k in Model.Keys)
+            {
+                <tr>
+                    <td><a href="@DirectoryManager.Web.Controllers.UsersAdminController.KeyUrl(k.Fingerprint)"><code title="@k.Fingerprint">@k.Short</code></a></td>
+                    <td>@(k.FirstSeenUtc?.ToString(StringConstants.DateFormat) ?? "-")</td>
+                    <td>@(k.LastSeenUtc?.ToString(StringConstants.DateTimeShortFormat) ?? "-")</td>
+                    <td>@await Html.PartialAsync("_StatusCounts", k.Reviews)</td>
+                    <td>@await Html.PartialAsync("_StatusCounts", k.Replies)</td>
+                    <td>@k.ListingCount</td>
+                    <td>@await Html.PartialAsync("_KeyBadges", k)</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <h3>Blocked keys (@Model.ActiveKeyBlocks.Count)</h3>
+    @if (Model.ActiveKeyBlocks.Count == 0)
+    {
+        <p class="text-muted">No key is blocked.</p>
+    }
+    else
+    {
+        <table class="table table-sm">
+            <thead><tr><th>Fingerprint</th><th>Blocked</th><th>By</th><th>Reason</th></tr></thead>
+            <tbody>
+                @foreach (var b in Model.ActiveKeyBlocks)
+                {
+                    <tr>
+                        <td><a href="@DirectoryManager.Web.Controllers.UsersAdminController.KeyUrl(b.Fingerprint)"><code title="@b.Fingerprint">@KeyRow.ShortFingerprint(b.Fingerprint)</code></a></td>
+                        <td>@b.BlockedUtc.ToString(StringConstants.DateTimeShortFormat)</td>
+                        <td>@b.BlockedBy</td>
+                        <td>@b.Reason</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+@if (Model.TotalPages > 1)
+{
+    <p>
+        @for (var p = 1; p <= Model.TotalPages; p++)
+        {
+            if (p == Model.Page) { <b>@p</b> }
+            else { <a href="@Model.Url(page: p)">@p</a> }
+            <span> </span>
+        }
+    </p>
+}
+}

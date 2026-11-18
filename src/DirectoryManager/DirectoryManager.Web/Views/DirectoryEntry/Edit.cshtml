@@ -32,6 +32,21 @@
      |
     <a href="@UrlBuilder.ListingPath(Model.DirectoryEntryKey)" target="_blank">View Listing</a>
     @{
+        var listingPath = UrlBuilder.ListingPath(Model.DirectoryEntryKey);
+        var publishHistoryUrl = "/admin/publishing?path=" + Uri.EscapeDataString(listingPath);
+    }
+    <p class="u-color-888 mb-1">
+        @if (ViewBag.LastPublished is DirectoryManager.Data.Models.StaticPublishing.StaticPublishLogEntry lastPublished)
+        {
+            <span>Last published to the public site: @lastPublished.PublishedUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat) UTC (@lastPublished.Result@(string.IsNullOrWhiteSpace(lastPublished.Reason) ? string.Empty : ", " + lastPublished.Reason))</span>
+        }
+        else
+        {
+            <span>Last published to the public site: no record in the last 30 days</span>
+        }
+        — <a href="@publishHistoryUrl">publish history</a>
+    </p>
+    @{
         // Paid sponsorship invoices for this listing: link to the page that lists them all.
         var (sponsorInvoices, _) = await sponsorInvoiceRepository.GetInvoicesForDirectoryEntryAsync(Model.DirectoryEntryId, 1, int.MaxValue);
         var paidSponsorInvoices = sponsorInvoices.Count(i => i.PaymentStatus == PaymentStatus.Paid);

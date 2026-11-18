@@ -14,6 +14,8 @@ namespace DirectoryManager.Web.Services.Implementations
         // past the invoice window, so a slow confirmation can never free them for another buyer.
         private static readonly TimeSpan PaymentInFlightHold = TimeSpan.FromHours(24);
 
+        private static readonly TimeSpan UnderPaidHold = TimeSpan.FromHours(1);
+
         private readonly IVideoSponsorshipRepository repository;
         private readonly IVideoSponsorPaymentGateway gateway;
         private readonly ILogger<VideoSponsorOrderProcessor> logger;
@@ -85,7 +87,19 @@ namespace DirectoryManager.Web.Services.Implementations
             if (proposed is PaymentStatus.Pending or PaymentStatus.UnderPayment)
             {
                 await this.PopulatePaymentAmountsAsync(order);
-                await this.repository.SetHoldExpiryAsync(order.VideoSponsorOrderId, DateTime.UtcNow.Add(PaymentInFlightHold), ct);
+
+                // The long hold is only for a payment that has arrived IN FULL and is waiting for
+                // confirmations. A partial (dust) payment must not lock the videos for a day: while
+                // the invoice is open its normal hold already applies, and once it has expired
+                // under-paid the videos are kept for a short while only.
+                if (proposed == PaymentStatus.UnderPayment)
+                {
+                    await this.repository.SetHoldExpiryAsync(order.VideoSponsorOrderId, DateTime.UtcNow.Add(UnderPaidHold), ct);
+                }
+                else if (await this.IsReceivedInFullAsync(order))
+                {
+                    await this.repository.SetHoldExpiryAsync(order.VideoSponsorOrderId, DateTime.UtcNow.Add(PaymentInFlightHold), ct);
+                }
             }
             else if (SponsoredListingCheckoutHelper.IsPaidOrOverpaid(proposed))
             {
@@ -134,6 +148,32 @@ namespace DirectoryManager.Web.Services.Implementations
             {
                 // A BTCPay hiccup must never break the page that asked; the webhook still lands.
                 this.logger.LogWarning(ex, "Could not sync video sponsor order {OrderId} from BTCPay.", order.VideoSponsorOrderId);
+            }
+        }
+
+        /// <summary>True when BTCPay reports nothing left to pay. If BTCPay can't be asked, the buyer gets the benefit of the doubt.</summary>
+        private async Task<bool> IsReceivedInFullAsync(VideoSponsorOrder order)
+        {
+            var client = this.gateway.Client;
+            if (client is null || string.IsNullOrWhiteSpace(order.ProcessorInvoiceId))
+            {
+                return true;
+            }
+
+            try
+            {
+                BtcPayPaymentMethod? xmr = await client.GetXmrPaymentMethodAsync(order.ProcessorInvoiceId);
+                if (xmr is null || string.IsNullOrWhiteSpace(xmr.Due))
+                {
+                    return true;
+                }
+
+                return decimal.TryParse(xmr.Due, NumberStyles.Number, CultureInfo.InvariantCulture, out var due) && due <= 0m;
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogWarning(ex, "Could not read the amount due for video sponsor order {OrderId}.", order.VideoSponsorOrderId);
+                return true;
             }
         }
 

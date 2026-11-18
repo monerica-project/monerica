@@ -1,4 +1,4 @@
-using DirectoryManager.Data.Models;
+﻿using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.Emails;
 using DirectoryManager.Data.Models.Reviews;
 using DirectoryManager.Data.Models.SponsoredListings;
@@ -27,6 +27,7 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<LogEntry> LogEntries { get; set; }
         public DbSet<SentEmailRecord> SentEmailRecords { get; set; }
         public DbSet<EmailSendLog> EmailSendLogs { get; set; }
+        public DbSet<EmailSendLogContent> EmailSendLogContents { get; set; }
         public DbSet<SponsoredListingOpeningNotification> SponsoredListingOpeningNotifications { get; set; }
         public DbSet<SponsoredListing> SponsoredListings { get; set; }
         public DbSet<SponsoredListingInvoice> SponsoredListingInvoices { get; set; }
@@ -56,11 +57,16 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<DirectoryManager.Data.Models.VideoSponsorships.VideoSponsorOrder> VideoSponsorOrders { get; set; }
         public DbSet<DirectoryManager.Data.Models.VideoSponsorships.VideoSponsorOrderItem> VideoSponsorOrderItems { get; set; }
         DbSet<DirectoryEntryReviewComment> DirectoryEntryReviewComments { get; }
+
+        DbSet<DirectoryManager.Data.Models.Reviews.DeletedReviewRecord> DeletedReviewRecords { get; }
+
+        DbSet<ListingTermsSnapshot> ListingTermsSnapshots { get; }
         DbSet<DirectoryManager.Data.Models.Reviews.ReviewNotification> ReviewNotifications { get; }
         public DbSet<AffiliateCommissionEarned> AffiliateCommissionsEarned { get; set; }
         public DbSet<SearchBlacklistTerm> SearchBlacklistTerms { get; set; }
         public DbSet<DirectoryManager.Data.Models.Emails.MarketingEmailContact> MarketingEmailContacts { get; set; }
         public DbSet<AdditionalLink> AdditionalLinks { get; set; }
+        DbSet<DirectoryEntryGuarantee> DirectoryEntryGuarantees { get; }
         public DbSet<ReviewTag> ReviewTags { get; set; }
         public DbSet<DirectoryEntryReviewTag> DirectoryEntryReviewTags { get; set; }
         public DbSet<Processor> Processors { get; set; }

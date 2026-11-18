@@ -20,6 +20,22 @@ namespace DirectoryManager.Utilities.Tests.Helpers
         public void ProofLinkSameAsMainLink_IsAllowed() =>
             Assert.Empty(Check(("Link", "https://acme.com"), ("ProofLink", "http://www.acme.com/")));
 
+        [Fact] // HAPPY: a project whose website is its repository (owner, 2026-11-13)
+        public void SourceCodeLinkSameAsMainLink_IsAllowed() =>
+            Assert.Empty(Check(("Link", "https://github.com/acme/tool"), ("SourceCodeLink", "https://github.com/acme/tool/")));
+
+        [Fact] // HAPPY: repository given as both proof and source code link
+        public void SourceCodeLinkSameAsProofLink_IsAllowed() =>
+            Assert.Empty(Check(("Link", "https://acme.com"), ("ProofLink", "https://github.com/acme/pos"), ("SourceCodeLink", "https://github.com/acme/pos")));
+
+        [Fact] // SAD: the source code link may not repeat any other link
+        public void SourceCodeLinkSameAsVideo_IsFlagged()
+        {
+            var errors = Check(("Link", "https://acme.com"), ("VideoLink", "https://github.com/acme/x"), ("SourceCodeLink", "https://github.com/acme/x"));
+            Assert.Single(errors);
+            Assert.Equal("SourceCodeLink", errors[0].Field);
+        }
+
         [Fact] // SAD: proof link repeating any OTHER link is not allowed
         public void ProofLinkSameAsVideo_IsFlagged()
         {

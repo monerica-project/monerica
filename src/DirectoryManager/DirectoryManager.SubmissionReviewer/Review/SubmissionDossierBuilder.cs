@@ -84,6 +84,83 @@ namespace DirectoryManager.SubmissionReviewer.Review
         }
 
         /// <summary>
+        /// Monero logos in the markup of the submitted page and the proof page, and (only when the
+        /// pages themselves show none) Monero image files named in the submitted site's own scripts.
+        /// Returns dossier lines.
+        /// </summary>
+        public async Task<IReadOnlyList<string>> FindMoneroLogosAsync(FetchResult main, FetchResult? second, CancellationToken ct)
+        {
+            var found = new List<string>();
+            foreach (var (label, page) in new[] { ("Submitted page", main), ("Proof / payment page", second) })
+            {
+                foreach (var line in MoneroLogoScan.InHtml(page?.Html))
+                {
+                    found.Add($"{label} ({page!.FinalUri?.ToString() ?? page.Url}): {line}");
+                }
+            }
+
+            if (found.Count == 0 && main.Html != null && main.FinalUri != null)
+            {
+                foreach (var scriptUrl in ReferralScan.ScriptUrls(main.Html, main.FinalUri))
+                {
+                    var script = await this.fetcher.FetchAsync(scriptUrl, ct);
+                    foreach (var line in MoneroLogoScan.AssetsInScript(script.Html))
+                    {
+                        found.Add($"The site's own JavaScript ({scriptUrl}) uses the {line}");
+                    }
+
+                    if (found.Count > 0)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            return found.Take(6).ToList();
+        }
+
+        /// <summary>
+        /// The site's own PGP public key: a key block pasted in the submitted or proof page, else the
+        /// first linked key file / PGP page (same site or keys.openpgp.org) that contains one.
+        /// Returns null when none is found. The key is only suggested; the admin sees its fingerprint.
+        /// </summary>
+        public async Task<(string Key, string Source)?> FindPgpKeyAsync(FetchResult main, FetchResult? second, CancellationToken ct)
+        {
+            foreach (var page in new[] { main, second })
+            {
+                var inline = PgpKeyScan.ExtractArmoredKey(page?.Html);
+                if (inline != null)
+                {
+                    return (inline, page!.FinalUri?.ToString() ?? page.Url);
+                }
+            }
+
+            var links = new List<string>();
+            foreach (var page in new[] { main, second })
+            {
+                foreach (var url in PgpKeyScan.KeyLinks(page?.Html, page?.FinalUri))
+                {
+                    if (!links.Contains(url, StringComparer.OrdinalIgnoreCase))
+                    {
+                        links.Add(url);
+                    }
+                }
+            }
+
+            foreach (var url in links.Take(3))
+            {
+                var fetched = await this.fetcher.FetchAsync(url, ct);
+                var key = PgpKeyScan.ExtractArmoredKey(fetched.Html);
+                if (key != null)
+                {
+                    return (key, fetched.FinalUri?.ToString() ?? url);
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// The site's own social / messenger profiles, from page links and its own script files
         /// (JavaScript-built footers). Returns dossier lines.
         /// </summary>
@@ -202,7 +279,8 @@ namespace DirectoryManager.SubmissionReviewer.Review
             IReadOnlyList<string>? referralEvidence = null,
             IReadOnlyList<string>? socialLinks = null,
             IReadOnlyList<string>? kycStatements = null,
-            IReadOnlyList<string>? apiLinks = null)
+            IReadOnlyList<string>? apiLinks = null,
+            IReadOnlyList<string>? moneroLogos = null)
         {
             var sb = new StringBuilder();
             sb.AppendLine("## Submission (as submitted)");
@@ -225,6 +303,9 @@ namespace DirectoryManager.SubmissionReviewer.Review
             Field(sb, "Liquidity", s.Liquidity.ToString());
             Field(sb, "Rate type", s.RateType.ToString());
             Field(sb, "JavaScript", s.SiteJavaScript.ToString());
+
+            // Its own listing field, kept as submitted (the reviewer does not propose changes to it).
+            Field(sb, "Restrictions (own field, kept as submitted)", DirectoryManager.Data.Helpers.ListingRestrictions.FullText(s.RestrictedCountries, s.VpnPolicy, s.TorPolicy, s.OtherRestrictions));
             Field(sb, "Processor", s.Processor);
             Field(sb, "Proof link", s.ProofLink);
             if (!string.IsNullOrWhiteSpace(s.ProofLink) && !SameSite(s.ProofLink, s.Link))
@@ -261,6 +342,20 @@ namespace DirectoryManager.SubmissionReviewer.Review
                 {
                     sb.AppendLine("- " + line);
                 }
+            }
+
+            sb.AppendLine();
+            sb.AppendLine("## Monero logo check (images, icons and SVGs named Monero/XMR in the page markup; names only, the pictures were not looked at)");
+            if (moneroLogos is { Count: > 0 })
+            {
+                foreach (var line in moneroLogos)
+                {
+                    sb.AppendLine("- " + Trim(line, 300));
+                }
+            }
+            else
+            {
+                sb.AppendLine("(none found)");
             }
 
             sb.AppendLine();

@@ -1,0 +1,36 @@
+@model DirectoryManager.Web.Models.TwoFactorStatusViewModel
+@using DirectoryManager.Web.Constants;
+@{
+    PageMeta.Title = "Two-Factor Login";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+<h1>@PageMeta.Title</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+@if (Model.IsEnabled)
+{
+    <p><b>Status: ON.</b> Logging in needs your password and a code from your authenticator app (or a recovery code).</p>
+    <p>Recovery codes left: <b>@Model.RecoveryCodesLeft</b></p>
+    @if (Model.RecoveryCodesLeft <= 3)
+    {
+        <p class="text-danger">You are running low on recovery codes. Make a new set.</p>
+    }
+    <ul>
+        <li><a href="~/account/two-factor/recovery-codes">Make new recovery codes</a> (the old ones stop working)</li>
+        <li><a href="~/account/two-factor/disable">Turn off two-factor login</a></li>
+    </ul>
+    <p>While two-factor login is on, too many failed logins can't lock you out: the correct password plus a valid code always gets in.</p>
+}
+else
+{
+    <p><b>Status: OFF.</b> Logging in needs only your password.</p>
+    <p>
+        Turning it on means a stolen password alone is not enough to log in, and it stops strangers from
+        locking you out by failing logins on purpose.
+    </p>
+    <p><a href="~/account/two-factor/enable">Turn on two-factor login</a></p>
+}
+}

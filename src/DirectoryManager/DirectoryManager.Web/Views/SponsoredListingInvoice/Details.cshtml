@@ -148,8 +148,12 @@
             <dt>Email</dt>
             <dd>@Model.Email</dd>
 
-            <dt>Is Reminder Sent</dt>
-            <dd>@Model.IsReminderSent</dd>
+            <dt>First expiry reminder (72 hours)</dt>
+            <dd>@(Model.ReminderSentUtc is { } firstAt ? firstAt.ToString("yyyy-MM-dd HH:mm") + " UTC" : (Model.IsReminderSent ? "Sent (time not recorded)" : "Not sent"))</dd>
+
+            <dt>Final expiry reminder (24 hours)</dt>
+            <dd>@(Model.FinalReminderSentUtc is { } finalAt ? finalAt.ToString("yyyy-MM-dd HH:mm") + " UTC" : "Not sent")
+                · <a href="~/email/sendlog?source=SponsoredListingReminder">Email log</a></dd>
         }
 
     </dl>

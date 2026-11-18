@@ -21,7 +21,7 @@ using Microsoft.Net.Http.Headers;
 
 namespace DirectoryManager.Web.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     public class SponsoredListingInvoiceController : Controller
     {
         private readonly ISponsoredListingInvoiceRepository invoiceRepository;

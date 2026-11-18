@@ -18,7 +18,7 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace DirectoryManager.Web.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     public class CategoryController : BaseController
     {
         private readonly UserManager<ApplicationUser> userManager;
@@ -194,6 +194,7 @@ namespace DirectoryManager.Web.Controllers
 
             await this.categoryRepository.CreateAsync(category);
             this.ClearCachedItems();
+            await this.StaticPublish().RequestFullCrawlAsync("category created: " + category.Name);
 
             return this.RedirectToAction(nameof(this.Index));
         }
@@ -225,6 +226,7 @@ namespace DirectoryManager.Web.Controllers
 
             await this.categoryRepository.UpdateAsync(existingCategory);
             this.ClearCachedItems();
+            await this.StaticPublish().RequestFullCrawlAsync("category edited: " + existingCategory.Name);
 
             return this.RedirectToAction(nameof(this.Index));
         }

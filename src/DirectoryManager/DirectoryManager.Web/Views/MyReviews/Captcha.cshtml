@@ -9,6 +9,10 @@
 
 <form asp-action="CaptchaPost" asp-route-flowId="@ViewBag.FlowId" method="post">
     @Html.AntiForgeryToken()
+    @if (!string.IsNullOrEmpty(ViewBag.FlowTicket as string))
+    {
+        <input type="hidden" name="@DirectoryManager.Web.Helpers.PreCaptchaFlowTicket.FieldName" value="@ViewBag.FlowTicket" />
+    }
         <br />
     @await Html.PartialAsync(
             "_CaptchaBlock",

@@ -106,7 +106,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             await this.context.SaveChangesAsync(ct);
         }
 
-        public async Task DeleteAsync(int id, CancellationToken ct = default)
+        public async Task DeleteAsync(int id, CancellationToken ct = default, string deletedBy = DeletedReviewRecord.ByAdmin)
         {
             var existing = await this.Set.FindAsync(new object[] { id }, ct);
             if (existing is null)
@@ -114,6 +114,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 return;
             }
 
+            // Keep an admin-only copy (review, tags, replies); it commits with the delete below.
+            await DeletedReviewArchive.AddForReviewAsync(this.context, existing, deletedBy, ct);
             await this.FlattenRepliesAsync(id, ct);
             this.Set.Remove(existing);
             await this.context.SaveChangesAsync(ct);
@@ -253,6 +255,18 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ToListAsync(ct);
         }
 
+        public Task<bool> HasApprovedByAuthorFingerprintAsync(string? fingerprint, CancellationToken ct = default)
+        {
+            fingerprint = (fingerprint ?? string.Empty).Trim();
+            if (fingerprint.Length == 0)
+            {
+                return Task.FromResult(false);
+            }
+
+            return this.Set.AsNoTracking()
+                .AnyAsync(r => r.AuthorFingerprint == fingerprint && r.ModerationStatus == ReviewModerationStatus.Approved, ct);
+        }
+
         public Task<int> CountByAuthorFingerprintAsync(string fingerprint, CancellationToken ct = default)
         {
             fingerprint = (fingerprint ?? string.Empty).Trim();
@@ -277,6 +291,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 return false;
             }
 
+            await DeletedReviewArchive.AddForReviewAsync(this.context, review, DeletedReviewRecord.ByAuthor, ct);
             await this.FlattenRepliesAsync(review.DirectoryEntryReviewId, ct);
             this.Set.Remove(review);
             await this.context.SaveChangesAsync(ct);
@@ -351,15 +366,19 @@ namespace DirectoryManager.Data.Repositories.Implementations
             //
             // Position is 1-based count of items that come "before or equal" this review
             // in that ordering (so we can compute page = ceil(position / pageSize)).
+            // Official reviews are pinned above the crowd on page 1 and are not part of the paged
+            // crowd list (ApprovedForEntryQuery excludes them), so they map to page 1 and are not
+            // counted in a crowd review's position.
             var rows = await this.Set.AsNoTracking()
                 .Where(r => ids.Contains(r.DirectoryEntryReviewId)
                          && r.ModerationStatus == ReviewModerationStatus.Approved)
                 .Select(r => new
                 {
                     r.DirectoryEntryReviewId,
-                    Position = this.Set.AsNoTracking()
+                    Position = r.IsOfficial ? 1 : this.Set.AsNoTracking()
                         .Where(x => x.DirectoryEntryId == r.DirectoryEntryId
                                  && x.ModerationStatus == ReviewModerationStatus.Approved
+                                 && !x.IsOfficial
                                  && (
 
                                      // x comes before r if it has a later CreateDate
@@ -666,6 +685,144 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             return await q.AnyAsync(ct);
         }
+
+        // ---------------------------
+        // Public cross-listing pages (/reviews, /incidents)
+        // ---------------------------
+        public async Task<PagedResult<DirectoryEntryReview>> ListPublicAsync(PublicReviewFilter filter, CancellationToken ct = default)
+        {
+            filter ??= new PublicReviewFilter();
+
+            // Approved reviews on listings that are still shown (Removed listings have no page).
+            IQueryable<DirectoryEntryReview> q = this.Set.AsNoTracking()
+                .Where(r => r.ModerationStatus == ReviewModerationStatus.Approved
+                         && r.DirectoryEntry != null
+                         && r.DirectoryEntry.DirectoryStatus != DirectoryStatus.Removed);
+
+            if (filter.CategoryId is int categoryId)
+            {
+                q = q.Where(r => r.DirectoryEntry.SubCategory != null && r.DirectoryEntry.SubCategory.CategoryId == categoryId);
+            }
+
+            if (filter.Rating is byte rating)
+            {
+                q = q.Where(r => r.Rating == rating);
+            }
+
+            if (filter.TagId is int tagId)
+            {
+                q = q.Where(r => r.ReviewTags.Any(t => t.ReviewTagId == tagId && t.ReviewTag.IsEnabled));
+            }
+
+            if (filter.WithReplies)
+            {
+                q = q.Where(r => r.Comments.Any(c => c.ModerationStatus == ReviewModerationStatus.Approved));
+            }
+
+            if (!string.IsNullOrWhiteSpace(filter.Search))
+            {
+                // Parameterized ILIKE with the user's % _ \ escaped (Postgres' default escape is \).
+                var like = $"%{EscapeLike(filter.Search)}%";
+                q = q.Where(r =>
+                    EF.Functions.ILike(r.Body, like)
+                    || (r.Title != null && EF.Functions.ILike(r.Title, like))
+                    || EF.Functions.ILike(r.DirectoryEntry.Name, like));
+            }
+
+            int total = await q.CountAsync(ct);
+            int pageSize = PublicReviewFilter.PageSize;
+            int page = Math.Clamp(filter.Page, 1, PagingHelper.TotalPages(total, pageSize));
+
+            IOrderedQueryable<DirectoryEntryReview> ordered = filter.Sort switch
+            {
+                PublicReviewSort.Oldest => q.OrderBy(r => r.CreateDate).ThenBy(r => r.DirectoryEntryReviewId),
+                PublicReviewSort.Highest => q.OrderBy(r => r.Rating == null).ThenByDescending(r => r.Rating)
+                    .ThenByDescending(r => r.CreateDate).ThenByDescending(r => r.DirectoryEntryReviewId),
+                PublicReviewSort.Lowest => q.OrderBy(r => r.Rating == null).ThenBy(r => r.Rating)
+                    .ThenByDescending(r => r.CreateDate).ThenByDescending(r => r.DirectoryEntryReviewId),
+                _ => q.OrderByDescending(r => r.CreateDate).ThenByDescending(r => r.DirectoryEntryReviewId),
+            };
+
+            var items = total == 0
+                ? new List<DirectoryEntryReview>()
+                : await ordered
+                    .Skip(PagingHelper.Skip(page, pageSize))
+                    .Take(pageSize)
+                    .Include(r => r.DirectoryEntry)
+                        .ThenInclude(e => e.SubCategory!)
+                            .ThenInclude(sc => sc.Category!)
+                    .Include(r => r.ReviewTags)
+                        .ThenInclude(rt => rt.ReviewTag)
+                    .AsSplitQuery()
+                    .ToListAsync(ct);
+
+            return new PagedResult<DirectoryEntryReview> { Items = items, TotalCount = total, Page = page, PageSize = pageSize };
+        }
+
+        public async Task<PagedResult<DirectoryEntryReview>> ListProblemReportsAsync(
+            DateTime? sinceUtc,
+            int page,
+            int pageSize,
+            CancellationToken ct = default)
+        {
+            pageSize = PagingHelper.ClampPageSize(pageSize, 20);
+
+            // Same conditions as ProblemTagRule.IsProblemTag, in SQL.
+            var minLevel = ProblemTagRule.MinimumLevel;
+            IQueryable<DirectoryEntryReview> q = this.Set.AsNoTracking()
+                .Where(r => r.ModerationStatus == ReviewModerationStatus.Approved
+                         && r.DirectoryEntry != null
+                         && r.DirectoryEntry.DirectoryStatus != DirectoryStatus.Removed
+                         && r.ReviewTags.Any(t =>
+                                t.ReviewTag.IsEnabled
+                                && t.ReviewTag.ReviewerSelectable
+                                && t.ReviewTag.Level >= minLevel
+                                && t.ReviewTag.MinUsd == null
+                                && t.ReviewTag.MaxUsd == null
+                                && t.ReviewTag.Slug != ReviewTagSlugs.Suspicious));
+
+            if (sinceUtc.HasValue)
+            {
+                var since = sinceUtc.Value;
+                q = q.Where(r => r.CreateDate >= since);
+            }
+
+            int total = await q.CountAsync(ct);
+            page = Math.Clamp(page, 1, PagingHelper.TotalPages(total, pageSize));
+
+            var items = total == 0
+                ? new List<DirectoryEntryReview>()
+                : await q
+                    .OrderByDescending(r => r.CreateDate)
+                    .ThenByDescending(r => r.DirectoryEntryReviewId)
+                    .Skip(PagingHelper.Skip(page, pageSize))
+                    .Take(pageSize)
+                    .Include(r => r.DirectoryEntry)
+                    .Include(r => r.ReviewTags)
+                        .ThenInclude(rt => rt.ReviewTag)
+                    .AsSplitQuery()
+                    .ToListAsync(ct);
+
+            return new PagedResult<DirectoryEntryReview> { Items = items, TotalCount = total, Page = page, PageSize = pageSize };
+        }
+
+        public async Task<Dictionary<int, int>> GetApprovedReplyCountsAsync(IEnumerable<int> reviewIds, CancellationToken ct = default)
+        {
+            var ids = (reviewIds ?? Enumerable.Empty<int>()).Where(x => x > 0).Distinct().ToList();
+            if (ids.Count == 0)
+            {
+                return new Dictionary<int, int>();
+            }
+
+            return await this.context.DirectoryEntryReviewComments.AsNoTracking()
+                .Where(c => ids.Contains(c.DirectoryEntryReviewId) && c.ModerationStatus == ReviewModerationStatus.Approved)
+                .GroupBy(c => c.DirectoryEntryReviewId)
+                .Select(g => new { g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.Key, x => x.Count, ct);
+        }
+
+        private static string EscapeLike(string value) =>
+            value.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
 
         // Replies on a review cascade-delete with it, but ParentCommentId is a RESTRICT self-FK,
         // so a nested reply chain would block that cascade. Flatten the thread first (all replies

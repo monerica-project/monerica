@@ -21,7 +21,7 @@
 
         <h2>Path: @Model.CurrentDirectory</h2>
 
-            <div class="table-responsive">
+            <div class="table-wrapper">
 
                 @using (Html.BeginForm("CreateFolderAsync", "SiteFilesManagement", FormMethod.Post,
                                 new { enctype = "multipart/form-data" }))
@@ -100,7 +100,7 @@
                                 else
                                 {
                                 using (Html.BeginForm("DeleteFileAsync", "SiteFilesManagement", FormMethod.Post,
-                                        new { role = "form", onsubmit = string.Format(@"return confirm('Do you really want to delete this?');") }))
+                                        new { role = "form" }))
                                 {
                                     @Html.AntiForgeryToken()
                                     <button type="submit" 

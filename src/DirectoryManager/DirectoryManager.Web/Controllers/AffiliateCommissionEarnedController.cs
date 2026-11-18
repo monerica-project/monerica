@@ -14,7 +14,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace DirectoryManager.Web.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     [Route("affiliatecommissionearned")]
     public class AffiliateCommissionEarnedController : Controller
     {
@@ -202,6 +202,49 @@ namespace DirectoryManager.Web.Controllers
             return this.File(AffiliateCommissionPlotting.Pie(totals), "image/png");
         }
 
+        // Commissions per month (bar chart) for a month range, with the listings behind them.
+        // ?company=<DirectoryEntryId> narrows the chart and tables to one listing.
+        [HttpGet("by-month")]
+        public async Task<IActionResult> ByMonth(string? range, string? from, string? to, int? company)
+        {
+            var data = await this.LoadByMonthAsync(range, from, to, company);
+            var first = data.FirstCommissionUtc;
+            var current = AffiliateCommissionMonthlyReport.MonthOf(DateTime.UtcNow);
+            var earliest = AffiliateCommissionMonthlyReport.MonthOf(first ?? current.AddMonths(-11));
+            if (data.Report.Range.StartMonth < earliest)
+            {
+                earliest = data.Report.Range.StartMonth;
+            }
+
+            var monthOptions = new List<DateTime>();
+            for (var m = current; m >= earliest && monthOptions.Count < 240; m = m.AddMonths(-1))
+            {
+                monthOptions.Add(m);
+            }
+
+            var vm = new AffiliateCommissionEarnedByMonthViewModel
+            {
+                Report = data.Report,
+                MonthOptions = monthOptions,
+                CompanyId = data.Report.CompanyId,
+                CompanyName = data.CompanyName,
+                Notices = data.Notices,
+                RangeQuery = RangeQuery(data.Report.Range),
+                ChartQuery = RangeQuery(data.Report.Range)
+                    + (data.Report.CompanyId.HasValue ? "&company=" + data.Report.CompanyId.Value : string.Empty),
+            };
+
+            return this.View(vm);
+        }
+
+        [HttpGet("by-month.png")]
+        public async Task<IActionResult> ByMonthPng(string? range, string? from, string? to, int? company)
+        {
+            var data = await this.LoadByMonthAsync(range, from, to, company);
+            this.Response.Headers.CacheControl = "private, max-age=60";
+            return this.File(AffiliateCommissionPlotting.MonthlyBars(data.Report, data.CompanyName), "image/png");
+        }
+
         [HttpGet("create")]
         public async Task<IActionResult> Create(int? directoryEntryId = null)
         {
@@ -358,6 +401,40 @@ namespace DirectoryManager.Web.Controllers
                     Selected = selected.HasValue && c == selected.Value
                 })
                 .ToList();
+        }
+
+        // range=key, plus the resolved months for a custom range (so links and the chart agree).
+        private static string RangeQuery(AffiliateCommissionMonthlyReport.MonthRange r) =>
+            r.Key == "custom"
+                ? $"range=custom&from={AffiliateCommissionMonthlyReport.MonthKey(r.StartMonth)}&to={AffiliateCommissionMonthlyReport.MonthKey(r.EndMonth)}"
+                : "range=" + r.Key;
+
+        private async Task<(AffiliateCommissionMonthlyReport.Result Report, string? CompanyName, List<string> Notices, DateTime? FirstCommissionUtc)> LoadByMonthAsync(
+            string? range, string? from, string? to, int? company)
+        {
+            var first = await this.commissionRepo.GetFirstCommissionDateAsync();
+            var resolved = AffiliateCommissionMonthlyReport.ResolveRange(range, from, to, DateTime.UtcNow, first);
+            var notices = resolved.Notices.ToList();
+
+            int? companyId = null;
+            string? companyName = null;
+            if (company.HasValue && company.Value > 0)
+            {
+                var entry = await this.directoryEntryRepo.GetByIdAsync(company.Value);
+                if (entry == null)
+                {
+                    notices.Add("That listing was not found; showing all listings.");
+                }
+                else
+                {
+                    companyId = entry.DirectoryEntryId;
+                    companyName = entry.Name;
+                }
+            }
+
+            var rows = await this.commissionRepo.GetRowsAsync(resolved.FromInclusive, resolved.ToExclusive, companyId);
+            var report = AffiliateCommissionMonthlyReport.Build(rows, resolved, companyId);
+            return (report, companyName, notices, first);
         }
 
         // "All time" is the default here: commissions are sparse, so a single month is often empty.

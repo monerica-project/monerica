@@ -24,13 +24,18 @@
                     <td>
                         @if (Model.Entry != null)
                         {
-                            <a href="/site/@Model.Entry.DirectoryEntryKey" target="_blank" rel="noopener">@Model.Entry.Name</a>
-                            <span> &middot; </span>
-                            <a href="/admin/reviews/entry/@r.DirectoryEntryId">Open in review moderation &rarr;</a>
+                            <div>
+                                <a href="/site/@Model.Entry.DirectoryEntryKey" target="_blank" rel="noopener">@Model.Entry.Name</a>
+                                <span class="text-muted small"> (public page)</span>
+                            </div>
+                            <div class="u-flex-gap-8px-flexwrap-wrap u-mt-05rem">
+                                <a href="/directoryentry/edit/@r.DirectoryEntryId" class="btn btn-sm btn-primary">Edit listing / change status &rarr;</a>
+                                <a href="/admin/reviews/entry/@r.DirectoryEntryId" class="btn btn-sm">Open in review moderation &rarr;</a>
+                            </div>
                         }
                         else
                         {
-                            <span class="text-muted">#@r.DirectoryEntryId</span>
+                            <span class="text-muted">#@r.DirectoryEntryId (listing not found)</span>
                         }
                     </td>
                 </tr>

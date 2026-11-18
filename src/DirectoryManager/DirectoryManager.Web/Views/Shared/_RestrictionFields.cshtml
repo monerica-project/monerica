@@ -1,0 +1,79 @@
+@using DirectoryManager.Data.Enums
+@using DirectoryManager.Utilities.Helpers
+@model DirectoryManager.Web.Models.RestrictionFieldsViewModel
+@*
+    "Restrictions" section shared by the admin listing form, the public submission forms and the
+    admin submission review. Collapsed unless something is filled in or has an error (no JavaScript).
+*@
+@{
+    var ms = ViewData.ModelState;
+    var countriesError = ms["RestrictedCountries"]?.Errors.FirstOrDefault()?.ErrorMessage;
+    var torError = ms["TorPolicy"]?.Errors.FirstOrDefault()?.ErrorMessage;
+    var otherError = ms["OtherRestrictions"]?.Errors.FirstOrDefault()?.ErrorMessage;
+    var open = !string.IsNullOrWhiteSpace(Model.RestrictedCountries)
+        || Model.VpnPolicy != VpnPolicy.Unknown
+        || Model.TorPolicy != TorPolicy.Unknown
+        || !string.IsNullOrWhiteSpace(Model.OtherRestrictions)
+        || countriesError != null || torError != null || otherError != null;
+}
+<details class="@Model.DetailsCssClass"@(open ? " open" : "")>
+    <summary><b>Restrictions</b> <span class="text-muted">(optional: countries not served, VPN and Tor use)</span></summary>
+
+    <label for="RestrictedCountries" class="control-label">Countries not served</label>
+    <input autocomplete="off" class="form-control input-width" type="text" id="RestrictedCountries" name="RestrictedCountries" value="@Model.RestrictedCountries" placeholder="e.g. US, GB, Iran" aria-describedby="RestrictedCountriesHint" />
+    <small id="RestrictedCountriesHint" class="form-text text-muted">Countries where the service can't be used. Two-letter country codes (US, GB) or country names, separated by commas. Leave blank if it serves everyone.</small>
+    @if (countriesError != null)
+    {
+        <span class="text-danger">@countriesError</span>
+    }
+
+    <label for="VpnPolicy" class="control-label">VPN</label>
+    <select class="form-control select-fit" id="VpnPolicy" name="VpnPolicy" aria-describedby="@(Model.ShowOptionHelp ? "VpnPolicyHint" : null)">
+        @foreach (var v in Enum.GetValues<VpnPolicy>())
+        {
+            <option value="@((int)v)" selected="@(Model.VpnPolicy == v)">@EnumHelper.GetDescription(v)</option>
+        }
+    </select>
+    @if (Model.ShowOptionHelp)
+    {
+        <ul id="VpnPolicyHint" class="form-text text-muted">
+            @foreach (var v in Enum.GetValues<VpnPolicy>())
+            {
+                <li><b>@EnumHelper.GetDescription(v)</b>: @DirectoryManager.Web.Helpers.SubmissionFormLayout.OptionHelp(v)</li>
+            }
+        </ul>
+    }
+
+    <label for="TorPolicy" class="control-label">Tor</label>
+    <select class="form-control select-fit" id="TorPolicy" name="TorPolicy" aria-describedby="TorPolicyHint">
+        @foreach (var t in Enum.GetValues<TorPolicy>())
+        {
+            <option value="@((int)t)" selected="@(Model.TorPolicy == t)">@EnumHelper.GetDescription(t)</option>
+        }
+    </select>
+    @if (Model.ShowOptionHelp)
+    {
+        <ul id="TorPolicyHint" class="form-text text-muted">
+            @foreach (var t in Enum.GetValues<TorPolicy>())
+            {
+                <li><b>@EnumHelper.GetDescription(t)</b>: @DirectoryManager.Web.Helpers.SubmissionFormLayout.OptionHelp(t)</li>
+            }
+        </ul>
+    }
+    else
+    {
+        <small id="TorPolicyHint" class="form-text text-muted"><b>May Trigger Verification</b>: it works, but the account may be held for extra checks. A listing with a .onion link works over Tor.</small>
+    }
+    @if (torError != null)
+    {
+        <span class="text-danger">@torError</span>
+    }
+
+    <label for="OtherRestrictions" class="control-label">Other restrictions</label>
+    <input autocomplete="off" class="form-control input-width" type="text" id="OtherRestrictions" name="OtherRestrictions" value="@Model.OtherRestrictions" placeholder="e.g. Minimum age 18" aria-describedby="OtherRestrictionsHint" />
+    <small id="OtherRestrictionsHint" class="form-text text-muted">Short and plain, up to @DirectoryManager.Data.Helpers.ListingRestrictions.OtherRestrictionsMaxLength characters.</small>
+    @if (otherError != null)
+    {
+        <span class="text-danger">@otherError</span>
+    }
+</details>

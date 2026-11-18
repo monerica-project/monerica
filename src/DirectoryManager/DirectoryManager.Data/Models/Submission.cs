@@ -103,6 +103,20 @@ namespace DirectoryManager.Data.Models
         /// <summary>Whether the website needs JavaScript. Unknown = Not Stated.</summary>
         public SiteJavaScript SiteJavaScript { get; set; }
 
+        /// <summary>Countries the service does not serve: sorted ISO 3166-1 alpha-2 codes, comma-separated ("CU,IR,KP"). Null = none recorded.</summary>
+        [MaxLength(DirectoryManager.Data.Helpers.ListingRestrictions.RestrictedCountriesMaxLength)]
+        public string? RestrictedCountries { get; set; }
+
+        /// <summary>Whether a VPN may be used. Unknown = Not Stated.</summary>
+        public VpnPolicy VpnPolicy { get; set; }
+
+        /// <summary>Whether Tor may be used. Unknown = Not Stated.</summary>
+        public TorPolicy TorPolicy { get; set; }
+
+        /// <summary>Other usage restrictions, short plain text (e.g. "Minimum age 18").</summary>
+        [MaxLength(DirectoryManager.Data.Helpers.ListingRestrictions.OtherRestrictionsMaxLength)]
+        public string? OtherRestrictions { get; set; }
+
         /// <summary>JSON carrier for the proposed deposit guarantees (see <see cref="Guarantees"/>).</summary>
         public string? GuaranteesJson { get; set; }
 
@@ -183,6 +197,16 @@ namespace DirectoryManager.Data.Models
 
         [MaxLength(255)]
         public string? ProposedSocial { get; set; }
+
+        /// <summary>
+        /// PGP public key the reviewer found on the site itself (inline or a linked .asc file),
+        /// suggested only when the submitter gave none and the listing has none. Never replaces a key.
+        /// </summary>
+        public string? ProposedPgpKey { get; set; }
+
+        /// <summary>The page the suggested PGP key was found on.</summary>
+        [MaxLength(2000)]
+        public string? ProposedPgpKeySource { get; set; }
 
         [MaxLength(255)]
         public string? ProposedMessenger { get; set; }
@@ -285,6 +309,10 @@ namespace DirectoryManager.Data.Models
             Liquidity = this.Liquidity.ToString(),
             RateType = this.RateType.ToString(),
             SiteJavaScript = this.SiteJavaScript.ToString(),
+            this.RestrictedCountries,
+            VpnPolicy = this.VpnPolicy.ToString(),
+            TorPolicy = this.TorPolicy.ToString(),
+            this.OtherRestrictions,
             this.GuaranteesJson,
             this.Tags,
             this.CountryCode,

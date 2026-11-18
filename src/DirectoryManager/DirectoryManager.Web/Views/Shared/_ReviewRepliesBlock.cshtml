@@ -60,10 +60,20 @@
                         @Html.Raw(StringHelpers.RenderBodyWithLinksHtml(c.Body, cssClass: "multi-line-text", ugcContent: true, maskEmails: !(c.IsOwner || c.IsModerator)))
                     </div>
 
+                    @if (c.RatingChangedTo.HasValue && c.RatingChangedFrom.HasValue)
+                    {
+                        <div class="text-muted"><small><i>The reviewer changed their rating from @c.RatingChangedFrom to @c.RatingChangedTo stars with this reply.</i></small></div>
+                    }
+
                     <div class="reply-meta">
                         <small class="text-muted multi-line-text">
                             Author:
-                            @if (c.IsModerator)
+                            @if (DirectoryManager.Web.Helpers.MemberAuthor.IsMember(c.AuthorUserId))
+                            {
+                                @* Member account: username plus a plain label, never the moderator/owner look. *@
+                                <partial name="_MemberByline" model="@(new DirectoryManager.Web.Models.Members.MemberBylineModel(c.AuthorUserId, c.AuthorUsername))" />
+                            }
+                            else if (c.IsModerator)
                             {
                                 <span class="moderator-tag" title="@c.AuthorFingerprint" style="background:#e8820c;color:#000;padding:1px 7px;border-radius:4px;font-weight:600;cursor:help;">Moderator</span>
                             }

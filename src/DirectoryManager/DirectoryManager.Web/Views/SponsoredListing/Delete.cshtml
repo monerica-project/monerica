@@ -49,8 +49,7 @@
 
     <form method="post" asp-action="Delete" asp-route-sponsoredListingId="@Model.Id">
         @Html.AntiForgeryToken()
-        <button type="submit" class="btn"
-                onclick="return confirm('Permanently delete this sponsored listing? This cannot be undone.');">
+        <button type="submit" class="btn">
             Delete Permanently
         </button>
         <a href="@Url.Action("List")">Cancel</a>

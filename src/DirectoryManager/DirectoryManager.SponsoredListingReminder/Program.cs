@@ -1,8 +1,9 @@
-using System.Net;
+﻿using System.Net;
 using DirectoryManager.Common.Constants;
 using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Extensions;
+using DirectoryManager.Data.Helpers;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Services.Constants;
 using DirectoryManager.Services.Implementations;
@@ -11,6 +12,7 @@ using DirectoryManager.Services.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Tokens = DirectoryManager.SponsoredListingReminder.Constants.StringConstants;
 using SendGrid.Helpers.Mail;
 
 // Build configuration. Layer order matters — later sources override earlier ones:
@@ -41,6 +43,8 @@ var expirationTimeSpan = TimeSpan.FromHours(hours);
 // Email message key and renewal link template from configuration
 var emailMessageKey = config.GetValue<string>("EmailKeys:SponsoredListingExpirationReminder") ??
     DirectoryManager.SponsoredListingReminder.Constants.StringConstants.SponsoredListingExpirationReminder;
+var finalMessageKey = config.GetValue<string>("EmailKeys:SponsoredListingFinalReminder") ?? Tokens.SponsoredListingFinalReminder;
+int finalHours = config.GetValue<int?>("FinalReminderHours") ?? SponsorReminderPlan.FinalWindowHours;
 var renewalLinkTemplate = config.GetValue<string>("RenewalLinkTemplate")
     ?? throw new Exception("RenewalLinkTemplate is missing in configuration.");
 
@@ -69,31 +73,46 @@ var serviceProvider = new ServiceCollection()
 
 // Retrieve required services
 var listingRepo = serviceProvider.GetRequiredService<ISponsoredListingRepository>();
-var invoiceRepo = serviceProvider.GetRequiredService<ISponsoredListingInvoiceRepository>();
 var emailMessageRepo = serviceProvider.GetRequiredService<IEmailMessageRepository>();
 var emailService = serviceProvider.GetRequiredService<IEmailService>();
+var db = serviceProvider.GetRequiredService<ApplicationDbContext>();
 
-// Fetch the email message template
-var emailMessage = emailMessageRepo.GetByKey(emailMessageKey);
+// Two emails per sponsorship period, each sent at most once:
+//   first  - when the sponsorship ends within ExpirationHours (72)
+//   final  - when FinalReminderHours (24) or less are left and it has still not been renewed
+// "Sent" is recorded on the period's invoice (ReminderSentUtc / FinalReminderSentUtc). A renewal
+// extends the listing and attaches a NEW invoice, so a renewed sponsor drops out of both windows
+// and the next period starts clean. The job CLAIMS the timestamp before sending (an UPDATE that
+// only succeeds while it is still empty) and releases it if the send fails, so neither a crash
+// nor two runs at once can send the same email twice. Every send is also in the email log.
+var firstMessage = emailMessageRepo.GetByKey(emailMessageKey);
+var finalMessage = emailMessageRepo.GetByKey(finalMessageKey);
 
-if (emailMessage == null)
+if (firstMessage == null)
 {
     Console.WriteLine($"Email template with key '{emailMessageKey}' not found. Exiting.");
     return;
 }
 
-// Fetch expiring listings
+if (finalMessage == null)
+{
+    Console.WriteLine($"Email template with key '{finalMessageKey}' not found: final reminders are skipped this run.");
+}
+
 var expiringListings = await listingRepo.GetExpiringSponsorsWithinTimeAsync(expirationTimeSpan);
 
 Console.WriteLine($"Found {expiringListings.Count()} listings expiring within {hours} hours.");
 
-// Process each listing. One failure (bad address, SendGrid hiccup, DB error) is logged and the
-// batch continues — it must not abort the reminders for every other sponsor.
+// One failure (bad address, SendGrid hiccup, DB error) is logged and the batch continues.
 foreach (var listing in expiringListings)
 {
     try
     {
-        var invoice = await invoiceRepo.GetByIdAsync(listing.SponsoredListingInvoiceId);
+        var invoiceId = listing.SponsoredListingInvoiceId;
+        var invoice = await db.SponsoredListingInvoices.AsNoTracking()
+            .Where(i => i.SponsoredListingInvoiceId == invoiceId)
+            .Select(i => new { i.Email, i.IsReminderSent, i.ReminderSentUtc, i.FinalReminderSentUtc })
+            .FirstOrDefaultAsync();
 
         if (invoice == null)
         {
@@ -103,48 +122,107 @@ foreach (var listing in expiringListings)
 
         if (string.IsNullOrWhiteSpace(invoice.Email))
         {
-            Console.WriteLine($"No email associated with Invoice ID: {invoice.SponsoredListingInvoiceId}");
+            Console.WriteLine($"No email associated with Invoice ID: {invoiceId}");
             continue;
         }
 
-        if (invoice.IsReminderSent)
+        // Whole seconds, so the stored value compares equal when a failed send releases the claim
+        // (the database keeps microseconds, .NET keeps finer ticks).
+        var now = new DateTime(DateTime.UtcNow.Ticks / TimeSpan.TicksPerSecond * TimeSpan.TicksPerSecond, DateTimeKind.Utc);
+        var kind = SponsorReminderPlan.Due(now, listing.CampaignEndDate, invoice.IsReminderSent, invoice.ReminderSentUtc, invoice.FinalReminderSentUtc, hours, finalHours);
+        if (kind == SponsorReminderKind.None || (kind == SponsorReminderKind.Final && finalMessage == null))
         {
-            Console.WriteLine($"Reminder already sent for Invoice ID: {invoice.SponsoredListingInvoiceId}");
+            Console.WriteLine($"Nothing due for Invoice ID: {invoiceId} (first sent: {invoice.ReminderSentUtc?.ToString("u") ?? (invoice.IsReminderSent ? "yes" : "no")}, final sent: {invoice.FinalReminderSentUtc?.ToString("u") ?? "no"})");
             continue;
         }
 
-        // Generate the renewal link using the template and replace placeholders
-        var renewalLink = renewalLinkTemplate
-            .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.DirectoryEntryIdPlaceholder, listing.DirectoryEntryId.ToString())
-            .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.SponsorshipTypePlaceholder, listing.SponsorshipType.ToString());
-
-        var listingName = listing.DirectoryEntry?.Name ??
-            DirectoryManager.SponsoredListingReminder.Constants.StringConstants.DefaultListingName;
-
-        // Prepare the email content by replacing placeholders
-        var plainTextContent = emailMessage.EmailBodyText
-            .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.ListingNameToken, listingName)
-            .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.ListingRenewalLinkToken, renewalLink);
-
-        // The listing name is user-submitted: HTML-encode it (and the link) for the HTML part.
-        var htmlContent = emailMessage.EmailBodyHtml
-            .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.ListingNameToken, WebUtility.HtmlEncode(listingName))
-            .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.ListingRenewalLinkToken, WebUtility.HtmlEncode(renewalLink));
-
-        // Send the email using the EmailService
-        await emailService.SendEmailAsync(emailMessage.EmailSubject, plainTextContent, htmlContent, new List<string> { invoice.Email });
-
-        // Mark the reminder as sent
-        invoice.IsReminderSent = true;
-        var updated = await invoiceRepo.UpdateAsync(invoice);
-
-        if (updated)
+        // Claim first, then send.
+        int claimed = kind == SponsorReminderKind.Final
+            ? await db.SponsoredListingInvoices
+                .Where(i => i.SponsoredListingInvoiceId == invoiceId && i.FinalReminderSentUtc == null)
+                .ExecuteUpdateAsync(u => u.SetProperty(i => i.FinalReminderSentUtc, now).SetProperty(i => i.IsReminderSent, true))
+            : await db.SponsoredListingInvoices
+                .Where(i => i.SponsoredListingInvoiceId == invoiceId && i.ReminderSentUtc == null && !i.IsReminderSent)
+                .ExecuteUpdateAsync(u => u.SetProperty(i => i.ReminderSentUtc, now).SetProperty(i => i.IsReminderSent, true));
+        if (claimed != 1)
         {
-            Console.WriteLine($"Reminder sent and marked for Invoice ID: {invoice.SponsoredListingInvoiceId}");
+            Console.WriteLine($"{kind} reminder for Invoice ID {invoiceId} was already taken by another run. Skipped.");
+            continue;
         }
-        else
+
+        try
         {
-            Console.WriteLine($"Failed to update Invoice ID: {invoice.SponsoredListingInvoiceId}");
+            var template = kind == SponsorReminderKind.Final ? finalMessage! : firstMessage;
+            var renewalLink = renewalLinkTemplate
+                .Replace(Tokens.DirectoryEntryIdPlaceholder, listing.DirectoryEntryId.ToString())
+                .Replace(Tokens.SponsorshipTypePlaceholder, listing.SponsorshipType.ToString());
+            var listingName = listing.DirectoryEntry?.Name ?? Tokens.DefaultListingName;
+            var hoursLeft = SponsorReminderPlan.HoursLeft(now, listing.CampaignEndDate).ToString();
+            var expiresAt = listing.CampaignEndDate.ToString("d MMMM yyyy 'at' HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+
+            // "main sponsor", "category sponsor (Exchanges)", "subcategory sponsor (VPNs)"
+            string placement = "main sponsor";
+            int? typeId = null;
+            if (listing.SponsorshipType == SponsorshipType.CategorySponsor)
+            {
+                typeId = listing.CategoryId;
+                var name = await db.Categories.Where(c => c.CategoryId == typeId).Select(c => c.Name).FirstOrDefaultAsync();
+                placement = string.IsNullOrWhiteSpace(name) ? "category sponsor" : $"category sponsor ({name})";
+            }
+            else if (listing.SponsorshipType == SponsorshipType.SubcategorySponsor)
+            {
+                typeId = listing.SubCategoryId;
+                var name = await db.Subcategories.Where(c => c.SubCategoryId == typeId).Select(c => c.Name).FirstOrDefaultAsync();
+                placement = string.IsNullOrWhiteSpace(name) ? "subcategory sponsor" : $"subcategory sponsor ({name})";
+            }
+
+            // Other advertisers who asked to be told when this exact spot opens (the sponsor's own alert does not count).
+            var sponsorEmail = invoice.Email.Trim().ToLower();
+            var waiting = await db.SponsoredListingOpeningNotifications
+                .Where(n => n.IsActive && !n.IsReminderSent && n.SponsorshipType == listing.SponsorshipType && n.TypeId == typeId)
+                .Select(n => n.Email.ToLower())
+                .Distinct()
+                .CountAsync(e => e != sponsorEmail);
+            var waitlistLine = waiting switch
+            {
+                0 => string.Empty,
+                1 => "1 advertiser has asked to be notified when this spot opens.",
+                _ => $"{waiting} advertisers have asked to be notified when this spot opens.",
+            };
+
+            string Fill(string text, bool html)
+            {
+                string V(string v) => html ? WebUtility.HtmlEncode(v) : v;
+                return text
+                    .Replace(Tokens.ListingNameToken, V(listingName))
+                    .Replace(Tokens.ListingRenewalLinkToken, V(renewalLink))
+                    .Replace(Tokens.ExpiresAtToken, V(expiresAt))
+                    .Replace(Tokens.HoursLeftToken, hoursLeft)
+                    .Replace(Tokens.PlacementToken, V(placement))
+                    .Replace(" " + Tokens.WaitlistLineToken, waitlistLine.Length == 0 ? string.Empty : " " + V(waitlistLine))
+                    .Replace(Tokens.WaitlistLineToken, V(waitlistLine));
+            }
+
+            await emailService.SendEmailAsync(Fill(template.EmailSubject, false), Fill(template.EmailBodyText, false), Fill(template.EmailBodyHtml, true), new List<string> { invoice.Email });
+            Console.WriteLine($"{kind} reminder sent for Invoice ID {invoiceId} ({listingName}, {placement}): {hoursLeft} hours left, ends {expiresAt} UTC, {waiting} waiting.");
+        }
+        catch
+        {
+            // The email did not go out: give the claim back so the next run tries again.
+            if (kind == SponsorReminderKind.Final)
+            {
+                await db.SponsoredListingInvoices
+                    .Where(i => i.SponsoredListingInvoiceId == invoiceId && i.FinalReminderSentUtc == now)
+                    .ExecuteUpdateAsync(u => u.SetProperty(i => i.FinalReminderSentUtc, (DateTime?)null).SetProperty(i => i.IsReminderSent, invoice.IsReminderSent));
+            }
+            else
+            {
+                await db.SponsoredListingInvoices
+                    .Where(i => i.SponsoredListingInvoiceId == invoiceId && i.ReminderSentUtc == now)
+                    .ExecuteUpdateAsync(u => u.SetProperty(i => i.ReminderSentUtc, (DateTime?)null).SetProperty(i => i.IsReminderSent, false));
+            }
+
+            throw;
         }
     }
     catch (Exception ex)

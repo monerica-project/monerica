@@ -33,5 +33,10 @@
         public const int ComposeFlowExpiresMinutes = 120;
         public const int ChallengeLength = 10;
         public const int MaxVerifyAttempts = 10;
+
+        // Upper bound on a pasted armored PGP public key kept in flow state. Real keys are a few
+        // KB (even heavily signed ones stay well under this); without a cap a single form post
+        // could park megabytes in memory for the life of the flow.
+        public const int MaxPgpArmoredChars = 100_000;
     }
 }

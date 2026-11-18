@@ -1,4 +1,5 @@
 ﻿@using DirectoryManager.Web.Constants
+@inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryRepository EntryRepo
 @{
     var purpose = (ViewBag.CaptchaPurpose as string)?.ToLowerInvariant();
     PageMeta.MetaContent = StringConstants.MetaTagNoIndex;
@@ -8,11 +9,31 @@
             : "Leave a Review – CAPTCHA";
 
     Layout = "_CenteredLayout";
+
+    // Optional second path: a member account (username + password). PGP stays the default on this page.
+    string? memberPath = null;
+    if (MemberAuth.RegistrationEnabled)
+    {
+        if (purpose == "reply" && ViewBag.DirectoryEntryReviewId is int replyToId && replyToId > 0)
+        {
+            memberPath = MemberAuth.ReplyPathPrefix + replyToId;
+        }
+        else if (purpose != "reply" && ViewBag.DirectoryEntryId is int entryId && entryId > 0)
+        {
+            var entry = await EntryRepo.GetByIdAsync(entryId);
+            if (entry != null && !string.IsNullOrWhiteSpace(entry.DirectoryEntryKey))
+            {
+                memberPath = MemberAuth.WriteReviewPathPrefix + entry.DirectoryEntryKey;
+            }
+        }
+    }
 }
 
 @section PageContent {
     <h1>@PageMeta.Title</h1>
     <hr />
+
+    <p>No account needed. After this check you prove who you are with your PGP key, then write your @(purpose == "reply" ? "reply" : "review").</p>
 
     <div asp-validation-summary="All" class="text-danger"></div>
 
@@ -21,6 +42,10 @@
           method="post">
         @Html.AntiForgeryToken()
         <input type="hidden" name="flowId" value="@ViewBag.FlowId" />
+        @if (!string.IsNullOrEmpty(ViewBag.FlowTicket as string))
+        {
+            <input type="hidden" name="@DirectoryManager.Web.Helpers.PreCaptchaFlowTicket.FieldName" value="@ViewBag.FlowTicket" />
+        }
 
         @await Html.PartialAsync(
                 "_CaptchaBlock",
@@ -28,6 +53,21 @@
         )
 
     <br />
-        <button type="submit" class="btn btn-primary btn-cta">Continue</button>
+        <button type="submit" class="btn btn-primary btn-cta">Continue with PGP</button>
 </form>
+
+    @if (memberPath != null)
+    {
+        var back = Uri.EscapeDataString(memberPath);
+        <hr />
+        <h2 class="h5">No PGP key?</h2>
+        <p>
+            You can use a username and password instead. No email is needed.
+        </p>
+        <p>
+            <a class="btn btn-outline-secondary" rel="nofollow" href="@(MemberAuth.RegisterPath)?returnUrl=@back">Create a username and password</a>
+            &nbsp; or &nbsp;
+            <a rel="nofollow" href="@(MemberAuth.SignInPath)?returnUrl=@back">sign in</a> if you already have one.
+        </p>
+    }
 }

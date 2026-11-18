@@ -1,0 +1,311 @@
+@using DirectoryManager.Data.Models.StaticPublishing
+@using DirectoryManager.Web.Models.StaticPublishing
+@model StaticPublishAdminViewModel
+@{
+    PageMeta.Title = "Publishing to the public site";
+    Layout = "_CenteredLayout";
+    const string Fmt = DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat;
+
+    string Utc(DateTime? t) => t is DateTime v ? v.ToString(Fmt) + " UTC" : "—";
+
+    string Ago(DateTime? t)
+    {
+        if (t is not DateTime v)
+        {
+            return "never";
+        }
+
+        var d = DateTime.UtcNow - v;
+        if (d.TotalSeconds < 90) { return $"{Math.Max(0, (int)d.TotalSeconds)}s ago"; }
+        if (d.TotalMinutes < 90) { return $"{(int)d.TotalMinutes}m ago"; }
+        if (d.TotalHours < 48) { return $"{(int)d.TotalHours}h ago"; }
+        return $"{(int)d.TotalDays}d ago";
+    }
+
+    string Seconds(StaticPublishLogEntry e) =>
+        e.RequestedUtc is DateTime r ? Math.Max(0, (e.PublishedUtc - r).TotalSeconds).ToString("0") + " s" : "—";
+
+    string ResultClass(string r) => r switch
+    {
+        StaticPublishConstants.ResultPublished => "bg-success",
+        StaticPublishConstants.ResultRemoved => "bg-warning",
+        StaticPublishConstants.ResultFailed => "bg-danger",
+        StaticPublishConstants.ResultWouldPublish or StaticPublishConstants.ResultWouldRemove => "bg-info",
+        _ => "bg-secondary",
+    };
+
+    string PathLink(string p) => "/admin/publishing?path=" + Uri.EscapeDataString(p);
+
+    var workerStale = Model.WorkerLastPollUtc is not DateTime polled || (DateTime.UtcNow - polled) > TimeSpan.FromMinutes(2);
+    var log = Model.Log;
+    string PageUrl(int pg)
+    {
+        var q = new List<string>();
+        if (!string.IsNullOrWhiteSpace(Model.FilterPath)) { q.Add("path=" + Uri.EscapeDataString(Model.FilterPath)); }
+        if (!string.IsNullOrWhiteSpace(Model.FilterResult)) { q.Add("result=" + Uri.EscapeDataString(Model.FilterResult)); }
+        if (!string.IsNullOrWhiteSpace(Model.FilterSource)) { q.Add("source=" + Uri.EscapeDataString(Model.FilterSource)); }
+        q.Add("page=" + pg);
+        return "/admin/publishing?" + string.Join("&", q);
+    }
+}
+
+@section PageContent {
+    <div class="container py-4">
+        <h1 class="mb-3">@PageMeta.Title</h1>
+        <hr />
+        @await Html.PartialAsync("_AdminMenu")
+
+        @if (TempData["PublishMessage"] is string okMsg)
+        {
+            <div class="alert alert-success">@okMsg</div>
+        }
+
+        @if (TempData["PublishError"] is string errMsg)
+        {
+            <div class="alert alert-danger">@errMsg</div>
+        }
+
+        <p>
+            <b>Mode:</b>
+            @if (Model.Mode == StaticPublishMode.On)
+            {
+                <span class="badge bg-success">On</span> <span class="u-color-888">changed pages go live on @Model.PublicBaseUrl within seconds</span>
+            }
+            else if (Model.Mode == StaticPublishMode.DryRun)
+            {
+                <span class="badge bg-info">Dry run</span> <span class="u-color-888">pages are fetched and compared, nothing is uploaded; results show as WouldPublish</span>
+            }
+            else
+            {
+                <span class="badge bg-secondary">Off</span> <span class="u-color-888">only the scheduled full crawl updates the public site</span>
+            }
+            <br />
+            <b>Publisher:</b>
+            @if (!Model.InternalEndpointEnabled)
+            {
+                <span class="u-color-c0392b">internal endpoint not configured (StaticPublish:InternalPort / InternalSecret)</span>
+            }
+            else
+            {
+                <span class="@(workerStale ? "u-color-c0392b" : "u-color-888")">last asked for work @Ago(Model.WorkerLastPollUtc)@(workerStale && Model.Mode != StaticPublishMode.Off ? " — ⚠ the publisher worker may be stopped" : string.Empty)</span>
+            }
+            <br />
+            <b>Last instant publish:</b>
+            @if (Model.LastInstantPublish is StaticPublishLogEntry lip)
+            {
+                <span><a href="@PathLink(lip.Path)">@lip.Path</a> @Utc(lip.PublishedUtc) (@Ago(lip.PublishedUtc))</span>
+            }
+            else
+            {
+                <span class="u-color-888">none yet</span>
+            }
+            <br />
+            <small class="u-color-888"><i>Every change that affects public pages queues those pages; the publisher checks the queue every ~10 seconds, uploads only pages whose content really changed, then checks that the public copy is the new one (re-purging if not). As a safety net a full crawl runs every 5 minutes whenever the sitemap shows any change (so a page the instant path misses is at most ~5 minutes behind); queued pages keep publishing while it runs. All times are UTC.</i></small>
+        </p>
+
+        <div class="u-flex-wrap mb-3">
+            <form action="/admin/publishing/republish" method="post" class="mb-2">
+                @Html.AntiForgeryToken()
+                <label for="republish-path"><b>Republish this page</b></label><br />
+                <input id="republish-path" name="path" type="text" class="form-control d-inline-block u-maxw-520px" placeholder="/site/example or https://monerica.com/site/example" maxlength="512" required />
+                <button type="submit" class="btn btn-sm btn-primary">Republish</button>
+            </form>
+            <form action="/admin/publishing/retry-failed" method="post" class="d-inline-block mb-2">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-sm btn-outline-secondary">Retry failed (@Model.Failing.Count)</button>
+            </form>
+            <form action="/admin/publishing/full-crawl" method="post" class="d-inline-block mb-2">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-sm btn-outline-secondary">Run full crawl now</button>
+            </form>
+        </div>
+
+        @if (Model.FullCrawlRequest is StaticPublishQueueItem fcr)
+        {
+            <p class="alert alert-info">
+                <b>@(StaticPublishConstants.IsForcedCrawlRequest(fcr) ? "Full crawl requested (runs now)" : "Site-wide change (the next 5-minute crawl publishes it)")</b> @Utc(fcr.RequestedUtc) — @fcr.Reason
+                @if (fcr.Attempts > 0)
+                {
+                    <br /><span class="u-color-c0392b">@fcr.Attempts failed attempt(s): @fcr.LastError</span>
+                }
+            </p>
+        }
+
+        <h2 class="h4 mt-4">Waiting now (@Model.Waiting.Count)</h2>
+        @if (Model.Waiting.Count == 0)
+        {
+            <p class="u-color-888">Nothing waiting.</p>
+        }
+        else
+        {
+            <div class="table-wrapper">
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr><th>Page</th><th>Reason</th><th>Requested</th><th>Attempts</th><th>Last error</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var q in Model.Waiting.Take(200))
+                        {
+                            <tr>
+                                <td><a href="@PathLink(q.Path)">@q.Path</a></td>
+                                <td>@q.Reason</td>
+                                <td class="text-nowrap">@Utc(q.RequestedUtc)</td>
+                                <td>@q.Attempts</td>
+                                <td>@q.LastError</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            @if (Model.Waiting.Count > 200)
+            {
+                <p class="u-color-888">… and @(Model.Waiting.Count - 200) more.</p>
+            }
+        }
+
+        <h2 class="h4 mt-4">Failing pages (@Model.Failing.Count)</h2>
+        @if (Model.Failing.Count == 0)
+        {
+            <p class="u-color-888">No page is failing.</p>
+        }
+        else
+        {
+            <p class="u-color-888">Pages with @Model.MaxAttempts failed attempts are parked until you press "Retry failed" (or the page changes again). Retries back off: 30 s, 1, 2, 4 minutes.</p>
+            <div class="table-wrapper">
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr><th>Page</th><th>Attempts</th><th>Last attempt</th><th>Last error</th><th>Reason</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var q in Model.Failing.Take(200))
+                        {
+                            <tr>
+                                <td><a href="@PathLink(q.Path)">@q.Path</a></td>
+                                <td>@q.Attempts@(q.Attempts >= Model.MaxAttempts ? " (parked)" : string.Empty)</td>
+                                <td class="text-nowrap">@Utc(q.LastAttemptUtc)</td>
+                                <td class="u-color-c0392b">@q.LastError</td>
+                                <td>@q.Reason</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        <h2 class="h4 mt-4">Full crawls</h2>
+        <p>
+            <b>Last full crawl:</b>
+            @if (Model.LastFullCrawl is StaticPublishLogEntry lfc)
+            {
+                <span>@Utc(lfc.PublishedUtc) (@Ago(lfc.PublishedUtc)) — @lfc.Reason — <span class="badge @ResultClass(lfc.Result)">@lfc.Result</span> @lfc.Error (@((lfc.DurationMs / 1000.0).ToString("0")) s)</span>
+            }
+            else
+            {
+                <span class="u-color-888">none logged yet</span>
+            }
+            <br />
+            <b>Last crawl check:</b>
+            <span class="@(Model.LastCrawlReportUtc is DateTime lcr && DateTime.UtcNow - lcr < TimeSpan.FromMinutes(12) ? "u-color-888" : "u-color-c0392b")">@Ago(Model.LastCrawlReportUtc) <small>(every 5 minutes; checks with no change are not logged)</small></span>
+        </p>
+        @if (Model.Drift.Count == 0)
+        {
+            <p class="u-color-888">In the last 24 hours the full crawls found no page that instant publishing had missed.</p>
+        }
+        else
+        {
+            <p>
+                <b>Missed by instant publishing in the last 24 hours (@Model.Drift.Count):</b>
+                <br /><small class="u-color-888">Pages a full crawl had to update although they were not queued and no site-wide change (snippet, sponsor, category, deploy) explains them. A page here usually means some change does not queue its pages yet (a missing enqueue call), or it changes on its own (time-based). Pages that were already waiting in the queue, or that a site-wide change explains, are not listed.</small>
+            </p>
+            <div class="table-wrapper">
+                <table class="table table-sm align-middle">
+                    <thead><tr><th>Page</th><th>Updated by the crawl</th><th>Result</th></tr></thead>
+                    <tbody>
+                        @foreach (var d in Model.Drift)
+                        {
+                            <tr><td><a href="@PathLink(d.Path)">@d.Path</a></td><td class="text-nowrap">@Utc(d.PublishedUtc)</td><td><span class="badge @ResultClass(d.Result)">@d.Result</span></td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        <h2 class="h4 mt-4">Recent publishes</h2>
+        <form action="/admin/publishing" method="get" class="mb-2">
+            <label for="f-path">Page</label>
+            <input id="f-path" name="path" type="text" class="form-control d-inline-block u-maxw-340px" value="@Model.FilterPath" placeholder="/site/example (or /site/* for a prefix)" maxlength="512" />
+            <label for="f-result">Result</label>
+            <select id="f-result" name="result" class="ui-select ui-select-caret">
+                <option value="">Any</option>
+                @foreach (var r in DirectoryManager.Web.Controllers.StaticPublishAdminController.Results)
+                {
+                    <option value="@r" selected="@(r == Model.FilterResult)">@r</option>
+                }
+            </select>
+            <label for="f-source">Source</label>
+            <select id="f-source" name="source" class="ui-select ui-select-caret">
+                <option value="">Any</option>
+                @foreach (var s in DirectoryManager.Web.Controllers.StaticPublishAdminController.Sources)
+                {
+                    <option value="@s" selected="@(s == Model.FilterSource)">@s</option>
+                }
+            </select>
+            <button type="submit" class="btn btn-sm btn-primary">Filter</button>
+            @if (!string.IsNullOrWhiteSpace(Model.FilterPath) || Model.FilterResult != null || Model.FilterSource != null)
+            {
+                <a href="/admin/publishing" class="small">Clear</a>
+            }
+        </form>
+
+        @if (Model.LastPublishForPath is StaticPublishLogEntry lpp)
+        {
+            <p>
+                <b>@lpp.Path</b> was last published @Utc(lpp.PublishedUtc) (@Ago(lpp.PublishedUtc)) — @lpp.Result, @lpp.Reason.
+                <a href="@(Model.PublicBaseUrl + lpp.Path)" rel="noopener" target="_blank">View on the public site</a>
+            </p>
+        }
+
+        <p class="u-color-888">@log.TotalCount result(s) in the last 30 days.</p>
+        @if (log.Items.Count > 0)
+        {
+            <div class="table-wrapper">
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr><th>Page</th><th>Reason</th><th>Requested → published</th><th>Took</th><th>Result</th><th>Source</th><th>Note</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var e in log.Items)
+                        {
+                            <tr>
+                                <td><a href="@PathLink(e.Path)">@e.Path</a></td>
+                                <td>@e.Reason</td>
+                                <td class="text-nowrap">@(e.RequestedUtc is DateTime rq ? rq.ToString(Fmt) + " → " : string.Empty)@e.PublishedUtc.ToString(Fmt) UTC</td>
+                                <td class="text-nowrap" title="Fetch/upload took @e.DurationMs ms">@Seconds(e)</td>
+                                <td><span class="badge @ResultClass(e.Result)">@e.Result</span></td>
+                                <td>@e.Source</td>
+                                <td>@e.Error</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (log.TotalPages > 1)
+            {
+                <nav class="mt-3" aria-label="Publish log pages">
+                    <ul class="pagination pagination-sm mb-0 u-flex-wrap">
+                        @if (log.HasPrev)
+                        {
+                            <li class="page-item"><a class="page-link" href="@PageUrl(log.Page - 1)">&larr; Newer</a></li>
+                        }
+                        <li class="page-item disabled"><span class="page-link">Page @log.Page of @log.TotalPages</span></li>
+                        @if (log.HasNext)
+                        {
+                            <li class="page-item"><a class="page-link" href="@PageUrl(log.Page + 1)">Older &rarr;</a></li>
+                        }
+                    </ul>
+                </nav>
+            }
+        }
+    </div>
+}

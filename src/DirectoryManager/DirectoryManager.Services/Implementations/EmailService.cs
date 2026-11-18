@@ -1,3 +1,4 @@
+using DirectoryManager.Data.Models.Emails;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Services.Constants;
 using DirectoryManager.Services.Exceptions;
@@ -20,19 +21,25 @@ namespace DirectoryManager.Services.Implementations
         private readonly bool useUnsubscribeHeader = false;
         private readonly string unsubscribeEmail = string.Empty;
         private readonly string unsubscribeUrlFormat = string.Empty;
+        private readonly UnsubscribeTokenSigner unsubscribeSigner;
 
         public EmailService(
             SendGridConfig config,
             EmailSettings emailSettings,
             IServiceScopeFactory? scopeFactory = null,
-            string sourceApplication = EmailSendSource.Unknown)
+            string sourceApplication = EmailSendSource.Unknown,
+            HttpClient? httpClient = null)
         {
             if (string.IsNullOrEmpty(config.ApiKey))
             {
                 throw new ArgumentException("SendGrid API Key is missing in configuration");
             }
 
-            this.client = new SendGridClient(config.ApiKey);
+            // httpClient: tests only (a fake handler instead of the network).
+            this.client = httpClient == null
+                ? new SendGridClient(config.ApiKey)
+                : new SendGridClient(httpClient, config.ApiKey);
+            this.unsubscribeSigner = new UnsubscribeTokenSigner(config.ApiKey);
             this.senderEmail = config.SenderEmail;
             this.senderName = config.SenderName;
             this.emailSettings = emailSettings;
@@ -81,6 +88,7 @@ namespace DirectoryManager.Services.Implementations
 
             var primaryRecipient = recipients[0];
             int? statusCode = null;
+            var content = BuildContentSnapshot(msg, plainTextContent, htmlContent, recipients);
 
             try
             {
@@ -93,11 +101,11 @@ namespace DirectoryManager.Services.Implementations
                 // caller can decide whether to retry or skip logging the delivery.
                 if (statusCode < 200 || statusCode >= 300)
                 {
-                    this.LogSend(primaryRecipient, recipients.Count, subject, false, statusCode, body);
+                    this.LogSend(primaryRecipient, recipients.Count, subject, false, statusCode, body, content);
                     throw new SendGridDeliveryException(statusCode.Value, body);
                 }
 
-                this.LogSend(primaryRecipient, recipients.Count, subject, true, statusCode, null);
+                this.LogSend(primaryRecipient, recipients.Count, subject, true, statusCode, null, content);
                 Console.WriteLine($"SendGrid accepted message ({statusCode}) for {string.Join(",", recipients)}");
             }
             catch (SendGridDeliveryException)
@@ -108,7 +116,7 @@ namespace DirectoryManager.Services.Implementations
             catch (Exception ex)
             {
                 // Network or SDK-level failure before a response was received.
-                this.LogSend(primaryRecipient, recipients.Count, subject, false, statusCode, ex.Message);
+                this.LogSend(primaryRecipient, recipients.Count, subject, false, statusCode, ex.Message, content);
                 throw;
             }
         }
@@ -121,16 +129,92 @@ namespace DirectoryManager.Services.Implementations
             }
 
             var unsubscribeUrl = string.Format(this.unsubscribeUrlFormat, Uri.EscapeDataString(recipientEmail));
-            msg.AddHeader("List-Unsubscribe", $"<mailto:{this.unsubscribeEmail}>, <{unsubscribeUrl}>");
+            var oneClickUrl = BuildOneClickUnsubscribeUrl(unsubscribeUrl, recipientEmail, this.unsubscribeSigner);
+
+            if (oneClickUrl == null)
+            {
+                // No signed link possible: point at the (captcha) form only, and do NOT claim
+                // RFC 8058 one-click support, since a POST to that form would fail.
+                msg.AddHeader("List-Unsubscribe", $"<mailto:{this.unsubscribeEmail}>, <{unsubscribeUrl}>");
+                return;
+            }
+
+            // RFC 8058: exactly one HTTPS URI, which takes a cookie-less POST of
+            // "List-Unsubscribe=One-Click" and unsubscribes this recipient.
+            msg.AddHeader("List-Unsubscribe", $"<mailto:{this.unsubscribeEmail}>, <{oneClickUrl}>");
             msg.AddHeader("List-Unsubscribe-Post", "List-Unsubscribe=One-Click");
         }
 
         /// <summary>
-        /// Writes one row to the generic EmailSendLog audit table. Best-effort:
-        /// a logging failure must NEVER interfere with sending, so all exceptions
-        /// here are swallowed (and surfaced to the console only). The scoped log
-        /// repository is resolved through a fresh DI scope per send so that a
-        /// singleton EmailService (the console jobs) never captures a DbContext.
+        /// The one-click link lives on the same host as the configured unsubscribe page
+        /// (EmailSettingUnsubscribeUrlFormat), at /unsubscribe/one-click, with the address and its
+        /// signed token in the query. Returns null when no token can be made or the configured
+        /// page is not an absolute HTTPS URL.
+        /// </summary>
+        /// <returns>The one-click URL, or null.</returns>
+        public static string? BuildOneClickUnsubscribeUrl(string unsubscribeUrl, string recipientEmail, UnsubscribeTokenSigner signer)
+        {
+            var token = signer.CreateToken(recipientEmail);
+            if (token == null ||
+                !Uri.TryCreate(unsubscribeUrl, UriKind.Absolute, out var page) ||
+                page.Scheme != Uri.UriSchemeHttps)
+            {
+                return null;
+            }
+
+            return $"{page.GetLeftPart(UriPartial.Authority)}/unsubscribe/one-click" +
+                   $"?email={Uri.EscapeDataString(recipientEmail.Trim())}&token={token}";
+        }
+
+        /// <summary>
+        /// The stored copy of what was sent (redacted; see <see cref="EmailContentSnapshot"/>). Never
+        /// throws: if it can't be built the send goes ahead and the log row just has no content.
+        /// </summary>
+        private static EmailSendLogContent? BuildContentSnapshot(SendGridMessage msg, string? plainText, string? html, List<string> recipients)
+        {
+            try
+            {
+                var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                if (msg.Headers != null)
+                {
+                    foreach (var h in msg.Headers)
+                    {
+                        headers[h.Key] = h.Value;
+                    }
+                }
+
+                var personalHeaders = msg.Personalizations?.FirstOrDefault()?.Headers;
+                if (personalHeaders != null)
+                {
+                    foreach (var h in personalHeaders)
+                    {
+                        headers[h.Key] = h.Value;
+                    }
+                }
+
+                return EmailContentSnapshot.Build(
+                    msg.From?.Email ?? string.Empty,
+                    msg.From?.Name,
+                    msg.ReplyTo?.Email,
+                    headers,
+                    plainText,
+                    html,
+                    recipients);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"WARNING: could not prepare email content for the send log: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Writes one row to the generic EmailSendLog audit table, and the message content (once per
+        /// distinct content) when given. Best-effort: a logging failure must NEVER interfere with
+        /// sending, so all exceptions here are swallowed (and surfaced to the console only); a content
+        /// storage failure still writes the log row (without content). Each write gets a fresh DI scope,
+        /// so a singleton EmailService (the console jobs) never captures a DbContext and a failed content
+        /// insert can't poison the log row's DbContext.
         /// </summary>
         private void LogSend(
             string recipientEmail,
@@ -138,11 +222,27 @@ namespace DirectoryManager.Services.Implementations
             string subject,
             bool isSuccess,
             int? statusCode,
-            string? errorMessage)
+            string? errorMessage,
+            EmailSendLogContent? content = null)
         {
             if (this.scopeFactory == null)
             {
                 return;
+            }
+
+            int? contentId = null;
+            if (content != null)
+            {
+                try
+                {
+                    using var contentScope = this.scopeFactory.CreateScope();
+                    var contentRepo = contentScope.ServiceProvider.GetRequiredService<IEmailSendLogContentRepository>();
+                    contentId = contentRepo.GetOrCreate(content);
+                }
+                catch (Exception contentEx)
+                {
+                    Console.WriteLine($"WARNING: failed to store email content for the send log: {contentEx.Message}");
+                }
             }
 
             try
@@ -156,7 +256,8 @@ namespace DirectoryManager.Services.Implementations
                     subject,
                     isSuccess,
                     statusCode,
-                    errorMessage);
+                    errorMessage,
+                    contentId);
             }
             catch (Exception logEx)
             {

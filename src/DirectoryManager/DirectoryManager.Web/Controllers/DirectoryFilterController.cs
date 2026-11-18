@@ -493,8 +493,7 @@ public class DirectoryFilterController : Controller
             var categorySponsors = await this.sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.CategorySponsor);
 
             var catSponsor = categorySponsors.FirstOrDefault(s =>
-                (s.CategoryId.HasValue && s.CategoryId.Value == catId) ||
-                (s.DirectoryEntry?.SubCategory?.CategoryId == catId));
+                (s.CategoryId ?? s.DirectoryEntry?.SubCategory?.CategoryId) == catId);
 
             int totalActiveInCat = await this.entryRepo.CountByCategoryAsync(catId);
 
@@ -503,7 +502,12 @@ public class DirectoryFilterController : Controller
                 CategoryId = catId,
                 TotalActiveCategoryListings = totalActiveInCat,
                 DirectoryEntry = (catSponsor?.DirectoryEntry != null)
-                    ? BuildSponsorEntryVm(catSponsor.DirectoryEntry, link2Name, link3Name)
+                    ? BuildSponsorEntryVm(
+                        catSponsor.SubCategoryId is int catSponsorSubId
+                            ? await this.AsShownInSubcategoryAsync(catSponsor.DirectoryEntry, catSponsorSubId)
+                            : catSponsor.DirectoryEntry,
+                        link2Name,
+                        link3Name)
                     : null
             };
         }

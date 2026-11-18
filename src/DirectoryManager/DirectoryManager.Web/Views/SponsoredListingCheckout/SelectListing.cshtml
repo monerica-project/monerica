@@ -82,7 +82,12 @@
                     }
                     else if (ViewBag.SponsorshipType == SponsorshipType.CategorySponsor)
                     {
-                        <input type="hidden" name="categoryId" value="@ViewBag.CategoryId" />
+                        <input type="hidden" name="categoryId" value="@Context.Request.Query["categoryId"]" />
+                        @* In this category through an additional subcategory: say which one. *@
+                        @if (entry.ShownViaAdditionalSubcategoryId.HasValue)
+                        {
+                            <input type="hidden" name="subCategoryId" value="@entry.SubCategoryId" />
+                        }
                     }
 
                     <button class="btn u-m-2px" type="submit">Select</button>

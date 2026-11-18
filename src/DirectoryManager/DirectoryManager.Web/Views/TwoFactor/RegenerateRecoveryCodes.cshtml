@@ -1,0 +1,28 @@
+@using DirectoryManager.Web.Constants;
+@{
+    PageMeta.Title = "Make New Recovery Codes";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+<h1>@PageMeta.Title</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+<p>This replaces all of your recovery codes. The old ones stop working right away.</p>
+
+<form asp-controller="TwoFactor" asp-action="RegenerateRecoveryCodes" method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div class="form-group">
+        <label for="currentPassword">Current password</label>
+        <input id="currentPassword" name="currentPassword" type="password" class="form-control input-width" autocomplete="current-password" />
+    </div>
+    <div class="form-group">
+        <label for="code">Authenticator code</label>
+        <input id="code" name="code" class="form-control input-width" autocomplete="one-time-code" inputmode="numeric" maxlength="12" />
+    </div>
+    <button type="submit" class="btn btn-primary">Make new codes</button>
+</form>
+
+<p><a href="~/account/two-factor">Cancel</a></p>
+}

@@ -26,7 +26,7 @@
     if (vm is null && categoryId > 0)
     {
         var cat = await CategoryRepo.GetByIdAsync(categoryId);
-        featured = await FeaturedBuilder.BuildAsync(cat?.FeaturedDirectoryEntryId);
+        featured = await FeaturedBuilder.BuildForCategoryAsync(cat?.FeaturedDirectoryEntryId, categoryId);
     }
 }
 

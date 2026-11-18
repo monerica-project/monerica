@@ -156,6 +156,30 @@ namespace DirectoryManager.SubmissionReviewer.Review
                 var socialLinks = await this.dossiers.FindSocialLinksAsync(pages.Value.Main, ct);
                 var kycStatements = await this.dossiers.FindKycStatementsAsync(s, pages.Value.Main, pages.Value.Second, ct);
                 var apiLinks = SubmissionDossierBuilder.FindApiLinks(pages.Value.Main);
+                var moneroLogos = await this.dossiers.FindMoneroLogosAsync(pages.Value.Main, pages.Value.Second, ct);
+                if (moneroLogos.Count > 0)
+                {
+                    s.AppendReviewLog($"Monero logo found in the page markup ({moneroLogos.Count}): {Truncate(moneroLogos[0], 300)}");
+                }
+
+                // PGP key: suggested only when the submitter gave none and the live listing has none.
+                // It never replaces a key (keys gate the owner portal), and the admin approves it.
+                s.ProposedPgpKey = null;
+                s.ProposedPgpKeySource = null;
+                var listingHasKey = s.DirectoryEntryId is int keyEntryId && await this.db.DirectoryEntries.AsNoTracking()
+                    .AnyAsync(d => d.DirectoryEntryId == keyEntryId && d.PgpKey != null && d.PgpKey != string.Empty, ct);
+                // Only for NEW listings: on an edit, the submitter could point Link2/proof pages at a site they
+                // control and plant their own key on someone else's listing. (Audit 2026-11-11.)
+                if (s.DirectoryEntryId == null && string.IsNullOrWhiteSpace(s.PgpKey) && !listingHasKey)
+                {
+                    var pgp = await this.dossiers.FindPgpKeyAsync(pages.Value.Main, pages.Value.Second, ct);
+                    if (pgp != null)
+                    {
+                        s.ProposedPgpKey = pgp.Value.Key;
+                        s.ProposedPgpKeySource = Truncate(pgp.Value.Source, 2000);
+                        s.AppendReviewLog($"PGP key found on the site ({pgp.Value.Source}); suggested for the listing.");
+                    }
+                }
                 var dossier = SubmissionDossierBuilder.Build(
                     s,
                     s.SubCategoryId is int sc && labelById.TryGetValue(sc, out var lbl) ? lbl : null,
@@ -167,7 +191,8 @@ namespace DirectoryManager.SubmissionReviewer.Review
                     referral,
                     socialLinks,
                     kycStatements,
-                    apiLinks);
+                    apiLinks,
+                    moneroLogos);
                 s.ReviewDossier = dossier;
                 s.ReviewAttempts++;
                 processed++;
@@ -224,7 +249,11 @@ namespace DirectoryManager.SubmissionReviewer.Review
             var stale = await this.db.Submissions
                 .Where(s => s.SubmissionStatus == SubmissionStatus.Preview
                             && (s.UpdateDate ?? s.CreateDate) < cutoff
-                            && s.CreateDate >= since)
+                            && s.CreateDate >= since
+
+                            // New listings only. An edit changes a live listing, so it is only ever
+                            // sent by a person who passed the captcha and pressed Submit.
+                            && s.DirectoryEntryId == null)
                 .OrderBy(s => s.SubmissionId)
                 .ToListAsync(ct);
             if (stale.Count == 0)
@@ -244,9 +273,18 @@ namespace DirectoryManager.SubmissionReviewer.Review
                 .Where(d => d.Length > 0)
                 .ToList();
 
+            // Drafts skipped the captcha, so only a limited number of auto-sent ones may be waiting at once.
+            var room = this.options.PreviewPromoteMaxWaiting - await this.db.Submissions.CountAsync(
+                s => s.SubmissionStatus == SubmissionStatus.Pending && s.ReviewLog != null && s.ReviewLog.Contains("Auto-submitted"), ct);
+
             int promoted = 0;
             foreach (var s in stale)
             {
+                if (promoted >= room)
+                {
+                    break;
+                }
+
                 var key = UrlNormalizer.Normalize(s.Link);
                 var dup = waiting.FirstOrDefault(w => w.SubmissionId != s.SubmissionId &&
                     ((s.DirectoryEntryId != null && w.DirectoryEntryId == s.DirectoryEntryId) || UrlNormalizer.Normalize(w.Link) == key));

@@ -138,6 +138,7 @@ namespace DirectoryManager.Web.Controllers
                         {
                             new { href = $"{domain}/data.json", type = "application/json", title = "Every live listing as structured data" },
                             new { href = $"{domain}/feed.json", type = "application/feed+json", title = "Newest listings (JSON Feed)" },
+                            new { href = $"{domain}/incidents.json", type = "application/json", title = "Open issues: listings marked Questionable or Scam" },
                             new { href = $"{domain}/rss/feed.xml", type = "application/rss+xml", title = "Newest listings (RSS)" },
                             new { href = $"{domain}/llms.txt", type = "text/plain", title = "Category map for AI tools" },
                             new { href = $"{domain}/llms-full.txt", type = "text/plain", title = "Every listing as plain text for AI tools" },
@@ -242,6 +243,7 @@ namespace DirectoryManager.Web.Controllers
                         : null,
                     rates = e.RateType.IsShown() ? EnumHelper.GetDescription(e.RateType) : null,
                     javascript = e.SiteJavaScript.IsShown() ? EnumHelper.GetDescription(e.SiteJavaScript) : null,
+                    restrictions = RestrictionsJson(e),
                     tags = e.EntryTags?.Where(t => t.Tag != null).Select(t => t.Tag.Name).OrderBy(n => n).ToList() is { Count: > 0 } tg ? tg : null,
                     country = NullIfBlank(e.CountryCode),
                     founded = e.FoundedDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
@@ -318,6 +320,33 @@ namespace DirectoryManager.Web.Controllers
 
         private static string? NullIfBlank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
+        private static DirectoryManager.Data.Helpers.RestrictionsSummary RestrictionsOf(DirectoryEntry e) =>
+            DirectoryManager.Data.Helpers.ListingRestrictions.Summarize(
+                e.RestrictedCountries,
+                e.VpnPolicy,
+                e.TorPolicy,
+                e.OtherRestrictions,
+                DirectoryManager.Data.Helpers.ListingRestrictions.HasOnionLink(e.Link, e.Link2, e.Link3));
+
+        // Null when nothing is recorded, so the field is left out of the JSON.
+        private static object? RestrictionsJson(DirectoryEntry e)
+        {
+            var r = RestrictionsOf(e);
+            if (r.IsEmpty)
+            {
+                return null;
+            }
+
+            var codes = DirectoryManager.Data.Helpers.ListingRestrictions.ParseCodes(e.RestrictedCountries);
+            return new
+            {
+                countriesNotServed = codes.Count > 0 ? codes : null,
+                vpn = r.Vpn,
+                tor = r.Tor,
+                other = r.Other,
+            };
+        }
+
         // The static CDN mirror serves these as text/plain with NO charset, so browsers fall back
         // to Latin-1 and show mojibake for UTF-8 punctuation. Keep the output ASCII-only.
         private static string AsciiClean(string content) => content
@@ -388,6 +417,27 @@ namespace DirectoryManager.Web.Controllers
             if (entry.SiteJavaScript.IsShown())
             {
                 facts.Add($"JavaScript: {EnumHelper.GetDescription(entry.SiteJavaScript)}");
+            }
+
+            var restrictions = RestrictionsOf(entry);
+            if (restrictions.CountryNames.Count > 0)
+            {
+                facts.Add($"Not served in: {string.Join(", ", restrictions.CountryNames)}");
+            }
+
+            if (restrictions.Vpn != null)
+            {
+                facts.Add($"VPN: {restrictions.Vpn}");
+            }
+
+            if (restrictions.Tor != null)
+            {
+                facts.Add($"Tor: {restrictions.Tor}");
+            }
+
+            if (restrictions.Other != null)
+            {
+                facts.Add($"Other restrictions: {restrictions.Other}");
             }
 
             if (!string.IsNullOrWhiteSpace(link2Name))

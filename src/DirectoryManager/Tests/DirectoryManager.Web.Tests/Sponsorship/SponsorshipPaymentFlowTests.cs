@@ -12,6 +12,7 @@ using DirectoryManager.Web.Controllers;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Implementations;
+using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
@@ -35,6 +36,7 @@ namespace DirectoryManager.Web.Tests.Sponsorship
         private const int EntryId = 10;
         private const int SubCategoryId = 2;
         private const int OfferId = 5;
+        private const int MainOfferId = 30;
 
         [Fact]
         public async Task Checkout_ThenSettledWebhook_ActivatesListing_AndSuccessPageShowsPaid()
@@ -349,6 +351,363 @@ namespace DirectoryManager.Web.Tests.Sponsorship
             Assert.Single(h.Db.SponsoredListings);
         }
 
+        // ---- Payments that arrive after the invoice timer ran out (BTCPay: "Expired" + "PaidLate") ----
+        [Fact]
+        public async Task LatePayment_ConfirmedInsideGrace_GoesLiveOnItsOwn()
+        {
+            using var h = new Harness();
+            await h.ConfirmCheckoutAsync();
+            var invoice = await h.ReloadInvoiceAsync();
+            await h.WebhookAsync("InvoiceExpired", invoice.ProcessorInvoiceId!);
+
+            h.BtcPay.SetPaidLate(minutesAfterExpiry: 1, settled: true);
+            await h.WebhookAsync("InvoicePaymentSettled", invoice.ProcessorInvoiceId!);
+
+            var after = await h.ReloadInvoiceAsync();
+            Assert.Equal(PaymentStatus.Paid, after.PaymentStatus);
+            Assert.Contains("LatePaymentAccepted", after.PaymentResponse);
+            Assert.Equal(1.5m, after.PaidAmount);
+            Assert.Single(h.Db.SponsoredListings);
+
+            // The full paid period is delivered even though the listing started late.
+            var listing = h.Db.SponsoredListings.Single();
+            Assert.Equal(30, Math.Round((listing.CampaignEndDate - listing.CampaignStartDate).TotalDays));
+            Assert.True(listing.CampaignEndDate > DateTime.UtcNow.AddDays(29.9));
+
+            // A repeat of the event, or the 5-minute pass, changes nothing.
+            await h.WebhookAsync("InvoicePaymentSettled", invoice.ProcessorInvoiceId!);
+            Assert.Equal(LatePaymentOutcome.NotApplicable, await h.LatePayments.TryAcceptAsync(after.SponsoredListingInvoiceId));
+            Assert.Single(h.Db.SponsoredListings);
+        }
+
+        [Fact]
+        public async Task LatePayment_NotYetConfirmed_Waits_ThenThePassAcceptsIt()
+        {
+            using var h = new Harness();
+            await h.ConfirmCheckoutAsync();
+            var invoice = await h.ReloadInvoiceAsync();
+            await h.WebhookAsync("InvoiceExpired", invoice.ProcessorInvoiceId!);
+
+            h.BtcPay.SetPaidLate(minutesAfterExpiry: 1, settled: false);
+            await h.WebhookAsync("InvoiceReceivedPayment", invoice.ProcessorInvoiceId!);
+            Assert.Equal(PaymentStatus.Expired, (await h.ReloadInvoiceAsync()).PaymentStatus);
+            Assert.Empty(h.Db.SponsoredListings);
+
+            h.BtcPay.SetPaidLate(minutesAfterExpiry: 1, settled: true);
+            h.Db.ChangeTracker.Clear();
+            Assert.Equal(LatePaymentOutcome.Accepted, await h.LatePayments.TryAcceptAsync(invoice.SponsoredListingInvoiceId));
+            Assert.Equal(PaymentStatus.Paid, (await h.ReloadInvoiceAsync()).PaymentStatus);
+            Assert.Single(h.Db.SponsoredListings);
+        }
+
+        [Fact]
+        public async Task LatePayment_AfterTheGracePeriod_IsLeftForTheOwner()
+        {
+            using var h = new Harness();
+            await h.ConfirmCheckoutAsync();
+            var invoice = await h.ReloadInvoiceAsync();
+            await h.WebhookAsync("InvoiceExpired", invoice.ProcessorInvoiceId!);
+
+            h.BtcPay.SetPaidLate(minutesAfterExpiry: 180, settled: true);
+            await h.WebhookAsync("InvoicePaymentSettled", invoice.ProcessorInvoiceId!);
+
+            var after = await h.ReloadInvoiceAsync();
+            Assert.Equal(PaymentStatus.Expired, after.PaymentStatus);
+            Assert.Contains("LatePaymentTooLate", after.PaymentResponse);
+            Assert.Empty(h.Db.SponsoredListings);
+        }
+
+        [Fact]
+        public async Task LatePayment_WhenTheSlotWasSoldMeanwhile_IsLeftForTheOwner()
+        {
+            using var h = new Harness();
+            await h.ConfirmCheckoutAsync();
+            var invoice = await h.ReloadInvoiceAsync();
+            await h.WebhookAsync("InvoiceExpired", invoice.ProcessorInvoiceId!);
+
+            for (int i = 0; i < DirectoryManager.Common.Constants.IntegerConstants.MaxSubcategorySponsoredListings; i++)
+            {
+                await h.AddEligibleEntryAsync(900 + i);
+                h.Db.SponsoredListings.Add(new SponsoredListing
+                {
+                    DirectoryEntryId = 900 + i,
+                    SponsorshipType = SponsorshipType.SubcategorySponsor,
+                    SubCategoryId = SubCategoryId,
+                    CampaignStartDate = DateTime.UtcNow.AddDays(-1),
+                    CampaignEndDate = DateTime.UtcNow.AddDays(29),
+                });
+            }
+
+            await h.Db.SaveChangesAsync();
+            int before = h.Db.SponsoredListings.Count();
+
+            h.BtcPay.SetPaidLate(minutesAfterExpiry: 1, settled: true);
+            await h.WebhookAsync("InvoicePaymentSettled", invoice.ProcessorInvoiceId!);
+
+            var after = await h.ReloadInvoiceAsync();
+            Assert.Equal(PaymentStatus.Expired, after.PaymentStatus);
+            Assert.Contains("LatePaymentSlotTaken", after.PaymentResponse);
+            Assert.Equal(before, h.Db.SponsoredListings.Count());
+        }
+
+        [Fact]
+        public async Task LatePayment_WhileAnotherBuyerIsCheckingOut_WaitsWithoutANote()
+        {
+            using var h = new Harness();
+            await h.ConfirmCheckoutAsync();
+            var invoice = await h.ReloadInvoiceAsync();
+            await h.WebhookAsync("InvoiceExpired", invoice.ProcessorInvoiceId!);
+
+            await h.AddEligibleEntryAsync(901);
+            for (int i = 0; i < DirectoryManager.Common.Constants.IntegerConstants.MaxSubcategorySponsoredListings; i++)
+            {
+                await h.ReserveAsync(entryId: 901);
+            }
+
+            h.BtcPay.SetPaidLate(minutesAfterExpiry: 1, settled: true);
+            h.Db.ChangeTracker.Clear();
+            Assert.Equal(LatePaymentOutcome.SlotHeld, await h.LatePayments.TryAcceptAsync(invoice.SponsoredListingInvoiceId));
+            Assert.Equal(PaymentStatus.Expired, (await h.ReloadInvoiceAsync()).PaymentStatus);
+        }
+
+        [Fact]
+        public async Task ExpiredInvoice_PartlyPaidOrUnpaid_IsNeverAccepted()
+        {
+            using var h = new Harness();
+            await h.ConfirmCheckoutAsync();
+            var invoice = await h.ReloadInvoiceAsync();
+            await h.WebhookAsync("InvoiceExpired", invoice.ProcessorInvoiceId!);
+
+            h.BtcPay.SetPaidLate(minutesAfterExpiry: 1, settled: true, paid: "0.7");
+            h.Db.ChangeTracker.Clear();
+            Assert.Equal(LatePaymentOutcome.NotApplicable, await h.LatePayments.TryAcceptAsync(invoice.SponsoredListingInvoiceId));
+
+            h.BtcPay.SetExpired("PaidPartial");
+            Assert.Equal(LatePaymentOutcome.NotApplicable, await h.LatePayments.TryAcceptAsync(invoice.SponsoredListingInvoiceId));
+            Assert.Equal(PaymentStatus.Expired, (await h.ReloadInvoiceAsync()).PaymentStatus);
+            Assert.Empty(h.Db.SponsoredListings);
+        }
+
+        [Fact]
+        public async Task SettledAtBtcPay_ButWebhookNeverArrived_ThePassActivatesIt()
+        {
+            using var h = new Harness();
+            await h.ConfirmCheckoutAsync();
+            var invoice = await h.ReloadInvoiceAsync();
+
+            h.BtcPay.SetSettled();
+            h.Db.ChangeTracker.Clear();
+            var accepted = await SponsorLatePaymentSweeper.SweepAsync(h.SweepServices(), DateTime.UtcNow, NullLogger.Instance, CancellationToken.None);
+
+            Assert.Equal(1, accepted);
+            Assert.Equal(PaymentStatus.Paid, (await h.ReloadInvoiceAsync()).PaymentStatus);
+            Assert.Single(h.Db.SponsoredListings);
+        }
+
+        // ---- Slot holds: an invoice only exists for a buyer holding (or just taking) a free slot ----
+        [Fact]
+        public async Task Confirm_WithoutRsvId_WhenTheSlotIsHeldBySomeoneElse_GoesToWaiting_NoInvoice()
+        {
+            using var h = new Harness();
+            await h.ReserveAsync(entryId: 11); // the subcategory's only slot, held by another listing
+
+            var result = await h.ConfirmCheckoutAsync();
+
+            Assert.Contains("/sponsoredlisting/checkout-waiting", Assert.IsType<RedirectResult>(result).Url);
+            Assert.Empty(h.Db.SponsoredListingInvoices);
+            Assert.Single(h.Db.SponsoredListingReservations);
+        }
+
+        [Fact]
+        public async Task Confirm_WithoutRsvId_WhenTheSlotIsFree_TakesAHold_AndTiesTheInvoiceToIt()
+        {
+            using var h = new Harness();
+
+            var result = await h.ConfirmCheckoutAsync();
+
+            Assert.Equal("BtcPayNoJsInvoice", Assert.IsType<RedirectToActionResult>(result).ActionName);
+            var hold = await h.Db.SponsoredListingReservations.AsNoTracking().SingleAsync();
+            Assert.Equal(ReservationGroupHelper.BuildReservationGroupName(SponsorshipType.SubcategorySponsor, SubCategoryId), hold.ReservationGroup);
+            Assert.Contains($"ListingId={EntryId};", hold.Details);
+            Assert.True(hold.ExpirationDateTime > DateTime.UtcNow);
+            Assert.Equal(hold.ReservationGuid, (await h.ReloadInvoiceAsync()).ReservationGuid);
+
+            // A second buyer (another listing) now finds the slot held.
+            await h.AddEligibleEntryAsync(11);
+            Assert.Contains("/sponsoredlisting/checkout-waiting", Assert.IsType<RedirectResult>(await h.ConfirmCheckoutAsync(entryId: 11)).Url);
+            Assert.Single(h.Db.SponsoredListingInvoices);
+        }
+
+        [Fact]
+        public async Task Confirm_WithAnExpiredRsvId_TakesAFreshHold_WhenTheSlotIsFree()
+        {
+            using var h = new Harness();
+            var expired = await h.ReserveAsync(minutes: -5);
+
+            var result = await h.ConfirmCheckoutAsync(rsvId: expired);
+
+            Assert.Equal("BtcPayNoJsInvoice", Assert.IsType<RedirectToActionResult>(result).ActionName);
+            var invoice = await h.ReloadInvoiceAsync();
+            Assert.NotEqual(expired, invoice.ReservationGuid);
+            var fresh = await h.Db.SponsoredListingReservations.AsNoTracking().SingleAsync(r => r.ReservationGuid == invoice.ReservationGuid);
+            Assert.True(fresh.ExpirationDateTime > DateTime.UtcNow);
+        }
+
+        [Fact]
+        public async Task Confirm_WithAnExpiredRsvId_GoesToWaiting_WhenSomeoneElseNowHoldsTheSlot()
+        {
+            using var h = new Harness();
+            var expired = await h.ReserveAsync(minutes: -5);
+            await h.ReserveAsync(entryId: 11);
+
+            var result = await h.ConfirmCheckoutAsync(rsvId: expired);
+
+            Assert.Contains("/sponsoredlisting/checkout-waiting", Assert.IsType<RedirectResult>(result).Url);
+            Assert.Empty(h.Db.SponsoredListingInvoices);
+        }
+
+        [Fact]
+        public async Task Confirm_WithAnotherListingsRsvId_IsNotAcceptedAsAHold()
+        {
+            using var h = new Harness();
+            var someoneElses = await h.ReserveAsync(entryId: 11);
+
+            var result = await h.ConfirmCheckoutAsync(rsvId: someoneElses);
+
+            Assert.Contains("/sponsoredlisting/checkout-waiting", Assert.IsType<RedirectResult>(result).Url);
+            Assert.Empty(h.Db.SponsoredListingInvoices);
+        }
+
+        [Fact]
+        public async Task Confirm_WithOwnLiveRsvId_UsesThatHold()
+        {
+            using var h = new Harness();
+            var mine = await h.ReserveAsync();
+
+            Assert.Equal("BtcPayNoJsInvoice", Assert.IsType<RedirectToActionResult>(await h.ConfirmCheckoutAsync(rsvId: mine)).ActionName);
+            Assert.Equal(mine, (await h.ReloadInvoiceAsync()).ReservationGuid);
+            Assert.Single(h.Db.SponsoredListingReservations);
+        }
+
+        [Fact]
+        public async Task Renewal_IsAllowed_EvenWhenAnotherBuyerHoldsTheSlot()
+        {
+            using var h = new Harness();
+            h.Db.SponsoredListings.Add(new SponsoredListing
+            {
+                DirectoryEntryId = EntryId,
+                SponsorshipType = SponsorshipType.SubcategorySponsor,
+                SubCategoryId = SubCategoryId,
+                CampaignStartDate = DateTime.UtcNow.AddDays(-25),
+                CampaignEndDate = DateTime.UtcNow.AddDays(5),
+                SponsoredListingInvoiceId = 999,
+            });
+            await h.Db.SaveChangesAsync();
+            await h.ReserveAsync(entryId: 11);
+
+            var result = await h.ConfirmCheckoutAsync();
+
+            Assert.Equal("BtcPayNoJsInvoice", Assert.IsType<RedirectToActionResult>(result).ActionName);
+            Assert.Single(h.Db.SponsoredListingInvoices);
+        }
+
+        [Fact]
+        public async Task MainSponsor_WithoutRsvId_TakesTheMainHoldAndTheSubcategoryShadowHold()
+        {
+            using var h = new Harness();
+            await h.AddMainOfferAsync();
+
+            var result = await h.ConfirmCheckoutAsync(offerId: MainOfferId);
+
+            Assert.Equal("BtcPayNoJsInvoice", Assert.IsType<RedirectToActionResult>(result).ActionName);
+            var holds = await h.Db.SponsoredListingReservations.AsNoTracking().ToListAsync();
+            Assert.Equal(2, holds.Count);
+            var main = holds.Single(r => r.ReservationGroup == ReservationGroupHelper.BuildReservationGroupName(SponsorshipType.MainSponsor, 0));
+            var shadow = holds.Single(r => r.ReservationGroup == ReservationGroupHelper.BuildMainSponsorSubcategoryGroupName(SubCategoryId));
+            Assert.Equal(main.ExpirationDateTime, shadow.ExpirationDateTime);
+            Assert.Equal(main.ReservationGuid, (await h.ReloadInvoiceAsync()).ReservationGuid);
+        }
+
+        [Fact]
+        public async Task MainSponsor_WithoutRsvId_GoesToWaiting_WhenAnotherBuyerHoldsTheSubcategoryShadow()
+        {
+            using var h = new Harness();
+            await h.AddMainOfferAsync();
+            await h.ReserveAsync(entryId: 11, group: ReservationGroupHelper.BuildMainSponsorSubcategoryGroupName(SubCategoryId));
+
+            var result = await h.ConfirmCheckoutAsync(offerId: MainOfferId);
+
+            Assert.Contains("/sponsoredlisting/checkout-waiting", Assert.IsType<RedirectResult>(result).Url);
+            Assert.Empty(h.Db.SponsoredListingInvoices);
+        }
+
+        [Fact]
+        public async Task MainSponsor_WithOwnHold_GoesToWaiting_WhenOtherShadowsWouldOverfillTheSubcategory()
+        {
+            using var h = new Harness();
+            await h.AddMainOfferAsync();
+            var mainGroup = ReservationGroupHelper.BuildReservationGroupName(SponsorshipType.MainSponsor, 0);
+            var mine = await h.ReserveAsync(group: mainGroup);
+
+            // Four main sponsors already live in this subcategory, and another buyer holds the shadow
+            // for the fifth (our own shadow lapsed): we would be the sixth.
+            for (var i = 0; i < 4; i++)
+            {
+                await h.AddEligibleEntryAsync(100 + i);
+                h.Db.SponsoredListings.Add(new SponsoredListing
+                {
+                    DirectoryEntryId = 100 + i,
+                    SponsorshipType = SponsorshipType.MainSponsor,
+                    SubCategoryId = SubCategoryId,
+                    CampaignStartDate = DateTime.UtcNow.AddDays(-1),
+                    CampaignEndDate = DateTime.UtcNow.AddDays(20),
+                    SponsoredListingInvoiceId = 900 + i,
+                });
+            }
+
+            await h.Db.SaveChangesAsync();
+            await h.ReserveAsync(entryId: 11, group: ReservationGroupHelper.BuildMainSponsorSubcategoryGroupName(SubCategoryId));
+
+            var result = await h.ConfirmCheckoutAsync(rsvId: mine, offerId: MainOfferId);
+
+            Assert.Contains("/sponsoredlisting/checkout-waiting", Assert.IsType<RedirectResult>(result).Url);
+            Assert.Empty(h.Db.SponsoredListingInvoices);
+        }
+
+        [Fact]
+        public async Task TryCreateReservationWithinCapacity_ConcurrentBuyers_OnlyOneGetsTheLastSlot()
+        {
+            var dbName = $"slot-race-{Guid.NewGuid()}";
+            var options = new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(dbName).Options;
+            const string group = "race-group";
+
+            var attempts = Enumerable.Range(1, 20).Select(i => Task.Run(async () =>
+            {
+                using var db = new ApplicationDbContext(options);
+                return await new SponsoredListingReservationRepository(db).TryCreateReservationWithinCapacityAsync(
+                    DateTime.UtcNow.AddMinutes(15), group, $"Type=Test; ListingId={i}; ListingName=\"x\"", maxActiveReservations: 1);
+            })).ToArray();
+            var results = await Task.WhenAll(attempts);
+
+            Assert.Single(results, r => r != null);
+            using var check = new ApplicationDbContext(options);
+            Assert.Equal(1, await check.SponsoredListingReservations.CountAsync());
+        }
+
+        [Fact]
+        public async Task TryCreateReservationWithinCapacity_RefusesWhenNoRoom_AndIgnoresExpiredHolds()
+        {
+            var options = new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase($"slot-cap-{Guid.NewGuid()}").Options;
+            using var db = new ApplicationDbContext(options);
+            var repo = new SponsoredListingReservationRepository(db);
+
+            Assert.Null(await repo.TryCreateReservationWithinCapacityAsync(DateTime.UtcNow.AddMinutes(15), "g", "ListingId=1;", 0));
+
+            await repo.CreateReservationAsync(DateTime.UtcNow.AddMinutes(-1), "g", "ListingId=2;");
+            Assert.NotNull(await repo.TryCreateReservationWithinCapacityAsync(DateTime.UtcNow.AddMinutes(15), "g", "ListingId=1;", 1));
+            Assert.Null(await repo.TryCreateReservationWithinCapacityAsync(DateTime.UtcNow.AddMinutes(15), "g", "ListingId=3;", 1));
+        }
+
         [Theory]
         [InlineData(PaymentStatus.InvoiceCreated, PaymentStatus.Pending, true)]
         [InlineData(PaymentStatus.Pending, PaymentStatus.Paid, true)]
@@ -388,6 +747,13 @@ namespace DirectoryManager.Web.Tests.Sponsorship
                 var invoices = new SponsoredListingInvoiceRepository(this.Db);
                 this.Activator = new SponsoredListingActivator(invoices, this.SponsoredListings, this.cache, NullLogger<SponsoredListingActivator>.Instance);
 
+                var reservations = new SponsoredListingReservationRepository(this.Db);
+                var entries = new DirectoryEntryRepository(this.Db, new DirectoryEntriesAuditRepository(this.Db));
+                this.Invoices = invoices;
+                this.LatePayments = new SponsorLatePaymentService(
+                    invoices, this.SponsoredListings, reservations, entries, this.BtcPay, this.Activator,
+                    NullLogger<SponsorLatePaymentService>.Instance);
+
                 this.services = new ServiceCollection().BuildServiceProvider();
 
                 this.Controller = new SponsoredListingCheckoutController(
@@ -403,7 +769,8 @@ namespace DirectoryManager.Web.Tests.Sponsorship
                     new SponsoredListingReservationRepository(this.Db),
                     null!, // cache service: only for confirm-page error re-renders
                     this.Activator,
-                    NullLogger<SponsoredListingCheckoutController>.Instance);
+                    NullLogger<SponsoredListingCheckoutController>.Instance,
+                    latePayments: this.LatePayments);
                 this.NewRequest();
             }
 
@@ -415,9 +782,18 @@ namespace DirectoryManager.Web.Tests.Sponsorship
 
             public FakeBtcPay BtcPay { get; } = new ();
 
+            public SponsorLatePaymentService LatePayments { get; }
+
+            public ISponsoredListingInvoiceRepository Invoices { get; }
+
+            public IServiceProvider SweepServices() => new ServiceCollection()
+                .AddSingleton(this.Invoices)
+                .AddSingleton<ISponsorLatePaymentService>(this.LatePayments)
+                .BuildServiceProvider();
+
             public SponsoredListingCheckoutController Controller { get; }
 
-            public async Task<IActionResult> ConfirmCheckoutAsync(string? email = null, Guid? rsvId = null, bool solveCaptcha = true, bool verifiedEarlier = false, bool keepSession = false, int offerId = OfferId)
+            public async Task<IActionResult> ConfirmCheckoutAsync(string? email = null, Guid? rsvId = null, bool solveCaptcha = true, bool verifiedEarlier = false, bool keepSession = false, int offerId = OfferId, int entryId = EntryId)
             {
                 var session = keepSession ? this.Controller.HttpContext.Session : null;
                 this.NewRequest();
@@ -444,14 +820,46 @@ namespace DirectoryManager.Web.Tests.Sponsorship
                     ["Captcha"] = "ABCDE",
                 });
 
-                return await this.Controller.ConfirmedCheckoutAsync(EntryId, offerId, "BTCPayServerNoJs", rsvId, email);
+                return await this.Controller.ConfirmedCheckoutAsync(entryId, offerId, "BTCPayServerNoJs", rsvId, email);
             }
 
-            public async Task<Guid> ReserveAsync()
+            public async Task AddMainOfferAsync()
             {
-                var group = ReservationGroupHelper.BuildReservationGroupName(SponsorshipType.SubcategorySponsor, SubCategoryId);
+                this.Db.SponsoredListingOffers.Add(new SponsoredListingOffer
+                {
+                    SponsoredListingOfferId = MainOfferId,
+                    Description = "30 days main sponsor",
+                    Days = 30,
+                    Price = 900m,
+                    PriceCurrency = Currency.USD,
+                    IsEnabled = true,
+                    SponsorshipType = SponsorshipType.MainSponsor,
+                });
+                await this.Db.SaveChangesAsync();
+            }
+
+            public async Task AddEligibleEntryAsync(int entryId)
+            {
+                this.Db.DirectoryEntries.Add(new DirectoryEntry
+                {
+                    DirectoryEntryId = entryId,
+                    Name = $"Other {entryId}",
+                    DirectoryEntryKey = $"other-{entryId}",
+                    Link = $"https://other{entryId}.example",
+                    SubCategoryId = SubCategoryId,
+                    DirectoryStatus = DirectoryStatus.Verified,
+                    CreateDate = DateTime.UtcNow.AddDays(-365),
+                });
+                await this.Db.SaveChangesAsync();
+            }
+
+            // Details in the same format the checkout writes ("Type=...; ListingId={id}; ..."), which
+            // is how a hold is tied to its listing.
+            public async Task<Guid> ReserveAsync(int entryId = EntryId, int minutes = 15, string? group = null)
+            {
+                group ??= ReservationGroupHelper.BuildReservationGroupName(SponsorshipType.SubcategorySponsor, SubCategoryId);
                 var reservation = await new SponsoredListingReservationRepository(this.Db)
-                    .CreateReservationAsync(DateTime.UtcNow.AddMinutes(15), group, $"entry {EntryId}");
+                    .CreateReservationAsync(DateTime.UtcNow.AddMinutes(minutes), group, $"Type=Test; ListingId={entryId}; ListingName=\"test\"");
                 return reservation.ReservationGuid;
             }
 
@@ -532,6 +940,10 @@ namespace DirectoryManager.Web.Tests.Sponsorship
         private sealed class FakeBtcPay : IBtcPayServerService
         {
             private int counter;
+            private string status = "New";
+            private string additionalStatus = "None";
+            private DateTimeOffset expiration = DateTimeOffset.UtcNow.AddHours(-3);
+            private List<BtcPayPaymentEntry> payments = new ();
 
             public string? LastCreatedId { get; private set; }
 
@@ -552,7 +964,40 @@ namespace DirectoryManager.Web.Tests.Sponsorship
             }
 
             public Task<BtcPayInvoiceResponse> GetInvoiceAsync(string invoiceId) =>
-                Task.FromResult(new BtcPayInvoiceResponse { Id = invoiceId, Status = "New" });
+                Task.FromResult(new BtcPayInvoiceResponse
+                {
+                    Id = invoiceId,
+                    Status = this.status,
+                    AdditionalStatus = this.additionalStatus,
+                    ExpirationTime = this.expiration.ToUnixTimeSeconds(),
+                });
+
+            // BTCPay's record of an invoice paid in full after its timer ran out.
+            public void SetPaidLate(int minutesAfterExpiry, bool settled, string paid = "1.5")
+            {
+                this.SetExpired("PaidLate");
+                this.payments = new List<BtcPayPaymentEntry>
+                {
+                    new ()
+                    {
+                        Value = paid,
+                        Status = settled ? "Settled" : "Processing",
+                        ReceivedDate = this.expiration.AddMinutes(minutesAfterExpiry).ToUnixTimeSeconds(),
+                    },
+                };
+            }
+
+            public void SetExpired(string additional)
+            {
+                this.status = "Expired";
+                this.additionalStatus = additional;
+            }
+
+            public void SetSettled()
+            {
+                this.status = "Settled";
+                this.additionalStatus = "None";
+            }
 
             public Task<BtcPayInvoiceResponse> CreateInvoiceOnStoreAsync(string storeId, BtcPayInvoiceRequest request) => throw new NotSupportedException();
 
@@ -561,7 +1006,7 @@ namespace DirectoryManager.Web.Tests.Sponsorship
             public Task<BtcPayPaymentMethod?> GetXmrPaymentMethodOnStoreAsync(string storeId, string invoiceId) => throw new NotSupportedException();
 
             public Task<BtcPayPaymentMethod?> GetXmrPaymentMethodAsync(string invoiceId) =>
-                Task.FromResult<BtcPayPaymentMethod?>(new BtcPayPaymentMethod { Rate = "200", PaymentMethodPaid = "1.5", TotalPaid = "1.5", Amount = "1.5" });
+                Task.FromResult<BtcPayPaymentMethod?>(new BtcPayPaymentMethod { Rate = "200", PaymentMethodPaid = "1.5", TotalPaid = "1.5", Amount = "1.5", Payments = this.payments });
 
             public Task<BtcPayStoreRateResponse?> GetStoreRateAsync(string baseCurrency, string quoteCurrency) => Task.FromResult<BtcPayStoreRateResponse?>(null);
 

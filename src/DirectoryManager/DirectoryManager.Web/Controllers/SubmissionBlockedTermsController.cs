@@ -1,5 +1,6 @@
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,7 +11,7 @@ namespace DirectoryManager.Web.Controllers
     /// submit page (e.g. "no*aml"). Kept deliberately simple so terms can be added as new
     /// patterns of unwanted wording show up.
     /// </summary>
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     public class SubmissionBlockedTermsController : Controller
     {
         private readonly ISubmissionBlockedTermRepository repository;

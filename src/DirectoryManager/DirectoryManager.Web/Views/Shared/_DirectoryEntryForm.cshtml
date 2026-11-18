@@ -140,6 +140,8 @@
     </select>
 </details>
 
+@await Html.PartialAsync("_RestrictionFields", new DirectoryManager.Web.Models.RestrictionFieldsViewModel { RestrictedCountries = Model.RestrictedCountries, VpnPolicy = Model.VpnPolicy, TorPolicy = Model.TorPolicy, OtherRestrictions = Model.OtherRestrictions })
+
 @* Deposit guarantees — up to @DirectoryManager.Web.Constants.IntegerConstants.MaxGuarantees (link + USD amount). *@
 <div class="form-group">
     <label class="control-label">Deposit Guarantees</label>

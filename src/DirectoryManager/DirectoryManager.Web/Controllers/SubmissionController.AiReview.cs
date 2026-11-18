@@ -1,6 +1,8 @@
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Helpers;
 using DirectoryManager.Data.Models;
+using DirectoryManager.Web.Constants;
+using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models.Submissions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -17,7 +19,7 @@ namespace DirectoryManager.Web.Controllers
     {
         private const string ReviewPagePath = "admin/submission-review";
 
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         [HttpGet(ReviewPagePath)]
         public async Task<IActionResult> AiReview(CancellationToken ct)
         {
@@ -32,11 +34,30 @@ namespace DirectoryManager.Web.Controllers
                 DailyCap = int.TryParse(config?["SubmissionReviewer:DailyCap"], out var cap) ? cap : 50,
                 Message = this.TempData["AiReviewMessage"] as string,
             };
+            model.MessageIsProblem = model.Message != null
+                && (model.Message.StartsWith("Could not", StringComparison.Ordinal) || model.Message.Contains("Not approved:", StringComparison.Ordinal));
+
+            // Edits that touch links/contacts/key can't be approved in one click. Work that out now so
+            // the page offers the full review form instead of a button that would only be refused.
+            foreach (var s in subs.Where(x => x.DirectoryEntryId != null && x.ProposedName != null))
+            {
+                var entry = await this.directoryEntryRepository.GetByIdAsync(s.DirectoryEntryId!.Value);
+                if (entry == null)
+                {
+                    continue;
+                }
+
+                var sensitive = SubmissionProtectedFields.SensitiveChanges(entry, OneClickVersion(s));
+                if (sensitive.Count > 0)
+                {
+                    model.SensitiveChanges[s.SubmissionId] = sensitive;
+                }
+            }
 
             return this.View("AiReview", model);
         }
 
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         [HttpPost(ReviewPagePath + "/{id:int}/approve")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AiReviewApprove(int id, CancellationToken ct)
@@ -51,10 +72,10 @@ namespace DirectoryManager.Web.Controllers
             this.TempData["AiReviewMessage"] = error == null
                 ? $"Approved \"{submission.ProposedName ?? submission.Name}\"."
                 : $"Could not approve #{id}: {error}";
-            return this.Redirect("~/" + ReviewPagePath);
+            return this.Redirect("~/" + ReviewPagePath + "#result");
         }
 
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         [HttpPost(ReviewPagePath + "/approve-all")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AiReviewApproveAll(CancellationToken ct)
@@ -80,10 +101,10 @@ namespace DirectoryManager.Web.Controllers
 
             this.TempData["AiReviewMessage"] = $"Approved {ok} of {subs.Count}." +
                 (failed.Count == 0 ? string.Empty : " Not approved: " + string.Join("; ", failed));
-            return this.Redirect("~/" + ReviewPagePath);
+            return this.Redirect("~/" + ReviewPagePath + "#result");
         }
 
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         [HttpPost(ReviewPagePath + "/{id:int}/reject")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AiReviewReject(int id)
@@ -99,7 +120,7 @@ namespace DirectoryManager.Web.Controllers
             return this.Redirect("~/" + ReviewPagePath);
         }
 
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         [HttpPost(ReviewPagePath + "/reject-auto")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AiReviewRejectAutoRejected(CancellationToken ct)
@@ -116,7 +137,7 @@ namespace DirectoryManager.Web.Controllers
             return this.Redirect("~/" + ReviewPagePath);
         }
 
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         [HttpPost(ReviewPagePath + "/{id:int}/rerun")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AiReviewRerun(int id)
@@ -155,8 +176,33 @@ namespace DirectoryManager.Web.Controllers
             p.Social = s.ProposedSocial ?? s.Social;
             p.Messenger = s.ProposedMessenger ?? s.Messenger;
             p.Tags = s.ProposedTags ?? s.Tags;
+
+            // PGP key found on the site: only fills an empty key, and only if it parses as a real key.
+            // (Replacing an existing listing key is still blocked by SubmissionProtectedFields.)
+            if (string.IsNullOrWhiteSpace(s.PgpKey) && SuggestedPgpFingerprint(s) != null)
+            {
+                p.PgpKey = s.ProposedPgpKey!.Trim();
+            }
+
             return p;
         }
+
+        /// <summary>What a one-click approval would publish (in memory; nothing saved).</summary>
+        internal static Submission OneClickVersion(Submission submission)
+        {
+            var posted = WithProposal(submission);
+            posted.SubmissionStatus = SubmissionStatus.Approved;
+
+            // One-click approval never sets a status: new listings are Admitted, edits keep the
+            // listing's current status. Anything else (Verified, Scam, ...) is an admin decision made
+            // on the full Review page. (Audit 2026-11-11.)
+            posted.DirectoryStatus = submission.DirectoryEntryId == null ? DirectoryStatus.Admitted : null;
+            return posted;
+        }
+
+        /// <summary>Primary fingerprint of the reviewer's suggested PGP key, or null if there is none or it doesn't parse.</summary>
+        internal static string? SuggestedPgpFingerprint(Submission s) =>
+            string.IsNullOrWhiteSpace(s.ProposedPgpKey) ? null : Helpers.PgpCapabilities.GetPrimaryFingerprint(s.ProposedPgpKey);
 
         /// <summary>Approves the suggested version. Returns null on success, else why it couldn't.</summary>
         private async Task<string?> ApproveSuggestedVersionAsync(Submission submission, CancellationToken ct)
@@ -171,13 +217,23 @@ namespace DirectoryManager.Web.Controllers
                 return "it has no reviewed version yet";
             }
 
-            var posted = WithProposal(submission);
-            posted.SubmissionStatus = SubmissionStatus.Approved;
+            var posted = OneClickVersion(submission);
 
-            // New listings default to Admitted; an edit keeps the listing's status unless the submission set one.
-            if (posted.DirectoryStatus == DirectoryStatus.Unknown)
+            // Edits that touch the listing's identity (main link, contact email, PGP key, status)
+            // are never approved in one click: the full Review page shows them as warnings.
+            if (submission.DirectoryEntryId is int entryId)
             {
-                posted.DirectoryStatus = submission.DirectoryEntryId == null ? DirectoryStatus.Admitted : null;
+                var entry = await this.directoryEntryRepository.GetByIdAsync(entryId);
+                if (entry == null)
+                {
+                    return "the listing it edits no longer exists";
+                }
+
+                var sensitive = SubmissionProtectedFields.SensitiveChanges(entry, posted);
+                if (sensitive.Count > 0)
+                {
+                    return "it changes sensitive fields (" + string.Join("; ", sensitive) + "); open the full Review page to approve it";
+                }
             }
 
             if (string.IsNullOrWhiteSpace(posted.Name))

@@ -1,4 +1,5 @@
-﻿using System.Security.Cryptography;
+using DirectoryManager.Web.Extensions;
+using System.Security.Cryptography;
 using System.Text;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
@@ -31,7 +32,19 @@ namespace DirectoryManager.Web.Controllers
         private const int AdminSessionMinutes = 12 * 60; // stay signed in
         private const int FlowMinutes = 20;              // short-lived verification flow
 
+        // Owner sign-in has no captcha: a flow is created whenever someone submits the listing's
+        // (public) PGP key. Bound the not-yet-verified flows held in memory: at most 5 per listing
+        // (a new one pushes out that listing's oldest) and 2,000 overall, so a flood of submits
+        // can't grow memory without limit. Real owners only ever need one at a time.
+        private const int MaxPendingFlowsPerListing = 5;
+        private const int MaxPendingFlowsTotal = 2000;
+
+        private const string BusyMessage =
+            "We're getting an unusual number of sign-in attempts right now. Please try again in a minute.";
+
         private static readonly char[] CodeAlphabet = StringConstants.CodeAlphabet.ToCharArray();
+
+        private static readonly PendingFlowLimiter PendingFlows = new (MaxPendingFlowsPerListing, MaxPendingFlowsTotal);
 
         private readonly IMemoryCache cache;
         private readonly IPgpService pgp;
@@ -139,7 +152,9 @@ namespace DirectoryManager.Web.Controllers
             }
 
             pgpArmored = (pgpArmored ?? string.Empty).Trim();
-            var fp = this.pgp.GetFingerprint(pgpArmored);
+            var fp = pgpArmored.Length > IntegerConstants.MaxPgpArmoredChars
+                ? null
+                : this.pgp.GetFingerprint(pgpArmored);
 
             if (string.IsNullOrWhiteSpace(fp))
             {
@@ -213,7 +228,8 @@ namespace DirectoryManager.Web.Controllers
                 DirectoryEntryKey = entry.DirectoryEntryKey,
                 DirectoryEntryName = entry.Name,
 
-                PgpArmored = pgpArmored,
+                // Only the fingerprints are kept (not the whole pasted key) to keep each flow small.
+                PgpPrimaryFingerprint = submittedPrimaryFp,
                 PgpFingerprint = fp,
 
                 ChallengeCode = expectedNormalized,
@@ -222,6 +238,17 @@ namespace DirectoryManager.Web.Controllers
 
                 ExpiresUtc = DateTime.UtcNow.AddMinutes(FlowMinutes)
             };
+
+            if (!PendingFlows.TryAdd(entry.DirectoryEntryId, flowId, flow.ExpiresUtc, DateTime.UtcNow, out var evicted))
+            {
+                this.ModelState.AddModelError(string.Empty, BusyMessage);
+                return this.View("~/Views/SiteOwnerAdmin/SubmitKey.cshtml", loginVm);
+            }
+
+            foreach (var old in evicted)
+            {
+                this.cache.Remove(FlowCacheKey(old));
+            }
 
             this.cache.Set(FlowCacheKey(flowId), flow, flow.ExpiresUtc);
 
@@ -264,6 +291,7 @@ namespace DirectoryManager.Web.Controllers
             if (flow.VerifyAttempts > IntegerConstants.MaxVerifyAttempts)
             {
                 this.cache.Remove(FlowCacheKey(flowId));
+                PendingFlows.Remove(flow.DirectoryEntryId, flowId);
                 return this.BadRequest("Too many attempts. Please start over.");
             }
 
@@ -294,7 +322,7 @@ namespace DirectoryManager.Web.Controllers
                 DirectoryEntryKey = flow.DirectoryEntryKey,
                 DirectoryEntryName = flow.DirectoryEntryName,
                 OwnerFingerprint = flow.PgpFingerprint ?? string.Empty,
-                OwnerPrimaryFingerprint = PgpCapabilities.GetPrimaryFingerprint(flow.PgpArmored ?? string.Empty) ?? string.Empty,
+                OwnerPrimaryFingerprint = flow.PgpPrimaryFingerprint ?? string.Empty,
                 ExpiresUtc = DateTime.UtcNow.AddMinutes(AdminSessionMinutes)
             };
 
@@ -302,6 +330,7 @@ namespace DirectoryManager.Web.Controllers
             this.SetSessionCookie(directoryEntryKey, sessionId, session.ExpiresUtc);
 
             this.cache.Remove(FlowCacheKey(flowId));
+            PendingFlows.Remove(flow.DirectoryEntryId, flowId);
 
             this.TempData["AdminMessage"] = "Verified. You’re signed in to the owner admin panel.";
             return this.Redirect(AdminPageUrl(directoryEntryKey, page: 1));
@@ -338,8 +367,20 @@ namespace DirectoryManager.Web.Controllers
                 return this.Redirect(AdminPageUrl(directoryEntryKey, 1));
             }
 
+            // Admin block list: a blocked owner key can't post replies (the rest of the page still works).
+            if (await ReviewerBlocks.IsPgpAuthorBlockedAsync(
+                    this.HttpContext.RequestServices.GetRequiredService<DirectoryManager.Data.DbContextInfo.ApplicationDbContext>(),
+                    session.OwnerFingerprint,
+                    ct))
+            {
+                this.TempData["AdminError"] = ReviewerBlocks.KeyBlockedMessage;
+                this.SaveReplyDraft(directoryEntryReviewId, body);
+                return this.Redirect(AdminPageUrl(directoryEntryKey, returnPage) + $"#review-{directoryEntryReviewId}");
+            }
+
             var review = await this.reviewRepo.GetByIdAsync(directoryEntryReviewId, ct);
-            if (review == null || review.DirectoryEntryId != entry.DirectoryEntryId)
+            if (review == null || review.DirectoryEntryId != entry.DirectoryEntryId ||
+                review.ModerationStatus != ReviewModerationStatus.Approved)
             {
                 return this.NotFound();
             }
@@ -403,6 +444,7 @@ namespace DirectoryManager.Web.Controllers
             await this.commentRepo.AddAsync(entity, ct);
 
             this.ClearCachedItems();
+            await this.StaticPublish().EnqueueForReviewAsync(directoryEntryReviewId, "listing owner replied", ct);
             this.TempData["AdminMessage"] = "Reply posted.";
 
             return this.Redirect(AdminPageUrl(directoryEntryKey, returnPage) + $"#review-{directoryEntryReviewId}");
@@ -451,6 +493,7 @@ namespace DirectoryManager.Web.Controllers
             entry.ReviewEmailNotificationsEnabled = enabled;
             await this.entryRepo.UpdateAsync(entry);
             this.ClearCachedItems();
+            await this.StaticPublish().EnqueueForEntryAsync(entry.DirectoryEntryId, "owner changed review notifications", null, ct);
 
             this.TempData["AdminMessage"] = enabled
                 ? "Email notifications enabled — we'll email you when a new review or reply goes live."
@@ -517,10 +560,11 @@ namespace DirectoryManager.Web.Controllers
         {
             int pageSize = IntegerConstants.ReviewsPageSize;
 
-            // Admin: show all reviews except Removed
+            // The owner sees what the public sees: published reviews only. A review still waiting for
+            // moderation (and the order details sent with it) is for the moderators alone.
             var q = this.reviewRepo.Query()
                 .Where(r => r.DirectoryEntryId == entry.DirectoryEntryId &&
-                            r.ModerationStatus != ReviewModerationStatus.Rejected)
+                            r.ModerationStatus == ReviewModerationStatus.Approved)
                 .OrderByDescending(r => r.UpdateDate ?? r.CreateDate)
                 .ThenByDescending(r => r.DirectoryEntryReviewId);
 
@@ -553,7 +597,7 @@ namespace DirectoryManager.Web.Controllers
                 ? new List<DirectoryEntryReviewComment>()
                 : await this.commentRepo.Query()
                     .Where(c => reviewIds.Contains(c.DirectoryEntryReviewId) &&
-                                c.ModerationStatus != ReviewModerationStatus.Rejected)
+                                c.ModerationStatus == ReviewModerationStatus.Approved)
                     .OrderBy(c => c.CreateDate)
                     .ThenBy(c => c.DirectoryEntryReviewCommentId)
                     .ToListAsync(ct);
@@ -841,7 +885,7 @@ namespace DirectoryManager.Web.Controllers
             public string DirectoryEntryKey { get; set; } = string.Empty;
             public string DirectoryEntryName { get; set; } = string.Empty;
 
-            public string? PgpArmored { get; set; }
+            public string? PgpPrimaryFingerprint { get; set; }
             public string? PgpFingerprint { get; set; }
 
             public string? ChallengeCode { get; set; }

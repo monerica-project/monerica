@@ -20,6 +20,12 @@ public class BtcPayNoJsInvoiceViewModel
     /// <summary>BTCPay invoice status: New, Processing, Settled, Expired, Invalid.</summary>
     public string Status { get; set; } = "New";
 
+    /// <summary>BTCPay's extra status: None, PaidLate, PaidPartial, PaidOver, Marked.</summary>
+    public string AdditionalStatus { get; set; } = string.Empty;
+
+    /// <summary>Paid in full, but after the timer ran out. Accepted automatically once confirmed.</summary>
+    public bool IsPaidLate => this.Status == "Expired" && this.AdditionalStatus == "PaidLate";
+
     public bool IsPaid => this.Status is "Settled" or "Complete";
     public bool IsExpired => this.Status is "Expired" or "Invalid";
     public bool IsPending => this.Status is "Processing";

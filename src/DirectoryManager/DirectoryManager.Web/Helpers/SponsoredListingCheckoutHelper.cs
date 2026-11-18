@@ -179,6 +179,20 @@ namespace DirectoryManager.Web.Helpers
             _ => false,
         };
 
+        /// <summary>
+        /// Whether a sponsorship of this tier may be bought for the listing as shown in one of its
+        /// additional subcategories. Subcategory: always. Category: only when that subcategory sits
+        /// in a different category than the listing's main one (it is what puts the listing in that
+        /// category). Main sponsor: never.
+        /// </summary>
+        /// <returns>True when the additional-subcategory scope is kept.</returns>
+        internal static bool AdditionalScopeApplies(SponsorshipType type, int? mainCategoryId, int? scopedCategoryId) => type switch
+        {
+            SponsorshipType.SubcategorySponsor => true,
+            SponsorshipType.CategorySponsor => scopedCategoryId.HasValue && scopedCategoryId != mainCategoryId,
+            _ => false,
+        };
+
         internal static int ResolveTypeIdForGroup(
             SponsorshipType type,
             DirectoryEntry entry,

@@ -39,6 +39,9 @@ namespace DirectoryManager.Web.Models.Reports
 
         /// <summary>The months in the by-month chart, oldest first (same data as the bars).</summary>
         public List<RevenueMonth> ChartMonths { get; init; } = new ();
+
+        /// <summary>Average earned per month over the chart's months, up to now (the dashed line).</summary>
+        public decimal ChartAveragePerMonth { get; init; }
     }
 
 }

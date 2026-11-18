@@ -39,7 +39,9 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> Index(int id)
         {
             var entry = await this.directoryEntryRepository.GetByIdAsync(id);
-            if (entry == null)
+            // A removed listing has no public page, so its history (old links, contacts) is not public either.
+            if (entry == null ||
+                (entry.DirectoryStatus == DirectoryStatus.Removed && !this.User.IsAdmin()))
             {
                 return this.NotFound();
             }

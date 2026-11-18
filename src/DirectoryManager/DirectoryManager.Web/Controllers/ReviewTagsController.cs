@@ -1,4 +1,6 @@
-﻿using System.Text.RegularExpressions;
+using DirectoryManager.Web.Constants;
+using DirectoryManager.Web.Extensions;
+using System.Text.RegularExpressions;
 using DirectoryManager.Data.Models.Reviews;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -7,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DirectoryManager.Web.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     [Route("review-tags")]
     public class ReviewTagsController : Controller
     {
@@ -46,6 +48,7 @@ namespace DirectoryManager.Web.Controllers
             try
             {
                 await this.repo.AddAsync(model, ct);
+                await this.StaticPublish().RequestFullCrawlAsync("review tag created", ct, runNow: true);
                 this.TempData["SuccessMessage"] = "Tag created.";
                 return this.RedirectToAction(nameof(this.Index));
             }
@@ -107,6 +110,7 @@ namespace DirectoryManager.Web.Controllers
             try
             {
                 await this.repo.UpdateAsync(existing, ct);
+                await this.StaticPublish().RequestFullCrawlAsync("review tag edited", ct, runNow: true);
                 this.TempData["SuccessMessage"] = "Tag updated.";
                 return this.RedirectToAction(nameof(this.Index));
             }
@@ -122,6 +126,7 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> Delete(int id, CancellationToken ct)
         {
             await this.repo.DeleteAsync(id, ct);
+            await this.StaticPublish().RequestFullCrawlAsync("review tag deleted", ct, runNow: true);
             this.TempData["SuccessMessage"] = "Tag deleted.";
             return this.RedirectToAction(nameof(this.Index));
         }

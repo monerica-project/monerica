@@ -1,4 +1,5 @@
 using DirectoryManager.Data.Models.Emails;
+using DirectoryManager.Data.Models.TransferModels;
 
 namespace DirectoryManager.Data.Repositories.Interfaces
 {
@@ -17,7 +18,8 @@ namespace DirectoryManager.Data.Repositories.Interfaces
             string subject,
             bool isSuccess,
             int? statusCode,
-            string? errorMessage);
+            string? errorMessage,
+            int? emailSendLogContentId = null);
 
         EmailSendLog? Get(int emailSendLogId);
 
@@ -26,5 +28,14 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         IList<EmailSendLog> GetPagedRecords(int pageIndex, int pageSize, out int totalRecords);
 
         IList<EmailSendLog> GetBySource(string sourceApplication, int pageIndex, int pageSize, out int totalRecords);
+
+        /// <summary>Newest first, with every non-empty filter applied (AND).</summary>
+        IList<EmailSendLog> Search(EmailSendLogFilter filter, int pageIndex, int pageSize, out int totalRecords);
+
+        /// <summary>One row with its stored content (if any).</summary>
+        EmailSendLog? GetWithContent(int emailSendLogId);
+
+        /// <summary>Log rows (sends) that used the given content.</summary>
+        int CountByContent(int emailSendLogContentId);
     }
 }

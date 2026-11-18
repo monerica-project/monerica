@@ -73,6 +73,12 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         /// </summary>
         Task<DirectoryManager.Data.Helpers.DirectorySearchEngine.Correction?> SuggestSearchCorrectionAsync(string query);
 
+        /// <summary>Public search results with each one's ranking details (admin debug view).</summary>
+        Task<List<DirectoryManager.Data.Helpers.DirectorySearchEngine.RankedResult>> ExplainSearchAsync(string query);
+
+        /// <summary>The shared public search index (rebuilt when listings, reviews or problem reports change).</summary>
+        Task<DirectoryManager.Data.Helpers.DirectorySearchEngine.SearchIndex> GetSearchIndexAsync();
+
         Task<Dictionary<int, DirectoryEntry>> GetByIdsAsync(IEnumerable<int> ids);
 
         Task<List<DirectoryEntrySitemapRow>> GetSitemapEntriesAsync(CancellationToken ct = default);

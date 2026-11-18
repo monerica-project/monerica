@@ -19,7 +19,7 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace DirectoryManager.Web.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     public class SubCategoryController : BaseController
     {
         private readonly UserManager<ApplicationUser> userManager;
@@ -114,6 +114,7 @@ namespace DirectoryManager.Web.Controllers
             }
 
             this.ClearCachedItems();
+            await this.StaticPublish().RequestFullCrawlAsync("subcategory created");
 
             return this.RedirectToAction(nameof(this.Index));
         }
@@ -181,6 +182,7 @@ namespace DirectoryManager.Web.Controllers
             await this.subcategoryRepository.UpdateAsync(existingSubCategory);
 
             this.ClearCachedItems();
+            await this.StaticPublish().RequestFullCrawlAsync("subcategory edited: " + existingSubCategory.Name);
 
             return this.RedirectToAction(nameof(this.Index));
         }

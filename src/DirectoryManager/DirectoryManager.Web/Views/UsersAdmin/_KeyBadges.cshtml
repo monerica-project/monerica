@@ -1,0 +1,20 @@
+@model DirectoryManager.Web.Models.Members.KeyRow
+@if (Model.IsBlocked)
+{
+    <div><span class="text-danger"><b>Blocked</b></span></div>
+}
+@if (Model.IsModerator)
+{
+    <div><b>Directory moderator key</b></div>
+}
+@foreach (var o in Model.OwnerOf)
+{
+    <div>Listing owner of <a href="/site/@o.Key">@o.Name</a></div>
+}
+@if (Model.LinkedMember is { } m)
+{
+    <div>
+        Also linked to member <a href="@DirectoryManager.Web.Controllers.UsersAdminController.AccountUrl(m.Id)">@m.Username</a>
+        @if (m.IsPostingBlocked) { <span class="text-danger"> (blocked from posting)</span> }
+    </div>
+}

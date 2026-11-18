@@ -104,7 +104,7 @@ namespace BtcPayServer.API.Implementations
             if (string.IsNullOrWhiteSpace(invoiceId))
                 throw new ArgumentNullException(nameof(invoiceId));
 
-            var url = $"api/v1/stores/{storeId.Trim()}/invoices/{invoiceId}";
+            var url = $"api/v1/stores/{storeId.Trim()}/invoices/{SafeId(invoiceId)}";
             var response = await this.client.GetAsync(url).ConfigureAwait(false);
             var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
@@ -127,7 +127,7 @@ namespace BtcPayServer.API.Implementations
             if (string.IsNullOrWhiteSpace(invoiceId))
                 throw new ArgumentNullException(nameof(invoiceId));
 
-            var url = $"api/v1/stores/{storeId.Trim()}/invoices/{invoiceId}/payment-methods";
+            var url = $"api/v1/stores/{storeId.Trim()}/invoices/{SafeId(invoiceId)}/payment-methods";
             var response = await this.client.GetAsync(url).ConfigureAwait(false);
             var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
@@ -169,7 +169,7 @@ namespace BtcPayServer.API.Implementations
             if (string.IsNullOrWhiteSpace(invoiceId))
                 throw new ArgumentNullException(nameof(invoiceId));
 
-            var url = $"api/v1/stores/{this.storeId}/invoices/{invoiceId}";
+            var url = $"api/v1/stores/{this.storeId}/invoices/{SafeId(invoiceId)}";
             var response = await this.client.GetAsync(url).ConfigureAwait(false);
 
             var body = await response.Content.ReadAsStringAsync()
@@ -194,7 +194,7 @@ namespace BtcPayServer.API.Implementations
                 throw new ArgumentNullException(nameof(invoiceId));
 
             var url =
-                $"api/v1/stores/{this.storeId}/invoices/{invoiceId}/payment-methods";
+                $"api/v1/stores/{this.storeId}/invoices/{SafeId(invoiceId)}/payment-methods";
 
             var response = await this.client.GetAsync(url).ConfigureAwait(false);
 
@@ -330,6 +330,18 @@ namespace BtcPayServer.API.Implementations
                 $"{fromCurrency}->{toCurrency} (tried both directions).");
         }
 
+        /// <summary>An invoice id goes into the API path, so it may only be what BTCPay issues: letters and digits.</summary>
+        private static string SafeId(string invoiceId)
+        {
+            var id = (invoiceId ?? string.Empty).Trim();
+            if (id.Length == 0 || id.Length > 64 || !id.All(c => char.IsAsciiLetterOrDigit(c)))
+            {
+                throw new ArgumentException("Invalid BTCPay invoice id.", nameof(invoiceId));
+            }
+
+            return id;
+        }
+
         public bool IsWebhookValid(
             string requestBody,
             string btcPaySigHeader,
@@ -340,6 +352,13 @@ namespace BtcPayServer.API.Implementations
             if (string.IsNullOrWhiteSpace(btcPaySigHeader))
             {
                 errorMsg = "Missing BTCPay-Sig header.";
+                return false;
+            }
+
+            // Never verify against an empty secret: anyone can compute that signature.
+            if (string.IsNullOrEmpty(this.webhookSecret))
+            {
+                errorMsg = "Webhook secret is not configured.";
                 return false;
             }
 

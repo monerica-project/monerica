@@ -14,7 +14,15 @@ namespace DirectoryManager.Web.Services.Interfaces
                 // NOTE: this is the *identity* fingerprint that is persisted (author fingerprint,
                 // raffle de-duplication, etc.). Its selection is intentionally left identical to the
                 // historical behaviour so that previously stored fingerprints continue to match.
-                var key = ReadIdentityKey(armoredPublicKey);
+                if (string.IsNullOrWhiteSpace(armoredPublicKey) || armoredPublicKey.Length > PgpCapabilities.MaxArmoredKeyChars)
+                {
+                    return null;
+                }
+
+                // The identity is the key the challenge is encrypted to (see SelectChallengeKey).
+                // Only a key block that cannot receive a challenge at all (so can never be verified)
+                // falls back to the plain first key, for display purposes.
+                var key = PgpCapabilities.SelectChallengeKey(armoredPublicKey) ?? ReadIdentityKey(armoredPublicKey);
                 if (key is null)
                 {
                     return null;
@@ -35,7 +43,9 @@ namespace DirectoryManager.Web.Services.Interfaces
             // commonly Certify/Sign-only with a separate Encrypt subkey; selecting the wrong key here
             // produces ciphertext that GnuPG (and other RFC 4880 compliant clients) refuse to decrypt
             // because the recipient has no *encryption* secret key for that key id.
-            var encKey = PgpCapabilities.SelectEncryptionKey(armoredPublicKey)
+            // MUST be the same key GetFingerprint reports: solving the challenge then proves
+            // control of the key the fingerprint names.
+            var encKey = PgpCapabilities.SelectChallengeKey(armoredPublicKey)
                 ?? throw new InvalidOperationException("No encryption-capable public key found in the provided key block.");
 
             byte[] data = Encoding.UTF8.GetBytes(message);
@@ -106,9 +116,21 @@ namespace DirectoryManager.Web.Services.Interfaces
                 return null;
             }
 
+            // A subkey only counts if the ring's primary has validly signed it (subkey-binding
+            // signature). Without this, anyone could paste a listing owner's PUBLIC encryption
+            // subkey into a ring built around their own primary: the identity fingerprint would be
+            // the owner's while the challenge (PgpCapabilities.SelectEncryptionKey, which does
+            // verify bindings) was encrypted to the attacker's own subkey. Legitimate keys always
+            // carry valid bindings, so stored fingerprints don't change.
+            var primary = firstRing.GetPublicKey();
             foreach (PgpPublicKey k in firstRing.GetPublicKeys())
             {
-                if (k.IsEncryptionKey)
+                if (!k.IsEncryptionKey)
+                {
+                    continue;
+                }
+
+                if (k.IsMasterKey || PgpCapabilities.HasValidEncryptionBinding(primary, k))
                 {
                     return k;
                 }

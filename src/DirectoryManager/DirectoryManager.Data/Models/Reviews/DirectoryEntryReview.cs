@@ -25,6 +25,18 @@ namespace DirectoryManager.Data.Models.Reviews
         // Optional: armored public key you verified against (helps future re-verification)
         public string? AuthorPublicKeyArmor { get; set; }
 
+        // Member identity (username + password account) — the second way to review.
+        // Null for PGP reviews. For member reviews AuthorFingerprint holds a synthetic key that
+        // contains no hex digits (see MemberAuthor in the web project), so it can never match a
+        // PGP fingerprint, the listing's key or the directory's moderator key.
+        [MaxLength(36)]
+        public string? AuthorUserId { get; set; }
+
+        // Snapshot of the member's username when the review was written (usernames can't be
+        // changed). Cleared when the member deletes their account.
+        [MaxLength(32)]
+        public string? AuthorUsername { get; set; }
+
         // Optional, user-friendly alias/handle derived from fingerprint (or signed claim)
         [MaxLength(64)]
         public string? AuthorHandle { get; set; } // e.g., bech32/“petname”
@@ -102,6 +114,45 @@ namespace DirectoryManager.Data.Models.Reviews
         // Null until a price source is available; used to explain the money-band tag.
         [Column(TypeName = "decimal(18,2)")]
         public decimal? VerifiedOrderUsdValue { get; set; }
+
+        // =========================================================
+        // AI order check (advisory only)
+        //
+        // Written by the DirectoryManager.ReviewOrderChecker job. It opens the order link the
+        // reviewer gave, reads the page and records whether it looks like a real, finished order
+        // on this listing's own site. It NEVER approves, rejects or edits a review and never
+        // changes its tags: a person still decides. These columns only hold the AI's findings.
+        // =========================================================
+        public AiOrderCheckResult AiOrderCheckResult { get; set; } = AiOrderCheckResult.NotChecked;
+
+        // Plain-language explanation for the moderator (what the page showed and why).
+        [MaxLength(1500)]
+        public string? AiOrderCheckSummary { get; set; }
+
+        // Order state the page showed (Completed, Sending, Refunded, ...).
+        public OrderProofStatus? AiOrderStatus { get; set; }
+
+        // Approximate USD value of what the customer sent, when it could be worked out.
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? AiOrderUsdValue { get; set; }
+
+        // Tag names the check suggests (comma-separated). Suggestion only; never applied by the job.
+        [MaxLength(400)]
+        public string? AiSuggestedTags { get; set; }
+
+        // Step-by-step record of the check: pages opened, value typed in, facts found.
+        public string? AiOrderCheckDetails { get; set; }
+
+        public DateTime? AiOrderCheckedUtc { get; set; }
+
+        public int AiOrderCheckAttempts { get; set; }
+
+        [MaxLength(100)]
+        public string? AiOrderCheckModel { get; set; }
+
+        // Set by the admin "Check again" button; the job checks the review on its next run
+        // whatever its moderation status, then clears this.
+        public bool AiOrderCheckQueued { get; set; }
 
         // =========================================================
         // Official review

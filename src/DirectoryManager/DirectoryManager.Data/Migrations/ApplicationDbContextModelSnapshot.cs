@@ -17,7 +17,7 @@ namespace DirectoryManager.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.14")
+                .HasAnnotation("ProductVersion", "10.0.15")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -144,6 +144,9 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<DateTime>("CreatedUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int?>("DirectoryEntryReviewId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("DurationMs")
                         .HasColumnType("integer");
 
@@ -225,6 +228,12 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<DateTime>("CreateDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DisabledUtc")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Email")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
@@ -249,11 +258,36 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<string>("PasswordHash")
                         .HasColumnType("text");
 
+                    b.Property<string>("PgpFingerprint")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime?>("PgpLinkedUtc")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("PhoneNumber")
                         .HasColumnType("text");
 
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("PostingBlockReason")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("PostingBlockedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<DateTime?>("PostingBlockedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PostingUnblockedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<DateTime?>("PostingUnblockedUtc")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("text");
@@ -276,6 +310,10 @@ namespace DirectoryManager.Data.Migrations
                     b.HasIndex("NormalizedUserName")
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex");
+
+                    b.HasIndex("PgpFingerprint")
+                        .IsUnique()
+                        .HasDatabaseName("IX_AspNetUsers_PgpFingerprint");
 
                     b.ToTable("AspNetUsers", (string)null);
                 });
@@ -445,6 +483,10 @@ namespace DirectoryManager.Data.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<string>("OtherRestrictions")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<string>("PgpKey")
                         .HasColumnType("text");
 
@@ -462,6 +504,10 @@ namespace DirectoryManager.Data.Migrations
 
                     b.Property<int>("RateType")
                         .HasColumnType("integer");
+
+                    b.Property<string>("RestrictedCountries")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<int>("SiteJavaScript")
                         .HasColumnType("integer");
@@ -485,6 +531,9 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<int?>("SubCategoryId")
                         .HasColumnType("integer");
 
+                    b.Property<int>("TorPolicy")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("UpdateDate")
                         .HasColumnType("timestamp with time zone");
 
@@ -495,6 +544,9 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<string>("VideoLink")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<int>("VpnPolicy")
+                        .HasColumnType("integer");
 
                     b.HasKey("DirectoryEntriesAuditId");
 
@@ -593,6 +645,10 @@ namespace DirectoryManager.Data.Migrations
                         .HasMaxLength(250)
                         .HasColumnType("character varying(250)");
 
+                    b.Property<string>("OtherRestrictions")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<string>("PgpKey")
                         .HasColumnType("text");
 
@@ -613,6 +669,10 @@ namespace DirectoryManager.Data.Migrations
 
                     b.Property<bool>("RequireReviewVerificationDetails")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("RestrictedCountries")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<bool>("ReviewEmailNotificationsEnabled")
                         .HasColumnType("boolean");
@@ -645,6 +705,9 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<int>("SubCategoryId")
                         .HasColumnType("integer");
 
+                    b.Property<int>("TorPolicy")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("UpdateDate")
                         .HasColumnType("timestamp with time zone");
 
@@ -654,6 +717,9 @@ namespace DirectoryManager.Data.Migrations
 
                     b.Property<string>("VideoLink")
                         .HasColumnType("text");
+
+                    b.Property<int>("VpnPolicy")
+                        .HasColumnType("integer");
 
                     b.HasKey("DirectoryEntryId");
 
@@ -1073,6 +1139,9 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<DateTime>("CreateDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int?>("EmailSendLogContentId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("ErrorMessage")
                         .HasColumnType("text");
 
@@ -1108,11 +1177,73 @@ namespace DirectoryManager.Data.Migrations
 
                     b.HasKey("EmailSendLogId");
 
+                    b.HasIndex("EmailSendLogContentId");
+
                     b.HasIndex("SentDate");
 
                     b.HasIndex("SourceApplication", "SentDate");
 
                     b.ToTable("EmailSendLogs");
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.Emails.EmailSendLogContent", b =>
+                {
+                    b.Property<int>("EmailSendLogContentId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("EmailSendLogContentId"));
+
+                    b.Property<string>("BodyHtml")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("BodyHtmlTruncated")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("BodyText")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("BodyTextTruncated")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("CreateDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FromEmail")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)");
+
+                    b.Property<string>("FromName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Headers")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("LastUsedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReplyTo")
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)");
+
+                    b.Property<int>("SizeBytes")
+                        .HasColumnType("integer");
+
+                    b.HasKey("EmailSendLogContentId");
+
+                    b.HasIndex("ContentHash")
+                        .IsUnique();
+
+                    b.HasIndex("LastUsedUtc");
+
+                    b.ToTable("EmailSendLogContents");
                 });
 
             modelBuilder.Entity("DirectoryManager.Data.Models.Emails.EmailSubscription", b =>
@@ -1269,6 +1400,69 @@ namespace DirectoryManager.Data.Migrations
                     b.ToTable("ListingPageViews");
                 });
 
+            modelBuilder.Entity("DirectoryManager.Data.Models.ListingTermsSnapshot", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("ChangedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Diff")
+                        .HasColumnType("text");
+
+                    b.Property<int>("DirectoryEntryId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Fingerprint")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime?>("HandledUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("LastCheckedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LastReadUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("NeedsReview")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Pages")
+                        .HasColumnType("text");
+
+                    b.Property<int>("ReadFailures")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Result")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Sentences")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Suggestion")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Summary")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DirectoryEntryId")
+                        .IsUnique();
+
+                    b.HasIndex("NeedsReview");
+
+                    b.ToTable("ListingTermsSnapshots");
+                });
+
             modelBuilder.Entity("DirectoryManager.Data.Models.LogEntry", b =>
                 {
                     b.Property<int>("Id")
@@ -1403,6 +1597,128 @@ namespace DirectoryManager.Data.Migrations
                     b.ToTable("Processors");
                 });
 
+            modelBuilder.Entity("DirectoryManager.Data.Models.Reviews.BlockedReviewerKey", b =>
+                {
+                    b.Property<int>("BlockedReviewerKeyId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("BlockedReviewerKeyId"));
+
+                    b.Property<string>("BlockedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<DateTime>("BlockedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Fingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<bool>("HidPosts")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("UnblockedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<DateTime?>("UnblockedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("BlockedReviewerKeyId");
+
+                    b.HasIndex("Fingerprint")
+                        .IsUnique()
+                        .HasDatabaseName("IX_BlockedReviewerKeys_Fingerprint");
+
+                    b.ToTable("BlockedReviewerKeys");
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.Reviews.DeletedReviewRecord", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AuthorFingerprint")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("AuthorUserId")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("AuthorUsername")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("DeletedBy")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<DateTime>("DeletedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DirectoryEntryId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<string>("ListingName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<int>("OriginalId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ParentReviewId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("PostedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<byte?>("Rating")
+                        .HasColumnType("smallint");
+
+                    b.Property<int>("ReplyCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("RestoredAsId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("RestoredUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SnapshotJson")
+                        .HasColumnType("text");
+
+                    b.Property<string>("StatusAtDelete")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeletedUtc");
+
+                    b.ToTable("DeletedReviewRecords");
+                });
+
             modelBuilder.Entity("DirectoryManager.Data.Models.Reviews.DirectoryEntryReview", b =>
                 {
                     b.Property<int>("DirectoryEntryReviewId")
@@ -1410,6 +1726,39 @@ namespace DirectoryManager.Data.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("DirectoryEntryReviewId"));
+
+                    b.Property<int>("AiOrderCheckAttempts")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("AiOrderCheckDetails")
+                        .HasColumnType("text");
+
+                    b.Property<string>("AiOrderCheckModel")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("AiOrderCheckQueued")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("AiOrderCheckResult")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("AiOrderCheckSummary")
+                        .HasMaxLength(1500)
+                        .HasColumnType("character varying(1500)");
+
+                    b.Property<DateTime?>("AiOrderCheckedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("AiOrderStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("AiOrderUsdValue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("AiSuggestedTags")
+                        .HasMaxLength(400)
+                        .HasColumnType("character varying(400)");
 
                     b.Property<string>("AmlScreenshotUrl")
                         .HasMaxLength(2048)
@@ -1426,6 +1775,14 @@ namespace DirectoryManager.Data.Migrations
 
                     b.Property<string>("AuthorPublicKeyArmor")
                         .HasColumnType("text");
+
+                    b.Property<string>("AuthorUserId")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("AuthorUsername")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
 
                     b.Property<DateTime?>("AutoModeratedAtUtc")
                         .HasColumnType("timestamp with time zone");
@@ -1538,6 +1895,9 @@ namespace DirectoryManager.Data.Migrations
 
                     b.HasIndex("AuthorFingerprint");
 
+                    b.HasIndex("AuthorUserId", "DirectoryEntryId")
+                        .HasDatabaseName("IX_Reviews_AuthorUser_Entry");
+
                     b.HasIndex("ModerationStatus", "DirectoryEntryId")
                         .HasDatabaseName("IX_Reviews_Mod_Entry");
 
@@ -1565,6 +1925,14 @@ namespace DirectoryManager.Data.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
+                    b.Property<string>("AuthorUserId")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("AuthorUsername")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
                     b.Property<string>("Body")
                         .IsRequired()
                         .HasMaxLength(4000)
@@ -1587,9 +1955,22 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<int?>("ParentCommentId")
                         .HasColumnType("integer");
 
+                    b.Property<byte?>("RatingChangedFrom")
+                        .HasColumnType("smallint");
+
+                    b.Property<byte?>("RatingChangedTo")
+                        .HasColumnType("smallint");
+
                     b.Property<string>("RejectionReason")
                         .HasMaxLength(800)
                         .HasColumnType("character varying(800)");
+
+                    b.Property<string>("RequestedReviewTagIdsCsv")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("RequestedTagsAppliedUtc")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("UpdateDate")
                         .HasColumnType("timestamp with time zone");
@@ -1599,6 +1980,12 @@ namespace DirectoryManager.Data.Migrations
                         .HasColumnType("character varying(36)");
 
                     b.HasKey("DirectoryEntryReviewCommentId");
+
+                    b.HasIndex("AuthorFingerprint")
+                        .HasDatabaseName("IX_ReviewComments_AuthorFingerprint");
+
+                    b.HasIndex("AuthorUserId")
+                        .HasDatabaseName("IX_ReviewComments_AuthorUser");
 
                     b.HasIndex("ParentCommentId")
                         .HasDatabaseName("IX_ReviewComments_ParentCommentId");
@@ -2140,6 +2527,9 @@ namespace DirectoryManager.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<DateTime?>("FinalReminderSentUtc")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("InvoiceDescription")
                         .IsRequired()
                         .HasColumnType("text");
@@ -2190,6 +2580,9 @@ namespace DirectoryManager.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
+
+                    b.Property<DateTime?>("ReminderSentUtc")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("ReservationGuid")
                         .HasColumnType("uuid");
@@ -2395,6 +2788,107 @@ namespace DirectoryManager.Data.Migrations
                     b.ToTable("SponsoredListingReservations");
                 });
 
+            modelBuilder.Entity("DirectoryManager.Data.Models.StaticPublishing.StaticPublishLogEntry", b =>
+                {
+                    b.Property<long>("StaticPublishLogEntryId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("StaticPublishLogEntryId"));
+
+                    b.Property<int>("DurationMs")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<DateTime>("PublishedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<DateTime?>("RequestedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Result")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("StaticPublishLogEntryId");
+
+                    b.HasIndex("Path")
+                        .HasDatabaseName("IX_StaticPublishLog_Path");
+
+                    b.HasIndex("PublishedUtc")
+                        .HasDatabaseName("IX_StaticPublishLog_PublishedUtc");
+
+                    b.ToTable("StaticPublishLog", (string)null);
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.StaticPublishing.StaticPublishQueueItem", b =>
+                {
+                    b.Property<int>("StaticPublishQueueItemId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("StaticPublishQueueItemId"));
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("LastAttemptUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime>("LastRequestedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<DateTime>("RequestedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("StaticPublishQueueItemId");
+
+                    b.HasIndex("Path")
+                        .IsUnique()
+                        .HasDatabaseName("IX_StaticPublishQueue_Path");
+
+                    b.HasIndex("RequestedUtc")
+                        .HasDatabaseName("IX_StaticPublishQueue_RequestedUtc");
+
+                    b.ToTable("StaticPublishQueue", (string)null);
+                });
+
             modelBuilder.Entity("DirectoryManager.Data.Models.Subcategory", b =>
                 {
                     b.Property<int>("SubCategoryId")
@@ -2560,6 +3054,10 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<string>("OriginalSnapshotJson")
                         .HasColumnType("text");
 
+                    b.Property<string>("OtherRestrictions")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<decimal?>("PaidAmount")
                         .HasColumnType("numeric(18,8)");
 
@@ -2633,6 +3131,13 @@ namespace DirectoryManager.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<string>("ProposedPgpKey")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ProposedPgpKeySource")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
                     b.Property<string>("ProposedPostalCode")
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
@@ -2667,6 +3172,10 @@ namespace DirectoryManager.Data.Migrations
 
                     b.Property<string>("RelatedLinksJson")
                         .HasColumnType("text");
+
+                    b.Property<string>("RestrictedCountries")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<int>("ReviewAttempts")
                         .HasColumnType("integer");
@@ -2766,12 +3275,18 @@ namespace DirectoryManager.Data.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
+                    b.Property<int>("TorPolicy")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("UpdateDate")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("VideoLink")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<int>("VpnPolicy")
+                        .HasColumnType("integer");
 
                     b.HasKey("SubmissionId");
 
@@ -3511,6 +4026,16 @@ namespace DirectoryManager.Data.Migrations
                     b.Navigation("EmailSubscription");
                 });
 
+            modelBuilder.Entity("DirectoryManager.Data.Models.Emails.EmailSendLog", b =>
+                {
+                    b.HasOne("DirectoryManager.Data.Models.Emails.EmailSendLogContent", "Content")
+                        .WithMany()
+                        .HasForeignKey("EmailSendLogContentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Content");
+                });
+
             modelBuilder.Entity("DirectoryManager.Data.Models.Emails.SentEmailRecord", b =>
                 {
                     b.HasOne("DirectoryManager.Data.Models.Emails.EmailMessage", "EmailMessage")
@@ -3530,6 +4055,17 @@ namespace DirectoryManager.Data.Migrations
                     b.Navigation("EmailSubscription");
                 });
 
+            modelBuilder.Entity("DirectoryManager.Data.Models.ListingTermsSnapshot", b =>
+                {
+                    b.HasOne("DirectoryManager.Data.Models.DirectoryEntry", "DirectoryEntry")
+                        .WithMany()
+                        .HasForeignKey("DirectoryEntryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DirectoryEntry");
+                });
+
             modelBuilder.Entity("DirectoryManager.Data.Models.ProblemReports.ProblemReport", b =>
                 {
                     b.HasOne("DirectoryManager.Data.Models.DirectoryEntry", "DirectoryEntry")
@@ -3543,6 +4079,11 @@ namespace DirectoryManager.Data.Migrations
 
             modelBuilder.Entity("DirectoryManager.Data.Models.Reviews.DirectoryEntryReview", b =>
                 {
+                    b.HasOne("DirectoryManager.Data.Models.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("AuthorUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("DirectoryManager.Data.Models.DirectoryEntry", "DirectoryEntry")
                         .WithMany()
                         .HasForeignKey("DirectoryEntryId")
@@ -3554,6 +4095,11 @@ namespace DirectoryManager.Data.Migrations
 
             modelBuilder.Entity("DirectoryManager.Data.Models.Reviews.DirectoryEntryReviewComment", b =>
                 {
+                    b.HasOne("DirectoryManager.Data.Models.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("AuthorUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("DirectoryManager.Data.Models.Reviews.DirectoryEntryReview", "DirectoryEntryReview")
                         .WithMany("Comments")
                         .HasForeignKey("DirectoryEntryReviewId")

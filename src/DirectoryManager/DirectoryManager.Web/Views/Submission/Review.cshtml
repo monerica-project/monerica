@@ -21,7 +21,7 @@
 <h1>@PageMeta.Title</h1>
 @if (ViewBag.UsingProposal == true)
 {
-    <div class="alert-warning" role="alert"><b>Showing the reviewer's suggested version.</b> Edit anything, then set the status to Approved and save. The originally submitted version stays saved on the submission. <a href="~/admin/submission-review#sub-@Model.SubmissionId">Back to the review page</a></div>
+    <div class="alert-warning" role="alert"><b>Showing the reviewer's suggested version.</b> Edit anything, then press Approve. The originally submitted version stays saved on the submission. <a href="~/admin/submission-review#sub-@Model.SubmissionId">Back to the review page</a></div>
 }
 
 <p><b>Submitted:</b> @Model.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat) UTC
@@ -71,6 +71,19 @@ else
             <div asp-validation-summary="All"></div>
         </div>
     }
+
+    @{
+        // Which list to go back to after Approve / Reject / Save (only known values are used).
+        string? postedFrom = ViewData["ReturnFrom"] as string;
+        string? decisionFrom = SubmissionDecision.NormalizeFrom(postedFrom ?? Context.Request.Query["from"].ToString())
+            ?? (ViewData["UsingProposal"] is true ? SubmissionDecision.FromAiReview : null);
+        ViewData["DecisionFrom"] = decisionFrom;
+    }
+    @if (decisionFrom != null)
+    {
+        <input type="hidden" name="from" value="@decisionFrom" />
+    }
+    @await Html.PartialAsync("_ReviewDecisionBar", Model, ViewData)
 
     @if (Model.DirectoryEntryId  != null)
     {
@@ -252,6 +265,8 @@ else
         </select>
         <small class="form-text text-muted"><b>None</b>: no JavaScript at all. <b>Optional</b>: the main features work with JavaScript turned off. <b>Required</b>: does not work without JavaScript.</small>
     </div>
+
+    @await Html.PartialAsync("_RestrictionFields", new RestrictionFieldsViewModel { RestrictedCountries = DirectoryManager.Data.Helpers.ListingRestrictions.CountriesError(Model.RestrictedCountries) == null ? DirectoryManager.Data.Helpers.ListingRestrictions.ToCodeText(Model.RestrictedCountries) : Model.RestrictedCountries, VpnPolicy = Model.VpnPolicy, TorPolicy = Model.TorPolicy, OtherRestrictions = Model.OtherRestrictions })
 
     <div class="form-group">
         <label>Deposit Guarantees</label>
@@ -523,14 +538,17 @@ else
 
     <!-- Submit Button -->
     <button type="submit" class="btn btn-primary btn-cta">Update</button>
+
+    <div class="u-mt-18px">
+        @await Html.PartialAsync("_ReviewDecisionBar", Model, ViewData)
+    </div>
 </form>
 
 <br />
 <br />
 <hr />
 <form asp-action="Delete" asp-route-id="@Model.SubmissionId" method="post" class="d-inline">
-    <button type="submit" class="btn btn-danger"
-            onclick="return confirm('Permanently delete this submission? This cannot be undone.');">
+    <button type="submit" class="btn btn-danger">
         Delete
     </button>
 </form>

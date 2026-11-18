@@ -1,0 +1,18 @@
+@model DirectoryManager.Web.Models.Members.MemberBylineModel
+@using DirectoryManager.Web.Helpers
+@inject DirectoryManager.Web.Services.Implementations.MemberKeyDirectory MemberKeys
+@{
+    // Member account: username plus a plain label, never a listing-owner or moderator look.
+    // The key shown is the one the ACCOUNT holds now (proven by a decrypted challenge); posts are
+    // not signed one by one, so nothing here claims a key the member no longer holds.
+    var linkedFp = await MemberKeys.FingerprintForAsync(Model.AuthorUserId);
+}
+<span>@MemberAuthor.PublicName(Model.AuthorUsername)</span>
+@if (string.IsNullOrEmpty(linkedFp))
+{
+    <span>(@MemberAuthor.PublicLabel)</span>
+}
+else
+{
+    <span title="@MemberAuthor.VerifiedTitle">(@MemberAuthor.VerifiedLabel:</span><span class="review-fp ms-1" title="@linkedFp">@AuthorDisplay.ShortFingerprint(linkedFp)</span><span>)</span>
+}

@@ -1,5 +1,6 @@
 ﻿using DirectoryManager.Web.Extensions;
 using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Helpers;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Helpers;
@@ -122,6 +123,21 @@ namespace DirectoryManager.Web.Controllers
                 mostRecentUpdateDate = lastWaitlistChange.Value;
             }
 
+            // The "New" label (NewListingRule) ends at 00:00 UTC on the day a listing turns 90 days
+            // old. Pages that showed it change at that moment without any edit, so the latest such
+            // moment counts as a site-wide change: the sitemap max <lastmod> moves to that midnight
+            // and the static mirror re-copies its pages once that day (at most one extra crawl per
+            // day, only on days when a label ends).
+            var nowUtc = DateTime.UtcNow;
+            var entries = await this.directoryEntryRepository.GetSitemapEntriesAsync(CancellationToken.None);
+            var latestNewLabelEnd = NewListingRule.LatestEndAtOrBefore(
+                entries.Select(e => (e.CreateDate, e.DirectoryStatus)),
+                nowUtc);
+            if (latestNewLabelEnd.HasValue && latestNewLabelEnd.Value > mostRecentUpdateDate)
+            {
+                mostRecentUpdateDate = latestNewLabelEnd.Value;
+            }
+
             // -------------------------------------------------------
             // 2) Reviews + Replies (MINIMAL dictionaries only)
             // -------------------------------------------------------
@@ -163,7 +179,9 @@ namespace DirectoryManager.Web.Controllers
             // shared chrome (sidebar counts, sponsor ticker) stays fresh on all pages.
             var siteMapHelper = new SiteMapHelper();
             var domain = WebRequestHelper.GetCurrentDomain(this.HttpContext).TrimEnd('/');
-            var listingsLastMod = OrFallback(lastDirectoryEntryDate, mostRecentUpdateDate);
+            var listingsLastMod = OrFallback(
+                new[] { lastDirectoryEntryDate, latestNewLabelEnd ?? DateTime.MinValue }.Max(),
+                mostRecentUpdateDate);
             var snippetsLastMod = OrFallback(lastContentSnippetUpdate ?? DateTime.MinValue, mostRecentUpdateDate);
 
             await this.AddTags(listingsLastMod, siteMapHelper, domain);
@@ -178,6 +196,30 @@ namespace DirectoryManager.Web.Controllers
             this.AddNewestPage(listingsLastMod, siteMapHelper, domain);
             await this.AddPagesAsync(snippetsLastMod, listingsLastMod, mostRecentUpdateDate, siteMapHelper);
 
+            // Trust pages: the verification explainer is a template (changes with a deploy); the
+            // reviews page changes with every approved review or reply; the incidents page with
+            // listing changes (status) and approved reviews.
+            var latestReviewActivity = new[]
+            {
+                approvedReviewStatsByEntry.Count > 0 ? approvedReviewStatsByEntry.Values.Max(x => x.Last) : DateTime.MinValue,
+                latestApprovedReplyByEntry.Count > 0 ? latestApprovedReplyByEntry.Values.Max() : DateTime.MinValue,
+            }.Max();
+            siteMapHelper.AddUrl(
+                $"{domain}/{HowWeVerifyController.PagePath}",
+                OrFallback(deployedUtc, snippetsLastMod),
+                ChangeFrequency.Monthly,
+                0.5);
+            siteMapHelper.AddUrl(
+                $"{domain}/{PublicReviewsController.PagePath}",
+                OrFallback(latestReviewActivity, mostRecentUpdateDate),
+                ChangeFrequency.Daily,
+                0.6);
+            siteMapHelper.AddUrl(
+                $"{domain}/{IncidentsController.PagePath}",
+                OrFallback(new[] { lastDirectoryEntryDate, latestReviewActivity }.Max(), mostRecentUpdateDate),
+                ChangeFrequency.Daily,
+                0.5);
+
             var categories = await this.categoryRepository.GetActiveCategoriesAsync();
             var subcategoryEntryCounts = await this.directoryEntryRepository.GetSubcategoryEntryCountsAsync();
             var categoryEntryCounts = await this.directoryEntryRepository.GetCategoryEntryCountsAsync();
@@ -185,6 +227,18 @@ namespace DirectoryManager.Web.Controllers
             var allCategoriesLastModified = await this.categoryRepository.GetAllCategoriesLastChangeDatesAsync();
             var allSubcategoriesLastModified = await this.subCategoryRepository.GetAllSubCategoriesLastChangeDatesAsync();
             var allSubCategoriesItemsLastModified = await this.directoryEntryRepository.GetLastModifiedDatesBySubCategoryAsync();
+
+            // A subcategory page (and its category page) changed when one of its listings lost the "New" label.
+            foreach (var group in entries.GroupBy(e => e.SubCategoryId))
+            {
+                var labelEnd = NewListingRule.LatestEndAtOrBefore(group.Select(e => (e.CreateDate, e.DirectoryStatus)), nowUtc);
+                if (labelEnd.HasValue
+                    && (!allSubCategoriesItemsLastModified.TryGetValue(group.Key, out var itemsMod) || labelEnd.Value > itemsMod))
+                {
+                    allSubCategoriesItemsLastModified[group.Key] = labelEnd.Value;
+                }
+            }
+
             var allSubcategoryAds = await this.sponsoredListingRepository.GetLastChangeDatesBySubcategoryAsync();
             var allCategoryAds = await this.sponsoredListingRepository.GetLastChangeDatesByCategoryAsync();
 
@@ -207,15 +261,16 @@ namespace DirectoryManager.Web.Controllers
             // -------------------------------------------------------
             // 4) Listing pages (+ paginated review pages) MINIMAL entries only
             // -------------------------------------------------------
-            var entries = await this.directoryEntryRepository.GetSitemapEntriesAsync(CancellationToken.None);
-
             foreach (var entry in entries)
             {
-                // Truly per listing: its own create/edit date, newest approved review or reply.
+                // Truly per listing: its own create/edit date, newest approved review or reply,
+                // and the day its "New" label ended.
+                var labelEnd = NewListingRule.EndsUtc(entry.CreateDate);
                 var baseLastMod = new[]
                 {
                     entry.CreateDate,
                     entry.UpdateDate ?? entry.CreateDate,
+                    NewListingRule.IsEligibleStatus(entry.DirectoryStatus) && labelEnd <= nowUtc ? labelEnd : DateTime.MinValue,
                 }.Max();
 
                 var reviewLastMod = approvedReviewStatsByEntry.TryGetValue(entry.DirectoryEntryId, out var stats)
@@ -633,11 +688,6 @@ namespace DirectoryManager.Web.Controllers
                 ChangeFrequency.Monthly,
                 0.4);
 
-            siteMapHelper.AddUrl(
-                string.Format("{0}/review-us", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
-                date,
-                ChangeFrequency.Monthly,
-                0.3);
 
             siteMapHelper.AddUrl(
                 string.Format("{0}/rss/feed.xml", WebRequestHelper.GetCurrentDomain(this.HttpContext)),

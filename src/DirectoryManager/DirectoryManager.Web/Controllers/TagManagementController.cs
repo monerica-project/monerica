@@ -1,4 +1,6 @@
-﻿using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Constants;
+using DirectoryManager.Web.Extensions;
+using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -7,7 +9,7 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace DirectoryManager.Web.Controllers.Management
 {
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     [Route("manage/tags")]
     public class TagManagementController : BaseController
     {
@@ -78,6 +80,7 @@ namespace DirectoryManager.Web.Controllers.Management
             this.TempData["TagMessage"] = $"Created tag: {created.Name}";
 
             this.ClearCachedItems();
+            await this.StaticPublish().RequestFullCrawlAsync("tag created: " + created.Name);
 
             return this.RedirectToAction(nameof(this.Index));
         }
@@ -132,6 +135,7 @@ namespace DirectoryManager.Web.Controllers.Management
 
             this.TempData["TagMessage"] = "Tag updated.";
             this.ClearCachedItems();
+            await this.StaticPublish().RequestFullCrawlAsync("tag edited");
             return this.RedirectToAction(nameof(this.Index));
         }
 
@@ -155,6 +159,7 @@ namespace DirectoryManager.Web.Controllers.Management
 
             this.TempData["TagMessage"] = "Tag deleted.";
             this.ClearCachedItems();   // ← was missing, now added
+            await this.StaticPublish().RequestFullCrawlAsync("tag deleted");
             return this.RedirectToAction(nameof(this.Index));
         }
     }

@@ -1,0 +1,88 @@
+@using DirectoryManager.Data.Enums
+@model DirectoryManager.Data.Models.Reviews.DirectoryEntryReview
+@*
+    AI order check box on the admin review page. Advisory only: the job never approves, rejects,
+    edits or tags a review. "Apply suggested tags" and "Check again" are the moderator's buttons.
+*@
+@{
+    var r = Model;
+    var hasLink = !string.IsNullOrWhiteSpace(r.OrderUrl);
+    var (label, css) = r.AiOrderCheckResult switch
+    {
+        AiOrderCheckResult.ChecksOut => ("Order checks out", "alert-success"),
+        AiOrderCheckResult.DoesNotCheckOut => ("Order does NOT check out", "alert-danger"),
+        AiOrderCheckResult.InProgress => ("Order still in progress (will be looked at again)", "alert-warning"),
+        AiOrderCheckResult.CouldNotVerify => ("Could not verify — check by hand", "alert-warning"),
+        _ => (r.AiOrderCheckQueued ? "Waiting for the next check (runs every 10 minutes)" : "Not checked", "alert-secondary"),
+    };
+    var current = r.ReviewTags.Where(t => t.ReviewTag != null).Select(t => t.ReviewTag.Name).ToList();
+    var suggested = (r.AiSuggestedTags ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+    var missing = suggested.Where(s => !current.Contains(s, StringComparer.OrdinalIgnoreCase)).ToList();
+    var validNotBacked = current.Contains("Valid Order", StringComparer.OrdinalIgnoreCase)
+        && r.AiOrderCheckResult is AiOrderCheckResult.DoesNotCheckOut or AiOrderCheckResult.CouldNotVerify or AiOrderCheckResult.InProgress;
+}
+<h2 class="h5 mt-3" id="ai-order-check">AI order check</h2>
+<div class="alert @css">
+    <p class="mb-1"><b>@label</b>
+        @if (r.AiOrderStatus is { } st && st != OrderProofStatus.Unknown)
+        {
+            <span> · order status: @st</span>
+        }
+        @if (r.AiOrderUsdValue is { } usd)
+        {
+            <span> · about $@usd.ToString("N0")</span>
+        }
+    </p>
+    @if (!string.IsNullOrWhiteSpace(r.AiOrderCheckSummary))
+    {
+        <p class="mb-1">@r.AiOrderCheckSummary</p>
+    }
+    @if (r.AiOrderCheckedUtc is { } at)
+    {
+        <p class="mb-1"><small>Checked @at.ToString("yyyy-MM-dd HH:mm") UTC · check #@r.AiOrderCheckAttempts · @r.AiOrderCheckModel ·
+            <a href="~/admin/ai-log?reviewId=@r.DirectoryEntryReviewId">AI log</a>. The AI only advises; it never changes the review.</small></p>
+    }
+    else if (!hasLink)
+    {
+        <p class="mb-1"><small>This review has no order link, so there is nothing to check.</small></p>
+    }
+
+    @if (r.AiOrderCheckedUtc != null)
+    {
+        <p class="mb-1">
+            <b>Suggested tags:</b> @(suggested.Count > 0 ? string.Join(", ", suggested) : "none")
+            · <b>Tags now:</b> @(current.Count > 0 ? string.Join(", ", current) : "none")
+        </p>
+        @if (validNotBacked)
+        {
+            <p class="mb-1"><b>Note:</b> this review has the "Valid Order" tag, but the check did not confirm the order.</p>
+        }
+        @if (missing.Count > 0)
+        {
+            <form asp-action="AiApplyTags" asp-route-id="@r.DirectoryEntryReviewId" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-sm btn-primary">Apply suggested tags (@string.Join(", ", missing))</button>
+            </form>
+        }
+    }
+
+    @if (hasLink && !r.AiOrderCheckQueued)
+    {
+        <form asp-action="AiRecheck" asp-route-id="@r.DirectoryEntryReviewId" method="post" class="d-inline">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-sm btn-secondary">@(r.AiOrderCheckedUtc == null ? "Check this order" : "Check again")</button>
+        </form>
+    }
+    else if (r.AiOrderCheckQueued && r.AiOrderCheckedUtc != null)
+    {
+        <small>A new check is waiting (runs every 10 minutes).</small>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(r.AiOrderCheckDetails))
+    {
+        <details class="mt-2">
+            <summary>What the check did</summary>
+            <pre class="u-ws-pre-wrap mb-0">@r.AiOrderCheckDetails</pre>
+        </details>
+    }
+</div>

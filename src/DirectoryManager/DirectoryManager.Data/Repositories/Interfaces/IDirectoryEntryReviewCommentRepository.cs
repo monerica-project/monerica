@@ -17,7 +17,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
             DirectoryEntryReviewComment entity, CancellationToken ct = default);
 
         Task DeleteAsync(
-            int id, CancellationToken ct = default);
+            int id, CancellationToken ct = default, string deletedBy = DirectoryManager.Data.Models.Reviews.DeletedReviewRecord.ByAdmin);
 
         // ---------------------------
         // Global list + counts (needed for moderation dashboard)

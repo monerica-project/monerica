@@ -12,7 +12,7 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace DirectoryManager.Web.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     public class ApiController : BaseController
     {
         private readonly IDirectoryEntryRepository entryRepository;
@@ -70,6 +70,10 @@ namespace DirectoryManager.Web.Controllers
                 Liquidity = e.Liquidity,
                 RateType = e.RateType,
                 SiteJavaScript = e.SiteJavaScript,
+                RestrictedCountries = DirectoryManager.Data.Helpers.ListingRestrictions.ParseCodes(e.RestrictedCountries).ToList(),
+                VpnPolicy = e.VpnPolicy,
+                TorPolicy = e.TorPolicy,
+                OtherRestrictions = e.OtherRestrictions,
                 ReviewsDisabled = e.ReviewsDisabled,
                 PgpKey = e.PgpKey,
                 CreateDate = e.CreateDate,

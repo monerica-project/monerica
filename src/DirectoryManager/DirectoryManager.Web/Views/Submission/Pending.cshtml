@@ -12,6 +12,11 @@
 
     @await Html.PartialAsync("_AdminMenu")
 
+    @if (TempData["SuccessMessage"] is string successMessage)
+    {
+        <div class="u-callout-orange" role="status">@successMessage</div>
+    }
+
     <div class="u-m-12px-0-18px-0">
         <a asp-action="Index" asp-controller="Submission">All</a>
         <span class="u-p-0-8px">|</span>
@@ -34,7 +39,7 @@
                 @foreach (var submission in Model.Items)
                 {
                     <tr>
-                        <td><a asp-action="Review" asp-controller="Submission" asp-route-id="@submission?.SubmissionId" title="@submission?.Name"><b>@(submission?.Name != null && submission.Name.Length > 35 ? submission.Name.Substring(0, 35) + "…" : submission?.Name)</b></a></td>
+                        <td><a asp-action="Review" asp-controller="Submission" asp-route-id="@submission?.SubmissionId" asp-route-from="pending" title="@submission?.Name"><b>@(submission?.Name != null && submission.Name.Length > 35 ? submission.Name.Substring(0, 35) + "…" : submission?.Name)</b></a></td>
                         <td><b>@submission.SubmissionStatus</b></td>
                         <td>@submission.CreateDate</td>
                         <td>
@@ -60,7 +65,7 @@
                             }
                         </td>
                         <td>
-                            <a asp-action="Review" asp-controller="Submission" asp-route-id="@submission?.SubmissionId">Edit</a>
+                            <a asp-action="Review" asp-controller="Submission" asp-route-id="@submission?.SubmissionId" asp-route-from="pending">Edit</a>
                         </td>
                     </tr>
                 }

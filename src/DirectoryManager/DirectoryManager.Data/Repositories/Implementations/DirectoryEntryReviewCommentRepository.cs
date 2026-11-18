@@ -113,13 +113,16 @@ namespace DirectoryManager.Data.Repositories.Implementations
             await this.context.SaveChangesAsync(ct);
         }
 
-        public async Task DeleteAsync(int id, CancellationToken ct = default)
+        public async Task DeleteAsync(int id, CancellationToken ct = default, string deletedBy = DeletedReviewRecord.ByAdmin)
         {
             var existing = await this.Set.FindAsync(new object[] { id }, ct);
             if (existing is null)
             {
                 return;
             }
+
+            // Keep an admin-only copy; it commits with the delete below.
+            await DeletedReviewArchive.AddForReplyAsync(this.context, existing, deletedBy, ct);
 
             await this.ReparentChildrenAsync(existing, ct);
             this.Set.Remove(existing);

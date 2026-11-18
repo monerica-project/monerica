@@ -127,11 +127,6 @@ else
     {
         var effectiveDate = r.UpdateDate ?? r.CreateDate;
 
-        // Try to pull order info without hardcoding your exact property names
-        var orderId = GetPropString(r, "OrderId", "OrderIdentifier", "OrderNumber", "OrderRef");
-        var orderUrl = GetPropString(r, "OrderUrl", "OrderLink", "OrderPageUrl", "OrderDetailsUrl");
-        var orderAny = GetPropString(r, "OrderIdOrUrl", "OrderInfo", "OrderDetails");
-
         var title = GetPropString(r, "Title", "Headline", "Subject");
         var body = GetPropString(r, "Body", "Review", "Text", "Content", "Message", "Comment");
         var rating = GetPropInt(r, "Rating");
@@ -153,7 +148,14 @@ else
 
             <div class="mt-2">
                 <strong>Author:</strong>
-                <span>@(string.IsNullOrWhiteSpace(r.DisplayName) ? r.AuthorFingerprint : r.DisplayName)</span>
+                @if (DirectoryManager.Web.Helpers.MemberAuthor.IsMember(r.AuthorUserId))
+                {
+                    <partial name="_MemberByline" model="@(new DirectoryManager.Web.Models.Members.MemberBylineModel(r.AuthorUserId, r.AuthorUsername))" />
+                }
+                else
+                {
+                    <span>@(string.IsNullOrWhiteSpace(r.DisplayName) ? r.AuthorFingerprint : r.DisplayName)</span>
+                }
             </div>
 
             @if (!string.IsNullOrWhiteSpace(title))
@@ -164,26 +166,6 @@ else
             @if (!string.IsNullOrWhiteSpace(body))
             {
                 <div class="mt-2 u-ws-pre-wrap">@body</div>
-            }
-
-            @* ✅ Admin-only order details *@
-            @if (!string.IsNullOrWhiteSpace(orderId) || !string.IsNullOrWhiteSpace(orderUrl) || !string.IsNullOrWhiteSpace(orderAny))
-            {
-                <div class="mt-3 u-btop-1px-solid-333-pt-10px">
-                    <strong>Order Details (admin only)</strong>
-                    @if (!string.IsNullOrWhiteSpace(orderId))
-                    {
-                        <div class="mt-1"><strong>Order ID:</strong> <code>@orderId</code></div>
-                    }
-                    @if (!string.IsNullOrWhiteSpace(orderUrl))
-                    {
-                        <div class="mt-1"><strong>Order URL:</strong> <a href="@orderUrl" target="_blank" rel="noopener">@orderUrl</a></div>
-                    }
-                    @if (!string.IsNullOrWhiteSpace(orderAny))
-                    {
-                        <div class="mt-1"><strong>Order Info:</strong> <code>@orderAny</code></div>
-                    }
-                </div>
             }
 
             <hr />
@@ -206,7 +188,14 @@ else
                     <div class="card p-2 mb-2">
                         <div class="u-flex-justify-space-between-gap-12px-flexwrap-wrap">
                             <div>
-                                <strong>@(string.IsNullOrWhiteSpace(c.DisplayName) ? c.AuthorFingerprint : c.DisplayName)</strong>
+                                @if (DirectoryManager.Web.Helpers.MemberAuthor.IsMember(c.AuthorUserId))
+                                {
+                                    <strong><partial name="_MemberByline" model="@(new DirectoryManager.Web.Models.Members.MemberBylineModel(c.AuthorUserId, c.AuthorUsername))" /></strong>
+                                }
+                                else
+                                {
+                                    <strong>@(string.IsNullOrWhiteSpace(c.DisplayName) ? c.AuthorFingerprint : c.DisplayName)</strong>
+                                }
                                 <span class="ms-2">@c.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat)</span>
                             </div>
                             <div><strong>Status:</strong> @c.ModerationStatus</div>

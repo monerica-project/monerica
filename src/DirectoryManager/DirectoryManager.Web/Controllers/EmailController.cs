@@ -1,11 +1,12 @@
 ﻿using DirectoryManager.Services.Interfaces;
+using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DirectoryManager.Web.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     public class EmailController : Controller
     {
         private readonly IEmailService emailService;

@@ -1,0 +1,141 @@
+@using DirectoryManager.Web.Models.Members
+@using DirectoryManager.Common.Constants
+@model AccountDetailViewModel
+@{
+    var a = Model.Account;
+    PageMeta.Title = "Member: " + a.Username;
+    PageMeta.IsIndexable = false;
+    Layout = "_CenteredLayout";
+    ViewData["PostsBaseUrl"] = DirectoryManager.Web.Controllers.UsersAdminController.AccountUrl(a.Id);
+}
+
+@section PageContent {
+@await Html.PartialAsync("_AdminMenu")
+<p><a href="/admin/users?tab=@UsersAdminTabs.Accounts">&larr; Users: accounts</a></p>
+<h1>@PageMeta.Title</h1>
+
+@if (TempData["UsersMessage"] is string ok && !string.IsNullOrWhiteSpace(ok))
+{
+    <div class="alert alert-success">@ok</div>
+}
+@if (TempData["UsersError"] is string err && !string.IsNullOrWhiteSpace(err))
+{
+    <div class="alert alert-danger">@err</div>
+}
+
+<table class="table table-sm">
+    <tbody>
+        <tr><th>Created</th><td>@a.CreateDate.ToString(StringConstants.DateTimeShortFormat) UTC</td></tr>
+        <tr>
+            <th>Status</th>
+            <td>
+                @a.StatusLabel
+                @if (a.IsLockedOut && !a.IsDeleted) { <span class="text-muted"> (sign-in paused after failed attempts)</span> }
+                @if (Model.DisabledUtc is DateTime disabled) { <br /><small class="text-muted">disabled @disabled.ToString(StringConstants.DateTimeShortFormat) UTC</small> }
+            </td>
+        </tr>
+        <tr>
+            <th>Posting</th>
+            <td>
+                @if (Model.PostingBlockedUtc is DateTime blocked)
+                {
+                    <span class="text-danger">Blocked from posting</span>
+                    <br /><small>since @blocked.ToString(StringConstants.DateTimeShortFormat) UTC by @(Model.PostingBlockedBy ?? "?")@(string.IsNullOrEmpty(Model.PostingBlockReason) ? "" : " — reason: " + Model.PostingBlockReason)</small>
+                }
+                else
+                {
+                    <span>Allowed</span>
+                }
+                @if (Model.PostingUnblockedUtc is DateTime unblocked)
+                {
+                    <br /><small class="text-muted">last block lifted @unblocked.ToString(StringConstants.DateTimeShortFormat) UTC by @(Model.PostingUnblockedBy ?? "?")</small>
+                }
+                @if (a.LinkedKeyBlocked)
+                {
+                    <br /><span class="text-danger">The linked PGP key is blocked, so this account can't post either.</span>
+                }
+            </td>
+        </tr>
+        <tr>
+            <th>Linked PGP key</th>
+            <td>
+                @if (string.IsNullOrEmpty(a.PgpFingerprint)) { <span class="text-muted">none</span> }
+                else
+                {
+                    <a href="@DirectoryManager.Web.Controllers.UsersAdminController.KeyUrl(a.PgpFingerprint)"><code>@a.PgpFingerprint</code></a>
+                    @if (Model.PgpLinkedUtc is DateTime linked) { <br /><small class="text-muted">linked @linked.ToString(StringConstants.DateTimeShortFormat) UTC</small> }
+                }
+            </td>
+        </tr>
+        <tr><th>Reviews</th><td>@await Html.PartialAsync("_StatusCounts", a.Reviews)</td></tr>
+        <tr><th>Replies</th><td>@await Html.PartialAsync("_StatusCounts", a.Replies)</td></tr>
+        <tr><th>Last post</th><td>@(a.LastPostUtc?.ToString(StringConstants.DateTimeShortFormat) ?? "never")</td></tr>
+    </tbody>
+</table>
+
+@if (!a.IsDeleted)
+{
+    <h3>Block from posting</h3>
+    @if (Model.PostingBlockedUtc == null)
+    {
+        <p class="text-muted">
+            A blocked member can still sign in, see and delete their own posts, but can't write or edit reviews or replies,
+            and can't link or replace a PGP key. Their linked key (if any) is also refused in the no-account PGP flow.
+            They see a neutral message ("Your account can't post reviews or replies at the moment."). Existing posts stay as they are unless you tick "hide".
+        </p>
+        <form method="post" action="/admin/users/account/@a.Id/block">
+            @Html.AntiForgeryToken()
+            <input name="reason" maxlength="200" class="form-control input-width" placeholder="Reason (admin-only, optional)" />
+            <label><input type="checkbox" name="hidePosts" value="true" /> also hide this account's published and waiting posts (set to rejected)</label><br />
+            <label><input type="checkbox" name="confirm" value="true" /> I confirm</label><br />
+            <button type="submit" class="btn btn-sm btn-danger">Block from posting</button>
+        </form>
+    }
+    else
+    {
+        <form method="post" action="/admin/users/account/@a.Id/unblock">
+            @Html.AntiForgeryToken()
+            @if (Model.HiddenByBlockCount > 0)
+            {
+                <label><input type="checkbox" name="restorePosts" value="true" /> put the @Model.HiddenByBlockCount post(s) hidden by the block back in the moderation queue (as waiting, not published)</label><br />
+            }
+            <label><input type="checkbox" name="confirm" value="true" /> I confirm</label><br />
+            <button type="submit" class="btn btn-sm btn-outline-secondary">Lift posting block</button>
+        </form>
+    }
+
+    @if (!string.IsNullOrEmpty(a.PgpFingerprint))
+    {
+        <h3>Remove linked PGP key</h3>
+        <p class="text-muted">Unlinks <code>@a.PgpFingerprint</code> from this account (its posts then show as "account"). The key is freed and can be linked again by any account, unless it is blocked.</p>
+        <form method="post" action="/admin/users/account/@a.Id/remove-key">
+            @Html.AntiForgeryToken()
+            <label><input type="checkbox" name="confirm" value="true" /> I confirm</label><br />
+            <button type="submit" class="btn btn-sm btn-danger">Remove linked key</button>
+        </form>
+    }
+
+    <h3>Disable account</h3>
+    <p class="text-muted">Disabling is a full ban: the member is signed out and can't sign in at all. It is separate from the posting block.</p>
+    @if (!a.IsDisabled)
+    {
+        <form method="post" action="/admin/members/@a.Id/disable">
+            @Html.AntiForgeryToken()
+            <label><input type="checkbox" name="hideReviews" value="true" /> also hide all their posts</label><br />
+            <label><input type="checkbox" name="confirm" value="true" /> I confirm</label><br />
+            <button type="submit" class="btn btn-sm btn-danger">Disable account</button>
+        </form>
+    }
+    else
+    {
+        <form method="post" action="/admin/members/@a.Id/enable">
+            @Html.AntiForgeryToken()
+            <label><input type="checkbox" name="confirm" value="true" /> I confirm</label><br />
+            <button type="submit" class="btn btn-sm btn-outline-secondary">Enable account</button>
+        </form>
+    }
+}
+
+<hr />
+@await Html.PartialAsync("_UserPosts", Model.Posts)
+}

@@ -91,7 +91,7 @@ namespace DirectoryManager.Web.Helpers
             try
             {
                 if (directoryEntryId <= 0
-                    || http.User?.Identity?.IsAuthenticated == true
+                    || http.User.IsAdmin()
                     || IsBot(http.Request.Headers.UserAgent.ToString()))
                 {
                     return;

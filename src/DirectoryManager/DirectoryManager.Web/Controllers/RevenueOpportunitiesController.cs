@@ -1,4 +1,5 @@
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models.Revenue;
 using DirectoryManager.Web.Services.Implementations;
 using Microsoft.AspNetCore.Authorization;
@@ -8,7 +9,7 @@ using Microsoft.Extensions.Caching.Memory;
 namespace DirectoryManager.Web.Controllers
 {
     /// <summary>Admin reports that point at money to be made: abandoned checkouts, renewals, prospects.</summary>
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     [Route("admin/revenue-opportunities")]
     public class RevenueOpportunitiesController : Controller
     {

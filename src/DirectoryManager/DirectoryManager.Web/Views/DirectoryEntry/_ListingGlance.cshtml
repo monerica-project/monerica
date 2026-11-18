@@ -1,4 +1,4 @@
-@using DirectoryManager.Data.Enums
+﻿@using DirectoryManager.Data.Enums
 @using DirectoryManager.Utilities.Helpers
 @using DirectoryManager.Web.Helpers
 @model DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel
@@ -22,6 +22,10 @@
     var showLiquidity = Model.Liquidity.IsPubliclyShown();
     var showRates = Model.RateType.IsShown();
     var hasGuarantees = Model.Guarantees is { Count: > 0 };
+    var restrictions = Model.Restrictions;
+    // Restrictions moved out of this panel (owner, 2026-11-13): they render in their own expandable box
+    // lower on the profile, just above the reviews (DirectoryEntryView.cshtml).
+    var showRestrictions = false;
     var kycGood = kycPolicyValue == KycPolicy.GuaranteedNoKyc;
     var kycBad = kycPolicyValue is KycPolicy.MandatoryKyc or KycPolicy.ShotgunKyc;
 
@@ -29,7 +33,7 @@
     var gRel = "ugc nofollow noopener";
 }
 
-@if (verified > 0 || issueTotal > 0 || reviewCount > 0 || showKyc || showLiquidity || showRates || hasGuarantees)
+@if (verified > 0 || issueTotal > 0 || reviewCount > 0 || showKyc || showLiquidity || showRates || hasGuarantees || showRestrictions)
 {
     <section class="glance@(isScam ? " glance--scam" : null)" aria-label="Trust and safety">
         <div class="glance-head">
@@ -61,7 +65,7 @@
             </div>
         }
 
-        @if (showKyc || showLiquidity || showRates || hasGuarantees)
+        @if (showKyc || showLiquidity || showRates || hasGuarantees || showRestrictions)
         {
             <dl class="glance-grid">
                 @if (showKyc)
@@ -106,6 +110,43 @@
                                         }
                                     </ul>
                                 </details>
+                            }
+                        </dd>
+                    </div>
+                }
+                @if (showRestrictions)
+                {
+                    @* Countries not served, VPN / Tor use, other limits: one summary line, expandable when it leaves something out. *@
+                    <div class="glance-item glance-item--wide">
+                        <dt>Restrictions</dt>
+                        <dd>
+                            @if (restrictions.NeedsDetails)
+                            {
+                                <details class="entry-guarantee-list">
+                                    <summary>@restrictions.SummaryLine</summary>
+                                    <ul>
+                                        @if (restrictions.CountryNames.Count > 0)
+                                        {
+                                            <li>Not served in: @string.Join(", ", restrictions.CountryNames)</li>
+                                        }
+                                        @if (restrictions.Vpn != null)
+                                        {
+                                            <li>VPN: @restrictions.Vpn</li>
+                                        }
+                                        @if (restrictions.Tor != null)
+                                        {
+                                            <li>Tor: @restrictions.Tor</li>
+                                        }
+                                        @if (restrictions.Other != null)
+                                        {
+                                            <li>Other: @restrictions.Other</li>
+                                        }
+                                    </ul>
+                                </details>
+                            }
+                            else
+                            {
+                                <span>@restrictions.SummaryLine</span>
                             }
                         </dd>
                     </div>

@@ -1,0 +1,90 @@
+@model DirectoryManager.Web.Models.Members.MemberReviewPageViewModel
+@using DirectoryManager.Web.Constants
+@using DirectoryManager.Data.Enums
+@inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService Urls
+@{
+    PageMeta.Title = Model.IsEdit ? "Edit your review" : "Write a review";
+    PageMeta.IsIndexable = false;
+    Layout = "_CenteredLayout";
+    var listingHref = Urls.ResolveToRoot(DirectoryManager.Utilities.Helpers.UrlBuilder.ListingPath(Model.DirectoryEntryKey));
+}
+
+@section PageContent {
+<h1>@PageMeta.Title</h1>
+<hr />
+
+<p><b>Listing:</b> <a class="no-app-link" href="@listingHref">@Model.DirectoryEntryName</a></p>
+<p><b>Posting as:</b> @Model.Username <small class="text-muted">(account)</small></p>
+
+@if (Model.IsEdit)
+{
+    <div class="alert alert-secondary" role="status">
+        You already reviewed this listing (status: @Model.CurrentStatus). Saving replaces your review, and the new
+        version waits for a moderator before it appears@(Model.CurrentStatus == ReviewModerationStatus.Approved ? "; until then your review is not shown" : string.Empty).
+        @if (Model.CurrentStatus == ReviewModerationStatus.Rejected && !string.IsNullOrWhiteSpace(Model.RejectionReason))
+        {
+            <br /><span>Moderator note: @Model.RejectionReason</span>
+        }
+    </div>
+}
+
+<div asp-validation-summary="All" class="text-danger"></div>
+
+<form method="post" action="@(MemberAuth.WriteReviewPathPrefix + Model.DirectoryEntryKey)">
+    @Html.AntiForgeryToken()
+
+    <div class="u-mb-16px">
+        <label asp-for="Input.Rating" class="form-label"><strong>Rating</strong></label>
+        <select asp-for="Input.Rating" class="form-control select-fit">
+            <option value="">— Select a rating —</option>
+            <option value="5">5 – Excellent</option>
+            <option value="4">4 – Good</option>
+            <option value="3">3 – Okay</option>
+            <option value="2">2 – Poor</option>
+            <option value="1">1 – Bad</option>
+        </select>
+    </div>
+
+    <div class="u-mb-16px">
+        <label asp-for="Input.Body" class="form-label"><strong>Your Review</strong></label>
+        <textarea asp-for="Input.Body" class="form-control" cols="40" rows="20"></textarea>
+    </div>
+
+    <div class="u-mb-16px">
+        <label asp-for="Input.OrderProof" class="form-label"><strong>Order Proof URL</strong>
+            @if (Model.RequireOrderProof) { <span class="text-danger">(required)</span> } else { <span class="text-muted">(optional)</span> }
+        </label>
+        <input asp-for="Input.OrderProof" class="form-control" maxlength="2048" />
+        <div class="form-text">
+            The full link to <strong>your own order</strong> on @Model.DirectoryEntryName's site, including the order ID
+            (the page that shows your swap, not the exchange's home or swap page). Not a blockchain or block-explorer link.
+            <br />
+            <span class="text-muted">Used only for internal verification — never shown publicly.</span>
+        </div>
+    </div>
+
+    @if (Model.RequireOrderProof || Model.RequireDetails)
+    {
+        <div class="u-mb-16px">
+            <label asp-for="Input.OrderProofContext" class="form-label"><strong>Destination Wallet Address</strong>
+                <span class="text-danger">(required)</span>
+            </label>
+            <textarea asp-for="Input.OrderProofContext" class="form-control" maxlength="2048" rows="3"></textarea>
+            <div class="form-text">
+                Paste the <strong>destination wallet address you entered for this order</strong> (where your coins were sent,
+                or were supposed to be sent). A moderator needs it to open and confirm your order; without it the review cannot be approved.
+                You can add an order ID or other notes below it.
+                <br />
+                <span class="text-muted">Used only for internal verification — never shown publicly.</span>
+            </div>
+        </div>
+    }
+
+    <hr class="u-mt-28px" />
+    <p class="text-muted u-mt-12px"><i>Every review from a member account is checked by a moderator before it appears.</i></p>
+
+    <button type="submit" class="btn btn-success btn-cta">@(Model.IsEdit ? "Save changes" : "Submit Review")</button>
+</form>
+
+<p class="u-mt-12px"><a href="@MemberAuth.MyReviewsPath">My reviews</a> &middot; <a href="@MemberAuth.AccountPath">My account</a></p>
+}

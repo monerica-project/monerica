@@ -1,4 +1,4 @@
-using DirectoryManager.Data.DbContextInfo;
+﻿using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -14,7 +14,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             this.context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
-        public async Task<(IReadOnlyList<AiCallLog> Items, int Total)> GetPageAsync(int page, int pageSize, int? submissionId, bool errorsOnly, CancellationToken ct = default)
+        public async Task<(IReadOnlyList<AiCallLog> Items, int Total)> GetPageAsync(int page, int pageSize, int? submissionId, bool errorsOnly, CancellationToken ct = default, int? reviewId = null)
         {
             page = Math.Max(1, page);
             pageSize = Math.Clamp(pageSize, 1, 200);
@@ -23,6 +23,11 @@ namespace DirectoryManager.Data.Repositories.Implementations
             if (submissionId is int sid)
             {
                 q = q.Where(x => x.SubmissionId == sid);
+            }
+
+            if (reviewId is int rid)
+            {
+                q = q.Where(x => x.DirectoryEntryReviewId == rid);
             }
 
             if (errorsOnly)
@@ -41,6 +46,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     CreatedUtc = x.CreatedUtc,
                     Feature = x.Feature,
                     SubmissionId = x.SubmissionId,
+                    DirectoryEntryReviewId = x.DirectoryEntryReviewId,
                     SubjectName = x.SubjectName,
                     Model = x.Model,
                     Attempts = x.Attempts,

@@ -13,5 +13,7 @@ namespace DirectoryManager.Data.Models.TransferModels
         public DateTime? UpdateDate { get; set; }
 
         public string? CountryCode { get; set; }
+
+        public int SubCategoryId { get; set; }
     }
 }

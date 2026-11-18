@@ -1,6 +1,8 @@
-﻿using System.Security.Cryptography;
+using DirectoryManager.Web.Extensions;
+using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.Reviews;
@@ -21,6 +23,7 @@ namespace DirectoryManager.Web.Controllers
     public class DirectoryEntryReviewsController : BaseController
     {
         private const string SesssionExpiredMessage = "Session expired, your review message was not saved, please start over!";
+        private const string FlowKind = "review";
         private static readonly char[] CodeAlphabet = StringConstants.CodeAlphabet.ToCharArray();
 
         // Prevents double-POST without cookies or JS.
@@ -36,6 +39,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly ISubcategoryRepository subcategoryRepository;
         private readonly IReviewTagRepository reviewTagRepository;
         private readonly IDirectoryEntryReviewTagRepository reviewTagLinkRepository;
+        private readonly IDataProtectionProvider dataProtection;
 
         public DirectoryEntryReviewsController(
             IDirectoryEntryReviewRepository repo,
@@ -47,7 +51,8 @@ namespace DirectoryManager.Web.Controllers
             IRaffleRepository raffleRepository,
             ISubcategoryRepository subcategoryRepository,
             IReviewTagRepository reviewTagRepository,
-            IDirectoryEntryReviewTagRepository reviewTagLinkRepository)
+            IDirectoryEntryReviewTagRepository reviewTagLinkRepository,
+            IDataProtectionProvider dataProtection)
             : base(cache)
         {
             this.directoryEntryReviewRepository = repo;
@@ -60,6 +65,7 @@ namespace DirectoryManager.Web.Controllers
             this.subcategoryRepository = subcategoryRepository;
             this.reviewTagRepository = reviewTagRepository;
             this.reviewTagLinkRepository = reviewTagLinkRepository;
+            this.dataProtection = dataProtection;
         }
 
         [HttpGet("begin")]
@@ -75,25 +81,28 @@ namespace DirectoryManager.Web.Controllers
             }
 
             var entry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
-            if (entry is null || entry.ReviewsDisabled)
+            if (entry is null || entry.ReviewsDisabled || entry.DirectoryStatus == DirectoryStatus.Removed)
             {
                 return this.NotFound();
             }
 
-            var flowId = this.CreateFlow(directoryEntryId);
-            return this.RedirectToAction(nameof(this.Captcha), new { flowId });
+            // No server state yet: the flow is only stored once the captcha is solved.
+            var flowId = Guid.NewGuid();
+            var ticket = PreCaptchaFlowTicket.Issue(this.dataProtection, FlowKind, flowId, directoryEntryId);
+            return this.RedirectToAction(nameof(this.Captcha), new { flowId, ticket });
         }
 
         [HttpGet("captcha")]
-        public IActionResult Captcha(Guid flowId)
+        public IActionResult Captcha(Guid flowId, string? ticket)
         {
-            if (!this.TryGetFlow(flowId, out var state))
+            if (!this.TryGetFlowOrTicket(flowId, ticket, out var directoryEntryId))
             {
                 return this.BadRequest(SesssionExpiredMessage);
             }
 
             this.ViewBag.FlowId = flowId;
-            this.ViewBag.DirectoryEntryId = state.DirectoryEntryId;
+            this.ViewBag.FlowTicket = ticket;
+            this.ViewBag.DirectoryEntryId = directoryEntryId;
             this.ViewBag.CaptchaPurpose = "review";
 
             return this.View();
@@ -101,9 +110,9 @@ namespace DirectoryManager.Web.Controllers
 
         [HttpPost("captcha")]
         [ValidateAntiForgeryToken]
-        public IActionResult CaptchaPost(Guid flowId)
+        public IActionResult CaptchaPost(Guid flowId, string? ticket)
         {
-            if (!this.TryGetFlow(flowId, out var state))
+            if (!this.TryGetFlowOrTicket(flowId, ticket, out var directoryEntryId))
             {
                 return this.BadRequest(SesssionExpiredMessage);
             }
@@ -112,9 +121,16 @@ namespace DirectoryManager.Web.Controllers
             {
                 this.ModelState.AddModelError(string.Empty, "Captcha failed. Please try again.");
                 this.ViewBag.FlowId = flowId;
-                this.ViewBag.DirectoryEntryId = state.DirectoryEntryId;
+                this.ViewBag.FlowTicket = ticket;
+                this.ViewBag.DirectoryEntryId = directoryEntryId;
                 this.ViewBag.CaptchaPurpose = "review";
                 return this.View("Captcha");
+            }
+
+            // First server-side state for this flow is created only now, after the captcha.
+            if (!this.TryGetFlow(flowId, out var state))
+            {
+                state = CreateFlow(directoryEntryId);
             }
 
             state.CaptchaOk = true;
@@ -142,7 +158,7 @@ namespace DirectoryManager.Web.Controllers
 
         [HttpPost("submit-key")]
         [ValidateAntiForgeryToken]
-        public IActionResult SubmitKeyPost(Guid flowId, string pgpArmored)
+        public async Task<IActionResult> SubmitKeyPost(Guid flowId, string pgpArmored)
         {
             if (!this.TryGetFlow(flowId, out var state))
             {
@@ -154,10 +170,21 @@ namespace DirectoryManager.Web.Controllers
                 return this.RedirectToAction(nameof(this.Captcha), new { flowId });
             }
 
-            var fp = this.pgp.GetFingerprint(pgpArmored);
+            var fp = (pgpArmored?.Length ?? 0) > IntegerConstants.MaxPgpArmoredChars
+                ? null
+                : this.pgp.GetFingerprint(pgpArmored);
             if (string.IsNullOrWhiteSpace(fp))
             {
                 this.ModelState.AddModelError(string.Empty, "Invalid PGP public key.");
+                this.ViewBag.FlowId = flowId;
+                this.ViewBag.DirectoryEntryId = state.DirectoryEntryId;
+                return this.View("SubmitKey");
+            }
+
+            // Refused as soon as the key is known (checked again on submit).
+            if (await this.PgpAuthorBlockedAsync(fp, this.HttpContext.RequestAborted))
+            {
+                this.ModelState.AddModelError(string.Empty, ReviewerBlocks.KeyBlockedMessage);
                 this.ViewBag.FlowId = flowId;
                 this.ViewBag.DirectoryEntryId = state.DirectoryEntryId;
                 return this.View("SubmitKey");
@@ -293,6 +320,12 @@ namespace DirectoryManager.Web.Controllers
                 return this.RedirectToAction(nameof(this.VerifyCode), new { flowId });
             }
 
+            if (await this.PgpAuthorBlockedAsync(state.PgpFingerprint, this.HttpContext.RequestAborted))
+            {
+                this.cache.Remove(CacheKey(flowId));
+                return this.PostingUnavailable();
+            }
+
             var vm = new CreateDirectoryEntryReviewInputModel
             {
                 DirectoryEntryId = state.DirectoryEntryId
@@ -305,6 +338,12 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.RequireVerification =
                 entry is not null && await this.SubcategoryRequiresVerificationAsync(entry.SubCategoryId);
             this.ViewBag.RequireVerificationDetails = entry?.RequireReviewVerificationDetails == true;
+
+            if (entry is not null && await this.KeyHasMemberReviewAsync(state.PgpFingerprint, entry.DirectoryEntryId, CancellationToken.None))
+            {
+                // Said up front, before the reviewer writes anything (enforced again on submit).
+                this.ModelState.AddModelError(string.Empty, ReviewerKeyRules.KeyAlreadyReviewedViaMemberMessage);
+            }
 
             // Tags the reviewer can suggest: enabled AND flagged public (ReviewerSelectable).
             // Admin-only tags (e.g. "Valid Order", "Suspicious Review") are excluded from the
@@ -350,6 +389,12 @@ namespace DirectoryManager.Web.Controllers
                 return this.RedirectToAction(nameof(this.VerifyCode), new { flowId });
             }
 
+            if (await this.PgpAuthorBlockedAsync(flow.PgpFingerprint, ct))
+            {
+                this.cache.Remove(CacheKey(flowId));
+                return this.PostingUnavailable();
+            }
+
             input.DirectoryEntryId = flow.DirectoryEntryId;
 
             // The "Order amount" dropdown binds to its own single field so an empty choice stays
@@ -372,7 +417,7 @@ namespace DirectoryManager.Web.Controllers
                 .ToList();
 
             var gateEntry = await this.directoryEntryRepository.GetByIdAsync(flow.DirectoryEntryId);
-            if (gateEntry is null || gateEntry.ReviewsDisabled)
+            if (gateEntry is null || gateEntry.ReviewsDisabled || gateEntry.DirectoryStatus == DirectoryStatus.Removed)
             {
                 this.cache.Remove(CacheKey(flowId));
                 return this.NotFound();
@@ -391,6 +436,17 @@ namespace DirectoryManager.Web.Controllers
             {
                 var entry = await this.directoryEntryRepository.GetByIdAsync(flow.DirectoryEntryId);
                 this.ViewBag.DirectoryEntryName = entry?.Name ?? "Listing";
+                this.ViewBag.FlowId = flowId;
+                this.ViewBag.PgpFingerprint = flow.PgpFingerprint;
+                return this.View("Compose", input);
+            }
+
+            // One review per reviewer per listing across both paths: a member account that has
+            // this key linked (proven) and already reviewed this listing is the same reviewer.
+            if (await this.KeyHasMemberReviewAsync(flow.PgpFingerprint, flow.DirectoryEntryId, ct))
+            {
+                this.ModelState.AddModelError(string.Empty, ReviewerKeyRules.KeyAlreadyReviewedViaMemberMessage);
+                this.ViewBag.DirectoryEntryName = gateEntry.Name ?? "Listing";
                 this.ViewBag.FlowId = flowId;
                 this.ViewBag.PgpFingerprint = flow.PgpFingerprint;
                 return this.View("Compose", input);
@@ -437,6 +493,29 @@ namespace DirectoryManager.Web.Controllers
                 this.ViewBag.FlowId = flowId;
                 this.ViewBag.PgpFingerprint = flow.PgpFingerprint;
                 return this.View("Compose", input);
+            }
+
+            // Swap listings: the link must be the reviewer's own order, and the destination wallet
+            // address must be given, or a moderator cannot open and confirm the order.
+            if (requireVerification || requireDetails)
+            {
+                if (!string.IsNullOrWhiteSpace(input.OrderProof) && !ReviewOrderProofRules.LooksLikeOwnOrderLink(input.OrderProof))
+                {
+                    this.ModelState.AddModelError(nameof(input.OrderProof), ReviewOrderProofRules.GenericLinkMessage);
+                }
+
+                if (!ReviewOrderProofRules.ContainsWalletAddress(input.OrderProofContext))
+                {
+                    this.ModelState.AddModelError(nameof(input.OrderProofContext), ReviewOrderProofRules.AddressMissingMessage);
+                }
+
+                if (!this.ModelState.IsValid)
+                {
+                    this.ViewBag.DirectoryEntryName = gateEntry.Name ?? "Listing";
+                    this.ViewBag.FlowId = flowId;
+                    this.ViewBag.PgpFingerprint = flow.PgpFingerprint;
+                    return this.View("Compose", input);
+                }
             }
 
             // Order proof is optional, but if supplied it must be a URL.
@@ -537,7 +616,13 @@ namespace DirectoryManager.Web.Controllers
             // Reviews carrying an order URL are ALWAYS manually reviewed (the order proof must be
             // checked by a person), whatever the listing's verification settings are.
             var hasOrderUrl = !string.IsNullOrWhiteSpace(entity.OrderUrl);
-            if (requireVerification || requireDetails || mod.NeedsManualReview || hasSuggestedTags || hasOrderUrl)
+
+            // A key with no approved review yet is unknown: its first review waits for a moderator.
+            // Without this, anyone could generate a fresh key and put text live with no approval
+            // (the 2026-11-16 probes did exactly that). Once one review is approved, later clean
+            // reviews from the same key publish right away as before.
+            var isNewReviewerKey = !await this.directoryEntryReviewRepository.HasApprovedByAuthorFingerprintAsync(flow.PgpFingerprint, ct);
+            if (requireVerification || requireDetails || mod.NeedsManualReview || hasSuggestedTags || hasOrderUrl || isNewReviewerKey)
             {
                 entity.ModerationStatus = ReviewModerationStatus.Pending;
             }
@@ -586,10 +671,16 @@ namespace DirectoryManager.Web.Controllers
                 : (hasSuggestedTags && !mod.NeedsManualReview)
                     ? "Thanks! Because you selected tags, your review is not published yet — a moderator will review " +
                       "your tag selection (and may adjust it) before your review is approved and published."
-                    : mod.ThankYouMessage;
+                    : (entity.ModerationStatus == ReviewModerationStatus.Pending && !mod.NeedsManualReview)
+                        ? "Thanks for your review! It has been received and will be checked before it appears."
+                        : mod.ThankYouMessage;
 
             this.ClearCachedItems();
             this.cache.Remove(CacheKey(flowId));
+            if (entity.ModerationStatus == ReviewModerationStatus.Approved)
+            {
+                await this.StaticPublish().EnqueueForReviewAsync(entity.DirectoryEntryReviewId, "review auto-published", ct);
+            }
 
             return await this.RedirectToRaffleOrThanksAsync(
                 entity.DirectoryEntryReviewId,
@@ -604,7 +695,7 @@ namespace DirectoryManager.Web.Controllers
         // Admin CRUD
         // ---------------------------
         [HttpGet("")]
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> Index(int page = 1, int pageSize = 50, CancellationToken ct = default)
         {
             pageSize = Math.Clamp(pageSize, 10, 200);
@@ -623,7 +714,7 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [HttpGet("{id:int}")]
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> Details(int id, CancellationToken ct = default)
         {
             var item = await this.directoryEntryReviewRepository.GetByIdAsync(id, ct);
@@ -635,11 +726,11 @@ namespace DirectoryManager.Web.Controllers
             return this.View(item);
         }
 
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         [HttpGet("create")]
         public IActionResult Create() => this.View(new CreateDirectoryEntryReviewInputModel());
 
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         [HttpPost("create")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(CreateDirectoryEntryReviewInputModel input, CancellationToken ct)
@@ -720,12 +811,12 @@ namespace DirectoryManager.Web.Controllers
 
         // Old edit path — now lives in ReviewModerationController.
         // Keep a redirect so any existing Edit buttons / bookmarks still work.
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         [HttpGet("{id:int}/edit")]
         public IActionResult Edit(int id)
             => this.RedirectToAction("Edit", "ReviewModeration", new { id });
 
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         [HttpPost("{id:int}/delete")]
         public async Task<IActionResult> Delete(int id, CancellationToken ct = default)
         {
@@ -738,7 +829,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View(item);
         }
 
-        [Authorize]
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         [HttpPost("{id:int}/delete/confirmed")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id, CancellationToken ct = default)
@@ -789,7 +880,7 @@ namespace DirectoryManager.Web.Controllers
         // =========================
         // Challenge code helpers
         // =========================
-        private static string GenerateChallengeCodeNormalized(int length)
+        internal static string GenerateChallengeCodeNormalized(int length)
         {
             if (length < 6)
             {
@@ -805,7 +896,7 @@ namespace DirectoryManager.Web.Controllers
             return new string(chars);
         }
 
-        private static string FormatChallengeCodeForHumans(string normalized)
+        internal static string FormatChallengeCodeForHumans(string normalized)
         {
             if (string.IsNullOrWhiteSpace(normalized) || normalized.Length <= 5)
             {
@@ -815,7 +906,7 @@ namespace DirectoryManager.Web.Controllers
             return normalized.Substring(0, 5) + "-" + normalized.Substring(5);
         }
 
-        private static string NormalizeSubmittedCode(string? input)
+        internal static string NormalizeSubmittedCode(string? input)
         {
             if (string.IsNullOrWhiteSpace(input))
             {
@@ -834,7 +925,7 @@ namespace DirectoryManager.Web.Controllers
             return sb.ToString();
         }
 
-        private static bool CodesMatchConstantTime(string submitted, string expected)
+        internal static bool CodesMatchConstantTime(string submitted, string expected)
         {
             if (string.IsNullOrEmpty(submitted) || string.IsNullOrEmpty(expected))
             {
@@ -864,7 +955,8 @@ namespace DirectoryManager.Web.Controllers
         /// Returns true when the value is absent (valid: nothing to store) or a valid URL,
         /// and false when a non-empty value is not a URL.
         /// </summary>
-        private static bool TryNormalizeOrderProofUrl(string? orderProof, out string? normalizedUrl)
+        // internal: the member review path (MemberReviewService) applies the same rule.
+        internal static bool TryNormalizeOrderProofUrl(string? orderProof, out string? normalizedUrl)
         {
             normalizedUrl = null;
             var s = (orderProof ?? string.Empty).Trim();
@@ -906,7 +998,7 @@ namespace DirectoryManager.Web.Controllers
 
         // Trims the optional verification-context free-text; null when empty so the column
         // stays NULL rather than holding an empty string.
-        private static string? NormalizeOrderProofContext(string? context)
+        internal static string? NormalizeOrderProofContext(string? context)
         {
             var s = (context ?? string.Empty).Trim();
             return string.IsNullOrWhiteSpace(s) ? null : s;
@@ -919,17 +1011,45 @@ namespace DirectoryManager.Web.Controllers
             return sub?.RequireReviewVerification ?? false;
         }
 
-        private Guid CreateFlow(int directoryEntryId)
+        // Called only after the captcha is solved (the caller stores it).
+        private static ReviewFlowState CreateFlow(int directoryEntryId)
         {
-            var id = Guid.NewGuid();
-            var state = new ReviewFlowState
+            return new ReviewFlowState
             {
                 DirectoryEntryId = directoryEntryId,
                 ExpiresUtc = DateTime.UtcNow.AddMinutes(IntegerConstants.SessinExpiresMinutes)
             };
-            this.cache.Set(CacheKey(id), state, state.ExpiresUtc);
-            return id;
         }
+
+        // Captcha step: either the flow already exists (back button / re-display) or the visitor
+        // carries the signed pre-captcha ticket minted by Begin.
+        private bool TryGetFlowOrTicket(Guid flowId, string? ticket, out int directoryEntryId)
+        {
+            if (this.TryGetFlow(flowId, out var state))
+            {
+                directoryEntryId = state.DirectoryEntryId;
+                return true;
+            }
+
+            return PreCaptchaFlowTicket.TryRead(this.dataProtection, FlowKind, ticket, flowId, out directoryEntryId, out _);
+        }
+
+        private Task<bool> KeyHasMemberReviewAsync(string? fingerprint, int directoryEntryId, CancellationToken ct) =>
+            ReviewerKeyRules.KeyHasMemberReviewAsync(
+                this.HttpContext.RequestServices.GetRequiredService<DirectoryManager.Data.DbContextInfo.ApplicationDbContext>(),
+                fingerprint,
+                directoryEntryId,
+                ct);
+
+        // Admin block list: a blocked key (or one linked to a member blocked from posting) can't post.
+        private Task<bool> PgpAuthorBlockedAsync(string? fingerprint, CancellationToken ct) =>
+            ReviewerBlocks.IsPgpAuthorBlockedAsync(
+                this.HttpContext.RequestServices.GetRequiredService<DirectoryManager.Data.DbContextInfo.ApplicationDbContext>(),
+                fingerprint,
+                ct);
+
+        private ViewResult PostingUnavailable() =>
+            this.View("~/Views/Shared/PostingUnavailable.cshtml", ReviewerBlocks.KeyBlockedMessage);
 
         private bool TryGetFlow(Guid flowId, out ReviewFlowState state)
         {

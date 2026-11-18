@@ -6,6 +6,7 @@
 @using DirectoryManager.Web.Helpers
 @using DirectoryManager.Web.Models
 @model DirectoryManager.Web.Models.CategoryEntriesViewModel
+@inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryAdditionalSubcategoryRepository additionalSubcategoryRepo
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingRepository sponsoredListingRepository
 @inject ICategoryRepository categoryRepo
@@ -108,17 +109,29 @@
         var categorySponsors = await sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.CategorySponsor);
 
         // find the sponsor for this category (if any)
+        // The sponsor of this category is the one that bought THIS category. A listing can be here
+        // through an additional subcategory, and is then shown under that subcategory's name and links.
         var catSponsor = categorySponsors
-            .FirstOrDefault(s => s.DirectoryEntry?.SubCategory?.CategoryId == Model.CategoryId);
+            .FirstOrDefault(s => (s.CategoryId ?? s.DirectoryEntry?.SubCategory?.CategoryId) == Model.CategoryId);
+        var catSponsorEntry = catSponsor?.DirectoryEntry;
+        if (catSponsorEntry != null && catSponsor!.SubCategoryId is int catSponsorSubId && catSponsorSubId != catSponsorEntry.SubCategoryId)
+        {
+            var altHere = (await additionalSubcategoryRepo.GetByDirectoryEntryIdAsync(catSponsorEntry.DirectoryEntryId))
+                .FirstOrDefault(x => x.SubCategoryId == catSponsorSubId);
+            if (altHere != null)
+            {
+                catSponsorEntry = altHere.ApplyTo(catSponsorEntry);
+            }
+        }
 
         var catSponsorCount = categorySponsors.Count();
 
         // ✅ Pull rating summary (AvgRating + ReviewCount) for the sponsor entry
         DirectoryManager.Data.Models.TransferModels.RatingSummaryDto? sponsorRating = null;
 
-        if (catSponsor?.DirectoryEntry != null)
+        if (catSponsorEntry != null)
         {
-            var sponsorId = catSponsor.DirectoryEntry.DirectoryEntryId;
+            var sponsorId = catSponsorEntry.DirectoryEntryId;
 
             var ratingDict = await directoryEntryReviewRepository.GetRatingSummariesAsync(new[] { sponsorId });
 
@@ -133,40 +146,40 @@
             CategoryId = Model.CategoryId,
             TotalActiveCategoryListings = catSponsorCount,
 
-            DirectoryEntry = (catSponsor != null && catSponsor.DirectoryEntry != null)
+            DirectoryEntry = (catSponsor != null && catSponsorEntry != null)
                 ? new DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel()
                 {
-                    CountryCode = catSponsor.DirectoryEntry.CountryCode,
+                    CountryCode = catSponsorEntry.CountryCode,
 
-                    CreateDate = catSponsor.DirectoryEntry.CreateDate,
-                    UpdateDate = catSponsor.DirectoryEntry.UpdateDate,
+                    CreateDate = catSponsorEntry.CreateDate,
+                    UpdateDate = catSponsorEntry.UpdateDate,
                     DateOption = DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
 
-                    Link = catSponsor.DirectoryEntry.Link,
-                    LinkA = catSponsor.DirectoryEntry.LinkA,
-                    Link2 = catSponsor.DirectoryEntry.Link2,
-                    Link2A = catSponsor.DirectoryEntry.Link2A,
-                    Link3 = catSponsor.DirectoryEntry.Link3,
-                    Link3A = catSponsor.DirectoryEntry.Link3A,
+                    Link = catSponsorEntry.Link,
+                    LinkA = catSponsorEntry.LinkA,
+                    Link2 = catSponsorEntry.Link2,
+                    Link2A = catSponsorEntry.Link2A,
+                    Link3 = catSponsorEntry.Link3,
+                    Link3A = catSponsorEntry.Link3A,
 
-                    Name = catSponsor.DirectoryEntry.Name,
-                    Description = catSponsor.DirectoryEntry.Description,
-                    DirectoryEntryId = catSponsor.DirectoryEntry.DirectoryEntryId,
-                    DirectoryStatus = catSponsor.DirectoryEntry.DirectoryStatus,
-                    StreetAddress = catSponsor.DirectoryEntry.StreetAddress,
-                    City = catSponsor.DirectoryEntry.City,
-                    StateRegion = catSponsor.DirectoryEntry.StateRegion,
-                    PostalCode = catSponsor.DirectoryEntry.PostalCode,
-                    Note = catSponsor.DirectoryEntry.Note,
-                    Processor = catSponsor.DirectoryEntry.Processor,
+                    Name = catSponsorEntry.Name,
+                    Description = catSponsorEntry.Description,
+                    DirectoryEntryId = catSponsorEntry.DirectoryEntryId,
+                    DirectoryStatus = catSponsorEntry.DirectoryStatus,
+                    StreetAddress = catSponsorEntry.StreetAddress,
+                    City = catSponsorEntry.City,
+                    StateRegion = catSponsorEntry.StateRegion,
+                    PostalCode = catSponsorEntry.PostalCode,
+                    Note = catSponsorEntry.Note,
+                    Processor = catSponsorEntry.Processor,
 
-                    SubCategoryId = catSponsor.DirectoryEntry.SubCategoryId,
-                    SubCategory = catSponsor.DirectoryEntry.SubCategory,
+                    SubCategoryId = catSponsorEntry.SubCategoryId,
+                    SubCategory = catSponsorEntry.SubCategory,
 
-                    DirectoryEntryKey = catSponsor.DirectoryEntry.DirectoryEntryKey,
+                    DirectoryEntryKey = catSponsorEntry.DirectoryEntryKey,
 
                     // ✅ needed for (count) link to #reviews if your helper uses ItemPath
-                    ItemPath = UrlBuilder.ListingPath(catSponsor.DirectoryEntry.DirectoryEntryKey),
+                    ItemPath = UrlBuilder.ListingPath(catSponsorEntry.DirectoryEntryKey),
 
                     IsSponsored = true,
                     DisplayAsSponsoredItem = false,

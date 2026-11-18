@@ -11,7 +11,7 @@
     // Most-used tags in the filter logs (Nov 2026); always shown, the rest sit behind "Show all tags".
     private static readonly HashSet<string> PrimaryTagNames = new(StringComparer.OrdinalIgnoreCase)
     {
-        "Account Not Required", "Email Not Required", "Open Source", "No JavaScript",
+        "Account Not Required", "Email Not Required", "No JavaScript",
     };
 }
 @model DirectoryFilterViewModel
@@ -395,9 +395,10 @@
                     </div>
                 </fieldset>
 
+                @* Every section below Sort is collapsed until the visitor opens it (owner request, 2026-11-16). *@
                 <!-- KYC Policy -->
-                <fieldset class="ui-fieldset">
-                    <legend class="ui-legend">KYC Policy</legend>
+                <details class="filter-more">
+                    <summary class="ui-legend filter-more-summary">KYC Policy</summary>
                     <div class="u-fs-085em u-op-08">Untick to hide those listings.</div>
                     <div class="ui-checks ui-checks-stack">
                         @foreach (var kp in Model.AllKycPolicies)
@@ -408,11 +409,11 @@
                             </label>
                         }
                     </div>
-                </fieldset>
+                </details>
 
                 <!-- Website JavaScript (applies to every listing) -->
-                <fieldset class="ui-fieldset">
-                    <legend class="ui-legend">JavaScript</legend>
+                <details class="filter-more">
+                    <summary class="ui-legend filter-more-summary">JavaScript</summary>
                     <div class="u-fs-085em u-op-08">Untick to hide those listings.</div>
                     <div class="ui-checks ui-checks-stack">
                         @foreach (var js in SiteJavaScriptExtensions.Filterable)
@@ -423,15 +424,15 @@
                             </label>
                         }
                     </div>
-                </fieldset>
+                </details>
 
                 @* Liquidity and rate type only apply to exchanges: shown when an exchange category
                    is selected (or when one of them is already in use, so it can be cleared). *@
                 @if (Model.IsExchangeContext || selectedLiquidity.Count > 0 || selectedRates.Count > 0)
                 {
                 <!-- Liquidity -->
-                <fieldset class="ui-fieldset">
-                    <legend class="ui-legend">Liquidity</legend>
+                <details class="filter-more">
+                    <summary class="ui-legend filter-more-summary">Liquidity</summary>
                     <div class="u-fs-085em u-op-08">Tick to show only these.</div>
                     <div class="ui-checks ui-checks-stack">
                         @foreach (var lq in Model.AllLiquidities)
@@ -442,11 +443,11 @@
                             </label>
                         }
                     </div>
-                </fieldset>
+                </details>
 
                 <!-- Rate type (exchanges) -->
-                <fieldset class="ui-fieldset">
-                    <legend class="ui-legend">Rates</legend>
+                <details class="filter-more">
+                    <summary class="ui-legend filter-more-summary">Rates</summary>
                     <div class="u-fs-085em u-op-08">Tick to show only these.</div>
                     <div class="ui-checks ui-checks-stack">
                         <label class="ui-check has-tip" title="The rate is locked when you start the swap (includes exchanges offering both)">
@@ -458,12 +459,23 @@
                             <span>Float rate</span>
                         </label>
                     </div>
-                </fieldset>
+                </details>
                 }
 
+                <!-- Open source (replaces the old "Open Source" tag) -->
+                <details class="filter-more">
+                    <summary class="ui-legend filter-more-summary">Source code</summary>
+                    <div class="ui-checks ui-checks-stack">
+                        <label class="ui-check has-tip" title="Only show listings that link to their published source code.">
+                            <input type="checkbox" name="HasSourceCode" value="true" checked="@(Model.Query.HasSourceCode ? "checked" : null)" />
+                            <span>Open source (has source code link)</span>
+                        </label>
+                    </div>
+                </details>
+
                 <!-- Tags -->
-                <fieldset class="ui-fieldset">
-                    <legend class="ui-legend">@(hasCategoryForTags ? "Tags (in category)" : "Tags")</legend>
+                <details class="filter-more">
+                    <summary class="ui-legend filter-more-summary">@(hasCategoryForTags ? "Tags (in category)" : "Tags")</summary>
                     @if (Model.CategoryTagOptions == null || Model.CategoryTagOptions.Count == 0)
                     {
                         <div class="ui-empty"><i>@(hasCategoryForTags ? "No tags for this category." : "No tags found.")</i></div>
@@ -502,7 +514,7 @@
 
                         <label class="dir-tags-more" for="show-all-tags"></label>
                     }
-                </fieldset>
+                </details>
 
                 @* Rarely used filters (each under 1% of uses, Nov 2026) live in "More filters";
                    it opens by itself when one of them is in use. *@
@@ -756,13 +768,18 @@
                                         // Unset (null) shows as "Not Stated"; only the reserved Unknown value is hidden.
                                         var cardKyc = e.KycPolicy ?? KycPolicy.NotStated;
                                         var showKycBadge = cardKyc != KycPolicy.Unknown;
+                                        var showNewBadge = DirectoryManager.Data.Helpers.NewListingRule.IsNew(e.CreateDate, e.DirectoryStatus, DateTime.UtcNow);
                                     }
-                                    @if (e.IsSponsored || showKycBadge)
+                                    @if (e.IsSponsored || showKycBadge || showNewBadge)
                                     {
                                         <span class="dir-badge-row">
                                             @if (e.IsSponsored)
                                             {
                                                 <span class="dir-badge-featured">Sponsored</span>
+                                            }
+                                            @if (showNewBadge)
+                                            {
+                                                <span class="dir-badge-kyc new-badge" title="Added in the last @DirectoryManager.Data.Helpers.NewListingRule.Days days">New</span>
                                             }
                                             @if (showKycBadge)
                                             {

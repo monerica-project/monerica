@@ -3,6 +3,7 @@
 @using DirectoryManager.Data.Models
 @using DirectoryManager.Data.Enums
 @model DirectoryManager.Web.Models.Reviews.ReviewModerationDashboardViewModel
+@inject DirectoryManager.Web.Services.Implementations.MemberKeyDirectory MemberKeys
 
 @{
     Layout = "_CenteredLayout";
@@ -31,6 +32,8 @@
         <a asp-action="All">All</a>
         &nbsp;|&nbsp;
         <a asp-action="LowRated"><strong>Low-rated (1–2★)</strong></a>
+        &nbsp;|&nbsp;
+        <a asp-action="Deleted"><strong>Deleted</strong></a>
     </p>
 
     <p class="text-muted mb-0">
@@ -60,8 +63,9 @@
                         <th>Rating</th>
                         <th>Title</th>
                         <th>Order Proof</th>
+                        <th>AI order check</th>
                         <th>Created (UTC)</th>
-                        <th>Fingerprint</th>
+                        <th>Author (PGP / Member)</th>
                         <th>Excerpt</th>
                         <th class="u-w-220px">Actions</th>
                     </tr>
@@ -95,8 +99,32 @@
                                 }
                             </td>
 
+                            <td>
+                                @switch (r.AiOrderCheckResult)
+                                {
+                                    case AiOrderCheckResult.ChecksOut:
+                                        <a asp-action="Show" asp-route-id="@r.DirectoryEntryReviewId" asp-fragment="ai-order-check" class="text-success"><b>Checks out</b></a>
+                                        break;
+                                    case AiOrderCheckResult.DoesNotCheckOut:
+                                        <a asp-action="Show" asp-route-id="@r.DirectoryEntryReviewId" asp-fragment="ai-order-check" class="text-danger"><b>Does not check out</b></a>
+                                        break;
+                                    case AiOrderCheckResult.InProgress:
+                                        <a asp-action="Show" asp-route-id="@r.DirectoryEntryReviewId" asp-fragment="ai-order-check">In progress</a>
+                                        break;
+                                    case AiOrderCheckResult.CouldNotVerify:
+                                        <a asp-action="Show" asp-route-id="@r.DirectoryEntryReviewId" asp-fragment="ai-order-check">Check by hand</a>
+                                        break;
+                                    default:
+                                        <span class="text-muted">@(string.IsNullOrWhiteSpace(r.OrderUrl) ? "—" : (r.ModerationStatus == ReviewModerationStatus.Pending || r.AiOrderCheckQueued ? "Waiting" : "Not checked"))</span>
+                                        break;
+                                }
+                                @if (r.AiOrderUsdValue is { } aiUsd)
+                                {
+                                    <br /><small>about $@aiUsd.ToString("N0")</small>
+                                }
+                            </td>
                             <td>@r.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat)</td>
-                            <td><code>@r.AuthorFingerprint</code></td>
+                            <td><code>@(DirectoryManager.Web.Helpers.MemberAuthor.ForAdmin(r.AuthorFingerprint, r.AuthorUserId, r.AuthorUsername, await MemberKeys.FingerprintForAsync(r.AuthorUserId)))</code></td>
                             <td>@(string.IsNullOrWhiteSpace(r.Body) ? "-" : (r.Body.Length > 80 ? r.Body[..80] + "…" : r.Body))</td>
                             <td>
                                 <a asp-action="Show" asp-route-id="@r.DirectoryEntryReviewId">View</a>
@@ -172,7 +200,7 @@
                         <th>Parent</th>
                         <th>Created</th>
                         <th>Updated</th>
-                        <th>Fingerprint</th>
+                        <th>Author (PGP / Member)</th>
                         <th>Excerpt</th>
                         <th class="u-w-240px">Actions</th>
                     </tr>
@@ -192,7 +220,7 @@
                             <td>@(c.ParentCommentId?.ToString() ?? "-")</td>
                             <td>@c.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat4)</td>
                             <td>@((c.UpdateDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat4)) ?? "-")</td>
-                            <td><code>@c.AuthorFingerprint</code></td>
+                            <td><code>@(DirectoryManager.Web.Helpers.MemberAuthor.ForAdmin(c.AuthorFingerprint, c.AuthorUserId, c.AuthorUsername, await MemberKeys.FingerprintForAsync(c.AuthorUserId)))</code></td>
                             <td>@(string.IsNullOrWhiteSpace(c.Body) ? "-" : (c.Body.Length > 80 ? c.Body[..80] + "…" : c.Body))</td>
                             <td>
                                 <a asp-action="ShowReply" asp-route-id="@c.DirectoryEntryReviewCommentId">View</a>

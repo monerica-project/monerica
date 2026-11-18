@@ -1,0 +1,36 @@
+@model DirectoryManager.Web.Models.TwoFactorRecoveryCodesViewModel
+@using DirectoryManager.Web.Constants;
+@{
+    PageMeta.Title = "Recovery Codes";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+<h1>@PageMeta.Title</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+@if (Model.JustEnabled)
+{
+    <p><b>Two-factor login is now ON.</b></p>
+}
+else
+{
+    <p><b>New recovery codes made.</b> The old ones no longer work.</p>
+}
+
+<p class="text-danger">
+    Save these codes somewhere safe and offline now. They are shown only once.
+    If you lose your phone, type one of them in the authenticator code box on the login page.
+    Each code works one time.
+</p>
+
+<ul>
+@foreach (var c in Model.Codes)
+{
+    <li><code>@c</code></li>
+}
+</ul>
+
+<p><a href="~/account/two-factor">Done</a></p>
+}

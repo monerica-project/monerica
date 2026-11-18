@@ -45,6 +45,18 @@ namespace DirectoryManager.Data.Repositories.Interfaces
             DateTime startDate,
             DateTime endDate);
 
+        /// <summary>
+        /// Commission rows (entry id + name, date, USD) with CommissionDate in [fromInclusive, toExclusive),
+        /// optionally for one listing. Null bounds are open.
+        /// </summary>
+        Task<List<AffiliateCommissionEarnedRow>> GetRowsAsync(
+            DateTime? fromInclusive,
+            DateTime? toExclusive,
+            int? directoryEntryId = null);
+
+        /// <summary>Earliest CommissionDate on record, or null when there are none.</summary>
+        Task<DateTime?> GetFirstCommissionDateAsync();
+
         Task<AffiliateCommissionEarned> CreateAsync(AffiliateCommissionEarned commission);
 
         Task UpdateAsync(AffiliateCommissionEarned commission);

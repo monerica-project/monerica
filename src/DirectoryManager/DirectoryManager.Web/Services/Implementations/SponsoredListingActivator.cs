@@ -14,12 +14,16 @@ namespace DirectoryManager.Web.Services.Implementations
         private readonly IMemoryCache cache;
         private readonly ILogger<SponsoredListingActivator> logger;
 
+        private readonly IStaticPublishService? staticPublish;
+
         public SponsoredListingActivator(
             ISponsoredListingInvoiceRepository invoiceRepository,
             ISponsoredListingRepository sponsoredListingRepository,
             IMemoryCache cache,
-            ILogger<SponsoredListingActivator> logger)
+            ILogger<SponsoredListingActivator> logger,
+            IStaticPublishService? staticPublish = null)
         {
+            this.staticPublish = staticPublish;
             this.invoiceRepository = invoiceRepository;
             this.sponsoredListingRepository = sponsoredListingRepository;
             this.cache = cache;
@@ -35,6 +39,13 @@ namespace DirectoryManager.Web.Services.Implementations
             await this.SaveInvoiceAsync(invoice).ConfigureAwait(false);
 
             if (!SponsoredListingCheckoutHelper.IsPaidOrOverpaid(invoice.PaymentStatus))
+            {
+                return;
+            }
+
+            // This invoice has already been turned into (or added to) a sponsored listing. Its paid
+            // period is counted exactly once, however often the payment event or an admin edit repeats.
+            if (invoice.SponsoredListingId is > 0)
             {
                 return;
             }
@@ -77,6 +88,18 @@ namespace DirectoryManager.Web.Services.Implementations
 
             if (active == null)
             {
+                // A paid order is always honored. If the slot filled up while this payment was on its
+                // way, say so loudly: the owner has to sort out two sponsors in one slot.
+                var max = SponsoredListingCheckoutHelper.GetMaxSlotsForType(invoice.SponsorshipType);
+                var taken = await this.sponsoredListingRepository
+                    .GetActiveSponsorsCountAsync(invoice.SponsorshipType, scopeId).ConfigureAwait(false);
+                if (taken >= max)
+                {
+                    this.logger.LogCritical(
+                        "OVERSOLD SLOT: invoice {InvoiceId} (listing {EntryId}, {Type}, scope {Scope}) was paid but {Taken} of {Max} slots were already taken. Activated anyway; needs the owner's attention.",
+                        invoice.InvoiceId, invoice.DirectoryEntryId, invoice.SponsorshipType, scopeId, taken, max);
+                }
+
                 var created = await this.sponsoredListingRepository.CreateAsync(new SponsoredListing
                 {
                     DirectoryEntryId = invoice.DirectoryEntryId,
@@ -96,6 +119,16 @@ namespace DirectoryManager.Web.Services.Implementations
             else
             {
                 // A renewal: the buyer already sponsors this slot, so the paid period extends it.
+                // Two invoices bought for the same period (two tabs, or a second one while the first
+                // waited for confirmations) both carry the same dates. The later one is moved to
+                // start where the sponsorship now ends, so every paid day is delivered.
+                var paidLength = invoice.CampaignEndDate - invoice.CampaignStartDate;
+                if (paidLength > TimeSpan.Zero && invoice.CampaignStartDate < active.CampaignEndDate)
+                {
+                    invoice.CampaignStartDate = active.CampaignEndDate;
+                    invoice.CampaignEndDate = active.CampaignEndDate + paidLength;
+                }
+
                 if (invoice.CampaignEndDate > active.CampaignEndDate)
                 {
                     active.CampaignEndDate = invoice.CampaignEndDate;
@@ -117,6 +150,12 @@ namespace DirectoryManager.Web.Services.Implementations
 
             await this.SaveInvoiceAsync(invoice).ConfigureAwait(false);
             SponsorCacheHelper.ClearSponsorCaches(this.cache);
+
+            // The sponsor ticker and boxes are on every page: refresh the whole mirror once.
+            if (this.staticPublish != null)
+            {
+                await this.staticPublish.RequestFullCrawlAsync($"sponsorship paid (invoice {invoice.InvoiceId})").ConfigureAwait(false);
+            }
         }
 
         private async Task SaveInvoiceAsync(SponsoredListingInvoice invoice)
