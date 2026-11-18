@@ -32,6 +32,15 @@ namespace DirectoryManager.ReviewOrderChecker.Check
 
         public int RenderTimeoutSeconds { get; set; } = 150;
 
+        // On the server the browser runs as a separate, firewalled user: when RunAsUser is set the
+        // job starts RunnerPath through "sudo -n -u RunAsUser" (a sudoers rule allows exactly that
+        // one script). Empty = start PythonPath directly as the job's own user (local development).
+        public string RunAsUser { get; set; } = string.Empty;
+
+        public string RunnerPath { get; set; } = "/opt/monerica-order-render/run.sh";
+
+        public string SudoPath { get; set; } = "/usr/bin/sudo";
+
         public string PriceApiBaseUrl { get; set; } = "https://moneromarketcap.com";
 
         public string ApiKey { get; set; } = string.Empty;

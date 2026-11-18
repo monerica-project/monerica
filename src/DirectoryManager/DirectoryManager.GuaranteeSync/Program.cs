@@ -19,7 +19,7 @@ var config = new ConfigurationBuilder()
 
 var options = config.GetSection("GuaranteeSync").Get<GuaranteeSyncOptions>() ?? new GuaranteeSyncOptions();
 
-using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(30), MaxResponseContentBufferSize = 5_000_000 };
 http.DefaultRequestHeaders.UserAgent.ParseAdd("MonericaGuaranteeSync/1.0 (+https://monerica.com)");
 
 string json;

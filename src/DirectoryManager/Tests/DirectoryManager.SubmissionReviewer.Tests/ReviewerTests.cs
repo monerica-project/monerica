@@ -405,6 +405,35 @@ namespace DirectoryManager.SubmissionReviewer.Tests
             Assert.Equal("Launch promo: low rates this week!", s.Note);
         }
 
+        // Owner, 2026-11-18 (#9946 tf2cart): the review must say in one short line why it is not
+        // ready, with a few short points, instead of a paragraph and six long bullets.
+        [Fact]
+        public void Verdict_IsKeptShortForTheOwner()
+        {
+            var longPoint = string.Join(" ", Enumerable.Repeat("word", 80));
+            var json = ValidJson("flag")
+                .Replace("\"issues\": []", "\"issues\": [\"one\", \"two\", \"" + longPoint + "\", \"four\", \"five\"]")
+                .Replace("Sells gear, XMR at checkout.", longPoint);
+
+            var v = VerdictParser.TryParse(json, out var error);
+
+            Assert.Null(error);
+            Assert.Equal(VerdictParser.MaxModelIssues, v!.Issues.Count);
+            Assert.All(v.Issues, i => Assert.True(i.Length <= VerdictParser.MaxIssueChars));
+            Assert.True(v.Summary.Length <= VerdictParser.MaxSummaryChars);
+            Assert.EndsWith("…", v.Summary);
+        }
+
+        [Fact]
+        public void SystemPrompt_AsksForOneShortReason()
+        {
+            var p = ClaudeReviewService.SystemPrompt(new ReviewContext(new[] { "Shopping > Gifts" }, new[] { "API Available" }, new[] { "X — y" }));
+            Assert.Contains("ONE plain sentence, at most 25 words", p);
+            Assert.Contains("issues: at most 3", p);
+            Assert.Contains("is not a reason to flag", p);
+            Assert.DoesNotContain("at most 2 sentences", p);
+        }
+
         private static FetchResult Ok() => new ("https://newshop.example", true, 200, "<p>ok</p>", null, new Uri("https://newshop.example"));
 
         private static Submission Sub(string name = "newshop", string link = "https://newshop.example", string description = "Original description of the new shop.") =>

@@ -308,6 +308,15 @@ namespace DirectoryManager.Web.Controllers
                 return this.View(model);
             }
 
+            // The current password is checked with the same lockout as sign-in, so a stolen
+            // session cannot be used to guess the password here without limit.
+            var check = await this.signInManager.CheckPasswordSignInAsync(currentUser, model.CurrentPassword ?? string.Empty, lockoutOnFailure: true);
+            if (!check.Succeeded)
+            {
+                this.ModelState.AddModelError(string.Empty, check.IsLockedOut ? "Too many wrong passwords. Please wait a few minutes and try again." : "The current password is not correct.");
+                return this.View(model);
+            }
+
             var result = await this.userManager.ChangePasswordAsync(currentUser, model.CurrentPassword, model.NewPassword);
 
             if (!result.Succeeded)
@@ -315,6 +324,9 @@ namespace DirectoryManager.Web.Controllers
                 this.ModelState.AddModelError(string.Empty, string.Join(",", result.Errors.Select(x => x.Description)));
                 return this.View(model);
             }
+
+            // The password change renewed the security stamp (other sessions end); keep this one.
+            await this.signInManager.RefreshSignInAsync(currentUser);
 
             return this.RedirectToAction("Home", "Account");
         }
@@ -325,6 +337,14 @@ namespace DirectoryManager.Web.Controllers
         [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
         public async Task<IActionResult> Logout()
         {
+            // Changing the security stamp makes every copy of this admin's sign-in cookie
+            // invalid, not just the one in this browser.
+            var user = await this.userManager.GetUserAsync(this.User);
+            if (user != null)
+            {
+                await this.userManager.UpdateSecurityStampAsync(user);
+            }
+
             await this.signInManager.SignOutAsync();
             return this.RedirectToAction(nameof(this.Login), "Account");
         }

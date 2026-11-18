@@ -109,6 +109,28 @@
             }
         }
 
+        @if (ViewBag.ShowSwapFacts == true)
+        {
+            @* Optional swap facts (exchanges only). Kept low-key: two small boxes, no "required" marks. *@
+            <div class="u-mb-16px">
+                <span class="text-muted">Swap details <i>(optional)</i></span>
+                <div class="u-mt-6px">
+                    <label asp-for="ProcessingMinutes" class="text-muted">Processing time</label>
+                    <input asp-for="ProcessingMinutes" type="number" min="1" max="43200" step="1" inputmode="numeric" class="form-control u-w-110px" placeholder="minutes" />
+                    <label asp-for="Confirmations" class="text-muted u-ml-16px">Confirmations</label>
+                    <input asp-for="Confirmations" type="number" min="0" max="1000" step="1" inputmode="numeric" class="form-control u-w-110px" />
+                </div>
+                <span asp-validation-for="ProcessingMinutes" class="text-danger"></span>
+                <span asp-validation-for="Confirmations" class="text-danger"></span>
+                <div class="form-text">
+                    Roughly how many minutes the swap took from sending your coins to receiving them, and how many
+                    confirmations the exchange waited for. Leave either box empty if you are not sure.
+                    <br />
+                    <span class="text-muted">Shown with your review.</span>
+                </div>
+            </div>
+        }
+
         @{
             var availableTags = ViewBag.AvailableReviewTags as List<DirectoryManager.Data.Models.Reviews.ReviewTag>;
             var selectedTagIds = Model?.SelectedReviewTagIds ?? new List<int>();

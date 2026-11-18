@@ -255,6 +255,7 @@ namespace DirectoryManager.Web.Controllers
                 Username = user.UserName ?? string.Empty,
                 RequireOrderProof = requireProof,
                 RequireDetails = requireDetails,
+                ShowSwapFacts = await this.reviews.AcceptsSwapFactsAsync(entry, ct),
                 IsEdit = existing != null,
                 CurrentStatus = existing?.ModerationStatus,
                 RejectionReason = existing?.RejectionReason,
@@ -264,6 +265,8 @@ namespace DirectoryManager.Web.Controllers
                     Body = existing?.Body,
                     OrderProof = existing?.OrderUrl,
                     OrderProofContext = existing?.OrderProofContext,
+                    ProcessingMinutes = existing?.ProcessingMinutes,
+                    Confirmations = existing?.Confirmations,
                 },
             };
         }

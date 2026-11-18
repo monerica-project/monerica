@@ -271,11 +271,17 @@ namespace DirectoryManager.Web.Tests.Security
             Assert.Contains("issuer=Test%20Directory", vm.AuthenticatorUri);
             var key = await h.UserManager.GetAuthenticatorKeyAsync(user);
 
-            var wrong = Assert.IsType<ViewResult>(await controller.Enable("000000"));
+            var wrong = Assert.IsType<ViewResult>(await controller.Enable("000000", IdentityHarness.Password));
             Assert.IsType<TwoFactorEnableViewModel>(wrong.Model);
             Assert.False(await h.UserManager.GetTwoFactorEnabledAsync(user));
 
-            var right = Assert.IsType<ViewResult>(await controller.Enable(IdentityHarness.Totp(key!)));
+            // A valid code alone is not enough: the password is needed too, so a stolen session
+            // cannot attach its own authenticator. (Security review 2026-11-18.)
+            var noPassword = Assert.IsType<ViewResult>(await controller.Enable(IdentityHarness.Totp(key!), "wrong password"));
+            Assert.IsType<TwoFactorEnableViewModel>(noPassword.Model);
+            Assert.False(await h.UserManager.GetTwoFactorEnabledAsync(user));
+
+            var right = Assert.IsType<ViewResult>(await controller.Enable(IdentityHarness.Totp(key!), IdentityHarness.Password));
             Assert.Equal("RecoveryCodes", right.ViewName);
             var codes = Assert.IsType<TwoFactorRecoveryCodesViewModel>(right.Model);
             Assert.Equal(TwoFactorController.RecoveryCodeCount, codes.Codes.Count);

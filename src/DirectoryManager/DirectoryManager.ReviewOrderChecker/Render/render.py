@@ -6,18 +6,30 @@ ONE value (the receiving address or order id the reviewer supplied) into the pag
 and returns the visible text plus an optional screenshot. It never logs in, never pays, never
 submits anything else.
 
-  render.py --url URL [--proxy socks5://127.0.0.1:9050] [--fill VALUE] [--shot FILE.png]
+  render.py --url URL [--proxy socks5://127.0.0.1:9050] [--fill VALUE] [--shot FILE.png | --shot-inline]
+
+Safety (the link comes from an anonymous reviewer, so the page is hostile until proven otherwise):
+  * On the server this script is started through /opt/monerica-order-render/run.sh as the
+    locked-down user "order-render". A firewall rule for that user refuses every connection to
+    this machine and to private networks (only Tor's SOCKS port is allowed). That rule is the
+    real protection against a page that redirects, re-resolves its DNS name or opens sockets
+    towards internal addresses; the checks below are a second layer and give clearer errors.
+  * Chromium's own sandbox is on, and the process gets no secrets in its environment.
 """
 import argparse
+import base64
 import ipaddress
 import json
+import os
 import re
 import socket
 import sys
 from urllib.parse import urlparse
 
-from playwright.sync_api import TimeoutError as PwTimeout
-from playwright.sync_api import sync_playwright
+os.environ.setdefault("PLAYWRIGHT_BROWSERS_PATH", "/opt/monerica-order-render/browsers")
+
+from playwright.sync_api import TimeoutError as PwTimeout  # noqa: E402
+from playwright.sync_api import sync_playwright  # noqa: E402
 
 MAX_TEXT = 14000
 UA = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -26,12 +38,12 @@ FIELD_HINT = re.compile(r"address|wallet|recipient|destination|payout|receiv|wit
                         r"token|id\b|hash|txid", re.I)
 BUTTON_HINT = re.compile(r"check|view|show|unlock|verify|submit|track|search|confirm|continue|find|"
                          r"open|access|look ?up|go\b|details", re.I)
-_dns_cache = {}
+MAX_URL = 500
 
 
 def host_is_public(host: str, via_proxy: bool) -> bool:
     """False for loopback / private / link-local targets, so a review can never point us inward."""
-    host = (host or "").strip("[]").lower()
+    host = (host or "").strip("[]").lower().rstrip(".")  # "localhost." is localhost
     if not host or host == "localhost" or host.endswith(".localhost") or host.endswith(".local") \
             or host.endswith(".internal"):
         return False
@@ -43,13 +55,13 @@ def host_is_public(host: str, via_proxy: bool) -> bool:
         pass
     if via_proxy:
         return True  # resolved by the proxy (Tor), which cannot reach our private network
-    if host not in _dns_cache:
-        try:
-            infos = socket.getaddrinfo(host, None)
-            _dns_cache[host] = all(ipaddress.ip_address(i[4][0]).is_global for i in infos) and bool(infos)
-        except (socket.gaierror, ValueError):
-            _dns_cache[host] = False
-    return _dns_cache[host]
+    # Looked up on every request (no cache): a name that later starts answering with a private
+    # address is refused here too. The firewall rule covers the gap between this check and connect.
+    try:
+        infos = socket.getaddrinfo(host, None)
+        return bool(infos) and all(ipaddress.ip_address(i[4][0]).is_global for i in infos)
+    except (socket.gaierror, ValueError):
+        return False
 
 
 def visible_text(page) -> str:
@@ -121,6 +133,8 @@ def main() -> int:
     ap.add_argument("--proxy")
     ap.add_argument("--fill")
     ap.add_argument("--shot")
+    ap.add_argument("--shot-inline", action="store_true",
+                    help="return the screenshot inside the JSON (shot_b64) instead of writing a file")
     ap.add_argument("--wait", type=int, default=7000)
     a = ap.parse_args()
 
@@ -136,6 +150,7 @@ def main() -> int:
     with sync_playwright() as p:
         browser = p.chromium.launch(
             headless=True,
+            chromium_sandbox=True,
             proxy={"server": a.proxy} if a.proxy else None,
             args=["--disable-dev-shm-usage", "--no-first-run", "--disable-background-networking",
                   "--disable-extensions", "--js-flags=--max-old-space-size=384"])
@@ -155,6 +170,8 @@ def main() -> int:
                 return route.continue_()
 
             ctx.route("**/*", guard)
+            # WebSockets do not pass through the route above; an order page has no need for them.
+            ctx.route_web_socket("**/*", lambda ws: ws.close())
             page = ctx.new_page()
             page.set_default_timeout(20000)
             try:
@@ -198,7 +215,7 @@ def main() -> int:
                         page.wait_for_load_state("networkidle", timeout=5000)
                     except PwTimeout:
                         pass
-                out["final_url"] = page.url
+                out["final_url"] = (page.url or "")[:MAX_URL]
                 try:
                     out["title"] = (page.title() or "")[:200]
                 except Exception:
@@ -208,6 +225,13 @@ def main() -> int:
                 if a.shot:
                     try:
                         page.screenshot(path=a.shot, full_page=False, type="jpeg", quality=60)
+                    except Exception:
+                        pass
+                elif a.shot_inline:
+                    try:
+                        shot = page.screenshot(full_page=False, type="jpeg", quality=60)
+                        if len(shot) < 4_000_000:
+                            out["shot_b64"] = base64.b64encode(shot).decode("ascii")
                     except Exception:
                         pass
                 out["ok"] = bool(out["text"])

@@ -137,8 +137,10 @@ namespace DirectoryManager.Web.Controllers
             }
         }
 
+        // POST only: this check creates a folder, and a GET that changes something can be
+        // triggered by a link sent to a signed-in admin.
         [Route("sitefilesmanagement/diag")]
-        [HttpGet]
+        [HttpPost]
         public async Task<IActionResult> Diag()
         {
             var sb = new System.Text.StringBuilder();
@@ -181,6 +183,14 @@ namespace DirectoryManager.Web.Controllers
                 }
 
                 folderName = folderName.Trim();
+
+                // Same name rules as upload and delete: one plain folder name, no path pieces.
+                if (folderName.Length > 100 || folderName is "." or ".." || folderName.IndexOfAny(new[] { '/', '\\', ':', '\0' }) >= 0
+                    || (currentDirectory ?? string.Empty).Split('/', '\\').Any(part => part == ".."))
+                {
+                    this.TempData["Error"] = "That folder name is not allowed.";
+                    return this.RedirectToAction("Index", new { folderPath = currentDirectory });
+                }
 
                 await this.siteFilesRepository.CreateFolderAsync(folderName, currentDirectory);
 

@@ -16,6 +16,9 @@ namespace DirectoryManager.Web.Models.Members
 
         public bool RequireDetails { get; set; }
 
+        /// <summary>Exchange listing: offer the optional processing time and confirmations boxes.</summary>
+        public bool ShowSwapFacts { get; set; }
+
         public bool IsEdit { get; set; }
 
         public ReviewModerationStatus? CurrentStatus { get; set; }

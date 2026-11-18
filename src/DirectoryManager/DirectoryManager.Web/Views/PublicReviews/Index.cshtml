@@ -182,6 +182,12 @@
                         @Html.Raw(StringHelpers.RenderBodyWithLinksHtml(r.Body, cssClass: "multi-line-text", ugcContent: true))
                     </div>
 
+                    @{ var swapFacts = DirectoryManager.Data.Helpers.ReviewSwapFacts.Summary(r.ProcessingMinutes, r.Confirmations); }
+                    @if (swapFacts != null)
+                    {
+                        <div class="u-mt-4px"><small class="text-muted" title="Stated by the reviewer">@swapFacts</small></div>
+                    }
+
                     <div class="mt-2">
                         <small class="text-muted">
                             Author:

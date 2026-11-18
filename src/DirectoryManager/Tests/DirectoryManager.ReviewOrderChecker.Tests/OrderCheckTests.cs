@@ -183,5 +183,18 @@ namespace DirectoryManager.ReviewOrderChecker.Tests
             Assert.Equal(200, page.Status);
             Assert.Single(page.Inputs);
         }
+
+        [Fact]
+        public void PageReader_ReadsInlineScreenshot_CapsLongUrls_AndRejectsNonJson()
+        {
+            // Security review 2026-11-18: the browser runs as another user, so the screenshot
+            // comes back inside the JSON; a page can no longer push a huge final URL into the prompt.
+            var shot = Convert.ToBase64String(new byte[] { 1, 2, 3, 4 });
+            var longUrl = "https://a.example/" + new string('x', 5000);
+            var page = OrderPageReader.Parse("{\"ok\":true,\"final_url\":\"" + longUrl + "\",\"status\":200,\"title\":\"Order\",\"text\":\"Completed\",\"inputs\":[],\"shot_b64\":\"" + shot + "\"}", null);
+            Assert.Equal(new byte[] { 1, 2, 3, 4 }, page.Screenshot);
+            Assert.Equal(500, page.FinalUrl!.Length);
+            Assert.Throws<System.Text.Json.JsonException>(() => OrderPageReader.Parse("Traceback: no json here", null));
+        }
     }
 }

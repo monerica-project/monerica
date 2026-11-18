@@ -27,6 +27,16 @@ namespace DirectoryManager.Web.Models
         [MaxLength(2048)]
         public string? OrderProofContext { get; set; }
 
+        // Optional swap facts (exchange listings only): minutes the swap took and the number of
+        // confirmations the exchange waited for. Shown with the review when given.
+        [Range(1, 43200, ErrorMessage = "Processing time must be between 1 and 43,200 minutes (30 days), or left blank.")]
+        [Display(Name = "Processing time (minutes)")]
+        public int? ProcessingMinutes { get; set; }
+
+        [Range(0, 1000, ErrorMessage = "Confirmations must be between 0 and 1,000, or left blank.")]
+        [Display(Name = "Confirmations")]
+        public int? Confirmations { get; set; }
+
         // Review tags the reviewer suggests (checkbox selection). Only enabled tags are honored;
         // the admin reviews and can approve or modify these during moderation.
         public List<int>? SelectedReviewTagIds { get; set; }

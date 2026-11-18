@@ -374,7 +374,14 @@ task_sync_files() {
     scp_send "$tar_file" "/tmp/${UNIT_PREFIX}${JOB_NAME}.tar.gz"
     rm -f "$tar_file"
     ssh_run "mkdir -p $DEPLOY_PATH && tar -xzf /tmp/${UNIT_PREFIX}${JOB_NAME}.tar.gz -C $DEPLOY_PATH && rm /tmp/${UNIT_PREFIX}${JOB_NAME}.tar.gz"
-    ssh_run "chown -R www-data:www-data $DEPLOY_PATH && chmod -R 755 $DEPLOY_PATH"
+    # JOB_USER (job conf): the account the job runs as. Jobs that fetch pages chosen by
+    # strangers run as a separate, firewalled account (dm-fetch) instead of the web server's.
+    local job_user="${JOB_USER:-www-data}"
+    if ! ssh_run "id -u $job_user >/dev/null 2>&1"; then
+        write_err "User $job_user does not exist on the server (JOB_USER in the job conf). Run the one-time isolation setup first."
+        exit 1
+    fi
+    ssh_run "chown -R $job_user:$job_user $DEPLOY_PATH && chmod -R 755 $DEPLOY_PATH"
     # Settings hold secrets (DB password, SendGrid key): readable only by the service user.
     # (including the copies the Data project publishes under data/)
     ssh_run "find $DEPLOY_PATH -name \"appsettings*.json\" -exec chmod 600 {} +"
@@ -413,8 +420,10 @@ $( [[ "${NEEDS_TOR:-0}" -eq 1 ]] && echo "Wants=tor@default.service" )
 Type=oneshot
 WorkingDirectory=$DEPLOY_PATH
 ExecStart=/usr/bin/dotnet $DEPLOY_PATH/$DLL_NAME
-User=www-data
-Group=www-data
+User=${JOB_USER:-www-data}
+Group=${JOB_USER:-www-data}
+$( [[ "${JOB_USER:-www-data}" != "www-data" ]] && printf '%s\n' "# Isolated job: its own temp folder, no access to home folders, system files read-only, capped memory." "PrivateTmp=yes" "ProtectHome=yes" "ProtectSystem=full" "MemoryMax=2G" "TasksMax=768" )
+$( [[ "${JOB_USER:-www-data}" != "www-data" && "${NEEDS_SUDO:-0}" -ne 1 ]] && echo "NoNewPrivileges=yes" )
 Environment=DOTNET_ENVIRONMENT=Production
 Environment=ASPNETCORE_ENVIRONMENT=Production
 Environment=DOTNET_PRINT_TELEMETRY_MESSAGE=false

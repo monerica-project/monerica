@@ -21,6 +21,9 @@ namespace DirectoryManager.Web.Helpers;
 /// </summary>
 public static class PgpCapabilities
 {
+    /// <summary>Largest key size (in bits) the site will encrypt to.</summary>
+    public const int MaxKeyBits = 8192;
+
     /// <summary>Largest key block accepted. Real keys are a few KB; this bounds parsing work.</summary>
     public const int MaxArmoredKeyChars = 64 * 1024;
 
@@ -193,6 +196,14 @@ public static class PgpCapabilities
         // true for an RSA primary even when that key is flagged sign/certify-only — hence the extra
         // checks below.
         if (!key.IsEncryptionKey)
+        {
+            return false;
+        }
+
+        // Refuse oversized keys. Encrypting to (or checking a signature from) a key with a
+        // huge modulus can take minutes of CPU, so a visitor could tie the server up by pasting
+        // one. Real keys are 4096 bits or less; 8192 leaves room for the rare larger one.
+        if (key.BitStrength > MaxKeyBits || ring.GetPublicKey().BitStrength > MaxKeyBits)
         {
             return false;
         }

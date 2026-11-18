@@ -6,6 +6,10 @@ namespace DirectoryManager.SubmissionReviewer.Review
 {
     public static class VerdictParser
     {
+        public const int MaxModelIssues = 3;
+        public const int MaxIssueChars = 160;
+        public const int MaxSummaryChars = 260;
+
         public static AiVerdict? TryParse(string? json, out string? error)
         {
             error = null;
@@ -39,6 +43,14 @@ namespace DirectoryManager.SubmissionReviewer.Review
                 return null;
             }
 
+            // The owner reads these on a busy page: keep the model's own points few and short.
+            // (Points added by the checks below are kept in full.)
+            v.Issues = (v.Issues ?? new List<string>())
+                .Where(i => !string.IsNullOrWhiteSpace(i))
+                .Take(MaxModelIssues)
+                .Select(i => Shorten(i.Trim(), MaxIssueChars))
+                .ToList();
+
             v.MoneroEvidence = (v.MoneroEvidence ?? "none").Trim().ToLowerInvariant();
             if (!AiVerdict.Evidence.Contains(v.MoneroEvidence))
             {
@@ -53,9 +65,8 @@ namespace DirectoryManager.SubmissionReviewer.Review
             }
 
             v.Proposal ??= new AiProposal();
-            v.Issues ??= new List<string>();
             v.SuggestedSubcategories ??= new List<string>();
-            v.Summary = (v.Summary ?? string.Empty).Trim();
+            v.Summary = Shorten((v.Summary ?? string.Empty).Trim(), MaxSummaryChars);
 
             var desc = v.Proposal.Description?.Trim();
             if (desc != null && desc.Length > ListingText.DescriptionMaxLength)
@@ -77,6 +88,18 @@ namespace DirectoryManager.SubmissionReviewer.Review
             }
 
             return v;
+        }
+
+        // Cuts at a word boundary so a long answer still reads cleanly.
+        private static string Shorten(string s, int max)
+        {
+            if (s.Length <= max)
+            {
+                return s;
+            }
+
+            var cut = s.LastIndexOf(' ', max - 1);
+            return s[..(cut > max / 2 ? cut : max - 1)].TrimEnd(' ', ',', ';', ':') + "…";
         }
 
         // Tolerates a stray code fence or text around the object.

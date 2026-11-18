@@ -32,20 +32,27 @@ namespace DirectoryManager.Web.Services.Interfaces
                 ctx = (request.Query["ctx"].ToString() ?? string.Empty).Trim();
             }
 
-            if (string.IsNullOrEmpty(ctx))
-            {
-                ctx = "default";
-            }
-
-            var keyCtx = $"CaptchaCode:{ctx}";
+            // Same normalisation as where the image stores its code, so the keys always line up.
+            var keyCtx = DirectoryManager.Web.Helpers.CaptchaTools.SessionKey(
+                DirectoryManager.Web.Helpers.CaptchaTools.NormalizeContext(ctx));
             var sess = request.HttpContext.Session;
 
             // read
-            var expected = sess.GetString(keyCtx) ?? sess.GetString("CaptchaCode");
+            var expected = sess.GetString(keyCtx) ?? sess.GetString(DirectoryManager.Web.Helpers.CaptchaTools.LegacySessionKey);
 
-            // consume (one-time)
-            sess.Remove(keyCtx);
-            sess.Remove("CaptchaCode");
+            // consume (one-time). One image stores its code under its own context AND under the
+            // legacy key, so every copy of this code is removed: otherwise one solved image could
+            // be used twice, once through each key.
+            var copies = sess.Keys
+                .Where(k => k.StartsWith(DirectoryManager.Web.Helpers.CaptchaTools.LegacySessionKey, StringComparison.Ordinal))
+                .Where(k => k == keyCtx
+                            || k == DirectoryManager.Web.Helpers.CaptchaTools.LegacySessionKey
+                            || (!string.IsNullOrEmpty(expected) && string.Equals(sess.GetString(k), expected, StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+            foreach (var k in copies)
+            {
+                sess.Remove(k);
+            }
 
             // compare, case-insensitive
             return !string.IsNullOrEmpty(expected) &&

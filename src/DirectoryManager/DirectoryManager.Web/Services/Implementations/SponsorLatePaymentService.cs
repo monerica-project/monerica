@@ -21,6 +21,10 @@ namespace DirectoryManager.Web.Services.Implementations
         // One acceptance at a time: the webhook and the sweeper can look at the same invoice together.
         private static readonly SemaphoreSlim Gate = new (1, 1);
 
+        // A paid invoice still blocked by someone else's hold after this long is reported to the
+        // owner (the sweeper stops re-checking an invoice once it is SponsorLatePaymentSweeper.Window old).
+        private static readonly TimeSpan HeldTooLong = TimeSpan.FromHours(4);
+
         private readonly ISponsoredListingInvoiceRepository invoices;
         private readonly ISponsoredListingRepository sponsoredListings;
         private readonly ISponsoredListingReservationRepository reservations;
@@ -115,6 +119,13 @@ namespace DirectoryManager.Web.Services.Implementations
                 if (slot == LatePaymentOutcome.SlotTaken)
                 {
                     await this.NoteForOwnerAsync(invoice, "LatePaymentSlotTaken", check).ConfigureAwait(false);
+                }
+                else if (slot == LatePaymentOutcome.SlotHeld && DateTime.UtcNow - invoice.CreateDate > HeldTooLong)
+                {
+                    // Someone else has kept the slot on hold for hours (a busy day, or a competitor
+                    // refreshing a hold on purpose). The automatic re-checks stop after a while, so
+                    // a paid buyer must not be left waiting in silence: tell the owner.
+                    await this.NoteForOwnerAsync(invoice, "LatePaymentSlotHeld", check).ConfigureAwait(false);
                 }
 
                 if (slot != LatePaymentOutcome.Accepted)
@@ -217,8 +228,11 @@ namespace DirectoryManager.Web.Services.Implementations
                     return LatePaymentOutcome.SlotTaken;
                 }
 
+                // Other buyers' holds only block this payment when, together with the live
+                // sponsors, they would fill the subcategory's limit.
                 var subGroup = ReservationGroupHelper.BuildMainSponsorSubcategoryGroupName(subCategoryId);
-                if (await this.reservations.GetActiveReservationsCountExcludingEntryAsync(subGroup, invoice.DirectoryEntryId).ConfigureAwait(false) > 0)
+                var heldInSubcategory = await this.reservations.GetActiveReservationsCountExcludingEntryAsync(subGroup, invoice.DirectoryEntryId).ConfigureAwait(false);
+                if (inSubcategory + heldInSubcategory >= Common.Constants.IntegerConstants.MaxMainSponsorsPerSubcategory)
                 {
                     return LatePaymentOutcome.SlotHeld;
                 }

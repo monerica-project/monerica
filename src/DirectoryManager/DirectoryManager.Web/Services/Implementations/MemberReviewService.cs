@@ -1,5 +1,6 @@
 ﻿using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Helpers;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.Reviews;
 using DirectoryManager.Data.Repositories.Interfaces;
@@ -65,6 +66,16 @@ namespace DirectoryManager.Web.Services.Implementations
                 .Select(s => s.RequireReviewVerification)
                 .FirstOrDefaultAsync(ct);
             return (subRequires, entry.RequireReviewVerificationDetails);
+        }
+
+        public async Task<bool> AcceptsSwapFactsAsync(DirectoryEntry entry, CancellationToken ct = default)
+        {
+            var categoryKey = entry.SubCategory?.Category?.CategoryKey
+                ?? await this.db.Subcategories.AsNoTracking()
+                    .Where(s => s.SubCategoryId == entry.SubCategoryId)
+                    .Select(s => s.Category.CategoryKey)
+                    .FirstOrDefaultAsync(ct);
+            return ReviewSwapFacts.AppliesToCategory(categoryKey);
         }
 
         public async Task<MemberSaveResult> SaveReviewAsync(ApplicationUser member, DirectoryEntry? entry, MemberReviewInputModel input, CancellationToken ct = default)
@@ -184,6 +195,11 @@ namespace DirectoryManager.Web.Services.Implementations
                 return result;
             }
 
+            // Optional swap facts: kept only for exchange listings, and only when in range.
+            var swapFacts = await this.AcceptsSwapFactsAsync(entry, ct);
+            var processingMinutes = swapFacts ? ReviewSwapFacts.CleanMinutes(input.ProcessingMinutes) : null;
+            var confirmations = swapFacts ? ReviewSwapFacts.CleanConfirmations(input.Confirmations) : null;
+
             var now = this.NowUtc;
 
             if (existing != null)
@@ -195,6 +211,8 @@ namespace DirectoryManager.Web.Services.Implementations
                 existing.OrderUrl = proofUrl;
                 existing.OrderId = null;
                 existing.OrderProofContext = details;
+                existing.ProcessingMinutes = processingMinutes;
+                existing.Confirmations = confirmations;
                 existing.ModerationStatus = ReviewModerationStatus.Pending;
                 existing.RejectionReason = string.Empty;
                 existing.AuthorUsername = member.UserName;
@@ -216,6 +234,8 @@ namespace DirectoryManager.Web.Services.Implementations
                 Body = body,
                 OrderUrl = proofUrl,
                 OrderProofContext = details,
+                ProcessingMinutes = processingMinutes,
+                Confirmations = confirmations,
                 ModerationStatus = ReviewModerationStatus.Pending,
                 CreateDate = now,
                 CreatedByUserId = MemberUserMarker,

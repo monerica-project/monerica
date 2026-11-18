@@ -58,6 +58,31 @@ namespace DirectoryManager.Web.Tests.Security
             ["VideoSponsorship"] = new[] { "*" },
         };
 
+        /// <summary>
+        /// [AllowAnonymous] on a controller class switches authorization off for EVERY action in
+        /// it, including one that carries its own [Authorize]: the framework lets AllowAnonymous
+        /// win. So a protected action must never live inside such a controller; it would look
+        /// protected in the code and be open to everyone. (Security review 2026-11-18.)
+        /// </summary>
+        [Fact]
+        public void NoAuthorizeAttributeInsideAnAllowAnonymousController()
+        {
+            var offenders = typeof(HomeController).Assembly.GetTypes()
+                .Where(t => !t.IsAbstract && typeof(ControllerBase).IsAssignableFrom(t)
+                            && t.GetCustomAttribute<NonControllerAttribute>() == null
+                            && t.GetCustomAttributes<AllowAnonymousAttribute>(true).Any())
+                .SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                    .Where(m => !m.IsSpecialName && m.DeclaringType != typeof(object)
+                                && m.GetCustomAttributes<AuthorizeAttribute>(true).Any())
+                    .Select(m => $"{t.Name}.{m.Name}"))
+                .OrderBy(x => x)
+                .ToList();
+
+            Assert.True(
+                offenders.Count == 0,
+                "These actions carry [Authorize] inside an [AllowAnonymous] controller, where it has no effect. Move them to a protected controller:\n" + string.Join("\n", offenders));
+        }
+
         [Fact]
         public void EveryActionNeedsALogin_UnlessListedAsPublic()
         {

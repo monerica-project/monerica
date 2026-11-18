@@ -4,6 +4,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Helpers;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.Reviews;
 using DirectoryManager.Data.Repositories.Interfaces;
@@ -338,6 +339,7 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.RequireVerification =
                 entry is not null && await this.SubcategoryRequiresVerificationAsync(entry.SubCategoryId);
             this.ViewBag.RequireVerificationDetails = entry?.RequireReviewVerificationDetails == true;
+            this.ViewBag.ShowSwapFacts = ReviewSwapFacts.AppliesToCategory(entry?.SubCategory?.Category?.CategoryKey);
 
             if (entry is not null && await this.KeyHasMemberReviewAsync(state.PgpFingerprint, entry.DirectoryEntryId, CancellationToken.None))
             {
@@ -431,6 +433,10 @@ namespace DirectoryManager.Web.Controllers
             // Per-listing admin setting: the Verification Details box must be filled in.
             var requireDetails = gateEntry.RequireReviewVerificationDetails;
             this.ViewBag.RequireVerificationDetails = requireDetails;
+
+            // Exchange listings offer two optional facts (processing time, confirmations).
+            var showSwapFacts = ReviewSwapFacts.AppliesToCategory(gateEntry.SubCategory?.Category?.CategoryKey);
+            this.ViewBag.ShowSwapFacts = showSwapFacts;
 
             if (!this.ModelState.IsValid)
             {
@@ -602,6 +608,10 @@ namespace DirectoryManager.Web.Controllers
             // so it can be inspected during moderation. It is never shown publicly.
             ApplyOrderProof(entity, input.OrderProof);
             entity.OrderProofContext = NormalizeOrderProofContext(input.OrderProofContext);
+
+            // Optional swap facts: kept only for exchange listings, and only when in range.
+            entity.ProcessingMinutes = showSwapFacts ? ReviewSwapFacts.CleanMinutes(input.ProcessingMinutes) : null;
+            entity.Confirmations = showSwapFacts ? ReviewSwapFacts.CleanConfirmations(input.Confirmations) : null;
 
             // Verification subcategories always go to manual moderation. Otherwise, auto-publish
             // clean reviews: a review goes live immediately when it has neither a blacklist term
@@ -790,6 +800,8 @@ namespace DirectoryManager.Web.Controllers
 
             ApplyOrderProof(entity, input.OrderProof);
             entity.OrderProofContext = NormalizeOrderProofContext(input.OrderProofContext);
+            entity.ProcessingMinutes = ReviewSwapFacts.CleanMinutes(input.ProcessingMinutes);
+            entity.Confirmations = ReviewSwapFacts.CleanConfirmations(input.Confirmations);
 
             try
             {

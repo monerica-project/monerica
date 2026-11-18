@@ -267,7 +267,7 @@ namespace DirectoryManager.Web.Controllers
         private async Task<(List<SponsoredListingInvoice> Invoices, List<RevenueItem> OneTime)> LoadAsync(CancellationToken ct)
         {
             var invoices = (await this.invoiceRepository.GetAllAsync())
-                .Where(i => i.PaymentStatus == PaymentStatus.Paid || i.PaymentStatus == PaymentStatus.OverPayment)
+                .Where(i => (i.PaymentStatus == PaymentStatus.Paid || i.PaymentStatus == PaymentStatus.OverPayment) && !i.IsTest)
                 .ToList();
             var oneTime = await this.revenueRepository.GetOneTimeRevenueAsync(ct);
             return (invoices, oneTime);

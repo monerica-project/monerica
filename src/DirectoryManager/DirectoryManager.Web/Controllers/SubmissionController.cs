@@ -1233,6 +1233,12 @@ namespace DirectoryManager.Web.Controllers
         {
             var term = (q ?? string.Empty).Trim();
 
+            // Same cap as the public search page: a longer term only costs CPU.
+            if (term.Length > 100)
+            {
+                term = term[..100];
+            }
+
             int p = page.GetValueOrDefault(1);
             if (p < 1)
             {
@@ -1255,10 +1261,12 @@ namespace DirectoryManager.Web.Controllers
                 return this.View("FindingListing", vm);
             }
 
-            // ✅ Includes Removed listings
-            var result = await this.directoryEntryRepository
-                .SearchIncludingRemovedAsync(term, p, pageSize)
-                .ConfigureAwait(false);
+            // Visitors search the same cached index as the public search page, which leaves out
+            // Removed listings (hidden from anonymous visitors everywhere else too). Only a
+            // signed-in admin gets the full search, which loads every listing on each request.
+            var result = this.User.IsAdmin()
+                ? await this.directoryEntryRepository.SearchIncludingRemovedAsync(term, p, pageSize).ConfigureAwait(false)
+                : await this.directoryEntryRepository.SearchNonRemovedAsync(term, p, pageSize).ConfigureAwait(false);
 
             vm.TotalCount = result.TotalCount;
 
@@ -1331,8 +1339,13 @@ namespace DirectoryManager.Web.Controllers
             }
 
             // ---- A domain blocked after this draft was made is still refused. ----
-            var confirmBlocked = await this.BlockedDomainInAsync(
-                submission.Link, submission.Link2, submission.Link3, submission.ProofLink, submission.VideoLink, submission.SourceCodeLink);
+            var confirmLinks = new List<string?>
+            {
+                submission.Link, submission.Link2, submission.Link3, submission.ProofLink, submission.VideoLink, submission.SourceCodeLink,
+                submission.Social, submission.Messenger,
+            };
+            confirmLinks.AddRange(submission.RelatedLinks);
+            var confirmBlocked = await this.BlockedDomainInAsync(confirmLinks.ToArray());
 
             if (confirmBlocked != null)
             {
@@ -1566,6 +1579,22 @@ namespace DirectoryManager.Web.Controllers
             for (int i = 0; i < (model.Guarantees?.Count ?? 0); i++)
             {
                 fields.Add(($"Guarantees[{i}].Link", $"Guarantee {i + 1} proof link", model.Guarantees![i].Link));
+            }
+
+            // Social and Messenger become live links on the listing page, so when they hold a web
+            // address it gets the same checks as every other link (blocked domains, raw IPs and
+            // ports, test hosts, file downloads). Handles and e-mail addresses are left alone.
+            foreach (var (key, label, value) in new[]
+                     {
+                         (nameof(model.Social), "Social", model.Social),
+                         (nameof(model.Messenger), "Messenger", model.Messenger),
+                     })
+            {
+                var v = (value ?? string.Empty).Trim();
+                if (v.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || v.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                {
+                    fields.Add((key, label, v));
+                }
             }
 
             return fields;
@@ -2436,11 +2465,24 @@ namespace DirectoryManager.Web.Controllers
             return postedModel.DirectoryEntryId.Value;
         }
 
+        /// <summary>The selected tag ids that still exist (deleted tags are dropped, duplicates removed).</summary>
+        /// <returns>Ids safe to link to a listing.</returns>
+        internal static HashSet<int> KeepExistingTagIds(IEnumerable<int>? selectedTagIds, IEnumerable<int> liveTagIds)
+        {
+            var live = liveTagIds.ToHashSet();
+            return (selectedTagIds ?? Enumerable.Empty<int>()).Where(live.Contains).ToHashSet();
+        }
+
         private async Task SyncEntryTagsAsync(int entryId, int[] selectedTagIds)
         {
             var existingTags = await this.entryTagRepo.GetTagsForEntryAsync(entryId);
             var existingIds = existingTags.Select(t => t.TagId).ToHashSet();
-            var selectedIds = selectedTagIds.ToHashSet();
+
+            // A tag can be deleted after a submission was written (the two JavaScript tags were, on
+            // 2026-11-08). Its id is still in the old submission; saving it breaks the approval
+            // half-way with a foreign-key error (submission 8525, 2026-11-18). Skip ids that are gone.
+            var liveTagIds = (await this.tagRepo.ListAllAsync()).Select(t => t.TagId);
+            var selectedIds = KeepExistingTagIds(selectedTagIds, liveTagIds);
 
             foreach (var oldId in existingIds.Except(selectedIds))
             {

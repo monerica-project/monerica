@@ -465,6 +465,8 @@ namespace DirectoryManager.Web.Controllers
                 Body = review.Body ?? string.Empty,
                 OrderProof = review.OrderUrl ?? review.OrderId,
                 OrderProofContext = review.OrderProofContext,
+                ProcessingMinutes = review.ProcessingMinutes,
+                Confirmations = review.Confirmations,
                 IsOfficial = review.IsOfficial,
                 IsStruckThrough = review.IsStruckThrough,
                 TestedAt = review.TestedAt,
@@ -553,6 +555,8 @@ namespace DirectoryManager.Web.Controllers
             review.OrderProofContext = string.IsNullOrWhiteSpace(input.OrderProofContext)
                 ? null
                 : input.OrderProofContext.Trim();
+            review.ProcessingMinutes = DirectoryManager.Data.Helpers.ReviewSwapFacts.CleanMinutes(input.ProcessingMinutes);
+            review.Confirmations = DirectoryManager.Data.Helpers.ReviewSwapFacts.CleanConfirmations(input.Confirmations);
 
             // ----- Official review -----
             review.IsOfficial = input.IsOfficial;

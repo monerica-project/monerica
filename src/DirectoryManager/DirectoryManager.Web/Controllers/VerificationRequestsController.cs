@@ -62,8 +62,9 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest();
             }
 
+            // Removed listings are hidden from visitors everywhere else, so no report flow starts for one.
             var entry = await this.entries.GetByIdAsync(directoryEntryId);
-            if (entry is null)
+            if (entry is null || entry.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Removed)
             {
                 return this.NotFound();
             }

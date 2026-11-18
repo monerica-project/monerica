@@ -612,6 +612,36 @@ namespace DirectoryManager.Web.Tests.Sponsorship
         }
 
         [Fact]
+        public async Task Invoice_NeverOutlivesItsSlotHold()
+        {
+            // Security review 2026-11-18: a buyer who confirmed late got an invoice that stayed
+            // payable after the hold ran out, so a second buyer could take and pay the same slot.
+            using var h = new Harness();
+            var rsvId = await h.ReserveAsync(minutes: 2); // made 13 minutes ago, in effect
+            await h.ConfirmCheckoutAsync(rsvId: rsvId);
+
+            var minutes = h.BtcPay.LastRequest!.Checkout!.ExpirationMinutes;
+            Assert.NotNull(minutes);
+            var hold = await h.Db.SponsoredListingReservations.AsNoTracking().SingleAsync(r => r.ReservationGuid == rsvId);
+            Assert.InRange(minutes!.Value, 1, 15);
+            Assert.True(
+                hold.ExpirationDateTime >= DateTime.UtcNow.AddMinutes(minutes.Value).AddSeconds(-90),
+                "the hold must last at least as long as the invoice");
+            Assert.True(
+                hold.ExpirationDateTime <= hold.CreateDate.AddMinutes(30).AddSeconds(5),
+                "a hold is never stretched past twice its normal length");
+        }
+
+        [Fact]
+        public async Task NowPaymentsIsNoLongerAWayToStartACheckout()
+        {
+            using var h = new Harness();
+            var result = await h.ConfirmCheckoutAsync(selectedProcessor: "NOWPayments");
+            Assert.Equal("BtcPayNoJsInvoice", Assert.IsType<RedirectToActionResult>(result).ActionName);
+            Assert.Equal(PaymentProcessor.BTCPayServer, (await h.Db.SponsoredListingInvoices.AsNoTracking().SingleAsync()).PaymentProcessor);
+        }
+
+        [Fact]
         public async Task MainSponsor_WithoutRsvId_TakesTheMainHoldAndTheSubcategoryShadowHold()
         {
             using var h = new Harness();
@@ -793,7 +823,7 @@ namespace DirectoryManager.Web.Tests.Sponsorship
 
             public SponsoredListingCheckoutController Controller { get; }
 
-            public async Task<IActionResult> ConfirmCheckoutAsync(string? email = null, Guid? rsvId = null, bool solveCaptcha = true, bool verifiedEarlier = false, bool keepSession = false, int offerId = OfferId, int entryId = EntryId)
+            public async Task<IActionResult> ConfirmCheckoutAsync(string? email = null, Guid? rsvId = null, bool solveCaptcha = true, bool verifiedEarlier = false, bool keepSession = false, int offerId = OfferId, int entryId = EntryId, string selectedProcessor = "BTCPayServerNoJs")
             {
                 var session = keepSession ? this.Controller.HttpContext.Session : null;
                 this.NewRequest();
@@ -820,7 +850,7 @@ namespace DirectoryManager.Web.Tests.Sponsorship
                     ["Captcha"] = "ABCDE",
                 });
 
-                return await this.Controller.ConfirmedCheckoutAsync(entryId, offerId, "BTCPayServerNoJs", rsvId, email);
+                return await this.Controller.ConfirmedCheckoutAsync(entryId, offerId, selectedProcessor, rsvId, email);
             }
 
             public async Task AddMainOfferAsync()
@@ -957,8 +987,11 @@ namespace DirectoryManager.Web.Tests.Sponsorship
 
             public string BaseUrl => "https://btcpay.example.test";
 
+            public BtcPayInvoiceRequest? LastRequest { get; private set; }
+
             public Task<BtcPayInvoiceResponse> CreateInvoiceAsync(BtcPayInvoiceRequest request)
             {
+                this.LastRequest = request;
                 this.LastCreatedId = $"inv{++this.counter}";
                 return Task.FromResult(new BtcPayInvoiceResponse { Id = this.LastCreatedId, Status = "New", CheckoutLink = $"https://btcpay.example.test/i/{this.LastCreatedId}" });
             }

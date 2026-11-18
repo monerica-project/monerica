@@ -232,6 +232,10 @@ namespace DirectoryManager.Web.Extensions
                 .AddDefaultTokenProviders();
 
             // 🔒 Auth cookie hardening
+            // Re-check the security stamp every minute (default 30): after a sign-out, password
+            // change or two-factor change, an old copy of the admin cookie stops working at once.
+            services.Configure<SecurityStampValidatorOptions>(options => options.ValidationInterval = TimeSpan.FromMinutes(1));
+
             services.ConfigureApplicationCookie(options =>
             {
                 options.Cookie.HttpOnly = true;

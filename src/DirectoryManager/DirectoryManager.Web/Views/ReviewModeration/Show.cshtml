@@ -69,6 +69,11 @@
             }
         </dd>
 
+        <dt class="col-sm-3">Swap details (stated)</dt>
+        <dd class="col-sm-9">
+            @(DirectoryManager.Data.Helpers.ReviewSwapFacts.Summary(r.ProcessingMinutes, r.Confirmations) ?? "-")
+        </dd>
+
         <dt class="col-sm-3">Verification Details</dt>
         <dd class="col-sm-9">
             @if (!string.IsNullOrWhiteSpace(r.OrderProofContext))

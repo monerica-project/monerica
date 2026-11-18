@@ -17,6 +17,11 @@ namespace DirectoryManager.ReviewOrderChecker.Check
     {
         public const string ValidOrderSlug = "valid-order";
 
+        // Limits for numbers read off an order page. Anything above them is treated as "unknown".
+        private const decimal MaxPlausibleAmount = 1_000_000_000m;
+        private const decimal MaxPlausibleUnitUsd = 10_000_000m;
+        private const decimal MaxPlausibleUsd = 1_000_000_000_000m;
+
         private readonly ApplicationDbContext db;
         private readonly IOrderPageReader reader;
         private readonly IClaudeOrderCheckService claude;
@@ -74,7 +79,30 @@ namespace DirectoryManager.ReviewOrderChecker.Check
                     break;
                 }
 
-                usedToday += await this.CheckOneAsync(review, tags, ct);
+                // One bad review must never stop the run or be retried forever: any failure is
+                // recorded on that review (so its attempt count rises and the AI calls already
+                // made are saved and counted against the daily cap), then the run moves on.
+                try
+                {
+                    usedToday += await this.CheckOneAsync(review, tags, ct);
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                    // Out of time: keep what was logged so far, count the attempt, stop the run.
+                    review.AiOrderCheckQueued = false;
+                    review.AiOrderCheckAttempts++;
+                    review.AiOrderCheckedUtc = DateTime.UtcNow;
+                    await this.db.SaveChangesAsync(CancellationToken.None);
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    usedToday++; // at least one call may have been made; the saved log is the real count
+                    review.AiOrderCheckResult = AiOrderCheckResult.CouldNotVerify;
+                    review.AiOrderCheckSummary = Truncate("The check stopped with an error (" + ex.GetType().Name + ": " + ex.Message + "). Use \"Check again\" or check by hand.", 1500);
+                    Console.WriteLine($"Review #{review.DirectoryEntryReviewId}: check failed: {ex}");
+                }
+
                 review.AiOrderCheckQueued = false;
                 review.AiOrderCheckAttempts++;
                 review.AiOrderCheckedUtc = DateTime.UtcNow;
@@ -390,7 +418,7 @@ namespace DirectoryManager.ReviewOrderChecker.Check
                 return null;
             }
 
-            if (v.UsdShown is { } shown && shown > 0)
+            if (v.UsdShown is { } shown && shown > 0 && shown <= MaxPlausibleUsd)
             {
                 step($"Order value shown on the page: ${shown:0.##}.");
                 return Math.Round(shown, 2);
@@ -403,9 +431,17 @@ namespace DirectoryManager.ReviewOrderChecker.Check
             };
             foreach (var leg in legs)
             {
-                if (leg.Item1 is { } a && a > 0 && !string.IsNullOrWhiteSpace(leg.Item2) && await this.prices.UnitUsdAsync(leg.Item2, ct) is { } unit)
+                // Amounts come from the page (through the AI), so absurd values are ignored rather
+                // than multiplied: a huge number would overflow and crash the check.
+                if (leg.Item1 is { } a && a > 0 && a <= MaxPlausibleAmount && !string.IsNullOrWhiteSpace(leg.Item2)
+                    && await this.prices.UnitUsdAsync(leg.Item2, ct) is { } unit && unit > 0 && unit <= MaxPlausibleUnitUsd)
                 {
                     var usd = Math.Round(a * unit, 2);
+                    if (usd > MaxPlausibleUsd)
+                    {
+                        continue;
+                    }
+
                     step($"Order value: {a} {PriceLookup.CleanTicker(leg.Item2)} {leg.Item3} × ${unit:0.####} (today's price) ≈ ${usd:0.##}.");
                     return usd;
                 }

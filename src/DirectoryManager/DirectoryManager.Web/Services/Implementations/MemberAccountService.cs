@@ -205,6 +205,18 @@ namespace DirectoryManager.Web.Services.Implementations
                 return IdentityResult.Failed(new IdentityError { Code = "MemberPassword", Description = error });
             }
 
+            // The current password is checked with the same lockout as sign-in: a stolen session
+            // must not be able to guess the password here without limit.
+            var check = await this.signInManager.CheckPasswordSignInAsync(user, currentPassword ?? string.Empty, lockoutOnFailure: true);
+            if (!check.Succeeded)
+            {
+                return IdentityResult.Failed(new IdentityError
+                {
+                    Code = "PasswordMismatch",
+                    Description = check.IsLockedOut ? "Too many wrong passwords. Please wait a few minutes and try again." : "Incorrect password.",
+                });
+            }
+
             // ChangePasswordAsync also renews the security stamp, which signs out other devices.
             return await this.userManager.ChangePasswordAsync(user, currentPassword ?? string.Empty, newPassword!);
         }
@@ -218,7 +230,8 @@ namespace DirectoryManager.Web.Services.Implementations
         /// </summary>
         public async Task<bool> DeleteAccountAsync(ApplicationUser user, string? password, CancellationToken ct = default)
         {
-            if (await this.IsAdminAsync(user) || !await this.userManager.CheckPasswordAsync(user, password ?? string.Empty))
+            if (await this.IsAdminAsync(user)
+                || !(await this.signInManager.CheckPasswordSignInAsync(user, password ?? string.Empty, lockoutOnFailure: true)).Succeeded)
             {
                 return false;
             }
@@ -238,7 +251,28 @@ namespace DirectoryManager.Web.Services.Implementations
             user.LockoutEnabled = true;
             user.LockoutEnd = DateTimeOffset.MaxValue;
 
-            // A linked PGP key is released (it can be linked again, to a new account).
+            // A linked PGP key is released (it can be linked again, to a new account). When the
+            // account was blocked from posting, the block moves onto the key first, so deleting
+            // the account is not a way to post again with the same key.
+            var releasedKey = PgpFingerprintTools.Normalize(user.PgpFingerprint);
+            if (user.PostingBlockedUtc != null && releasedKey.Length > 0
+                && !await this.db.BlockedReviewerKeys.AnyAsync(b => b.Fingerprint == releasedKey && b.UnblockedUtc == null, ct))
+            {
+                var keyBlock = await this.db.BlockedReviewerKeys.FirstOrDefaultAsync(b => b.Fingerprint == releasedKey, ct);
+                if (keyBlock == null)
+                {
+                    keyBlock = new DirectoryManager.Data.Models.Reviews.BlockedReviewerKey { Fingerprint = releasedKey };
+                    this.db.BlockedReviewerKeys.Add(keyBlock);
+                }
+
+                keyBlock.Reason = "Carried over from a blocked member account that was deleted by its owner.";
+                keyBlock.BlockedUtc = now;
+                keyBlock.BlockedBy = user.PostingBlockedBy;
+                keyBlock.UnblockedUtc = null;
+                keyBlock.UnblockedBy = null;
+                await this.db.SaveChangesAsync(ct);
+            }
+
             user.PgpFingerprint = null;
             user.PgpLinkedUtc = null;
             await this.userManager.UpdateNormalizedUserNameAsync(user);

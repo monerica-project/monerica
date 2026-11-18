@@ -382,6 +382,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet]
         [AllowAnonymous]
         [Route("sponsoredlisting/pricing-trends-chart")]
+        [ChartResponseCache]
         public async Task<IActionResult> PricingTrendsChartAsync(
             SponsorshipType sponsorshipType,
             int? placementId = null)
@@ -657,12 +658,9 @@ namespace DirectoryManager.Web.Controllers
                 return await this.ExecuteBtcPayCheckoutAsync(invoice, offer, rsvId, normalizedEmail);
             }
 
-            // NOWPayments is retained for legacy/back-compat but is no longer offered in the
-            // checkout UI. It only runs when a request explicitly asks for it — never as a default.
-            if (string.Equals(selectedProcessor, "NOWPayments", StringComparison.OrdinalIgnoreCase))
-            {
-                return await this.ExecuteNowPaymentsCheckoutAsync(invoice, offer, rsvId, normalizedEmail);
-            }
+            // NOWPayments is no longer a way to start a checkout (last used 2026-08). Its invoices
+            // had no expiry tied to the slot hold, so a request that still asks for it gets the
+            // normal BTCPay flow below. The NOWPayments callback stays for invoices that exist.
 
             // Default (BTCPayServerNoJs and any unrecognized value): the self-hosted no-JS BTCPay flow.
             return await this.ExecuteBtcPayNoJsCheckoutAsync(invoice, offer, rsvId, normalizedEmail);
@@ -762,6 +760,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpPost]
         [AllowAnonymous]
         [IgnoreAntiforgeryToken]
+        [RequestSizeLimit(256 * 1024)] // payment notices are tiny; refuse anything large before reading it
         [Route("sponsoredlisting/nowpaymentscallback")]
         public async Task<IActionResult> NowPaymentsCallBackAsync()
         {
@@ -862,6 +861,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpPost]
         [AllowAnonymous]
         [IgnoreAntiforgeryToken]
+        [RequestSizeLimit(256 * 1024)] // payment notices are tiny; refuse anything large before reading it
         [Route("sponsoredlisting/btcpaycallback")]
         public async Task<IActionResult> BtcPayCallbackAsync()
         {
@@ -1129,7 +1129,7 @@ namespace DirectoryManager.Web.Controllers
         {
             var req = new BtcPayInvoiceRequest
             {
-                Amount = invoice.Amount.ToString("0.00"),
+                Amount = invoice.Amount.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture),
                 Currency = this.btcPayServerService.DefaultCurrency,
                 Metadata = new Dictionary<string, object>
                 {
@@ -1142,6 +1142,7 @@ namespace DirectoryManager.Web.Controllers
                     RedirectUrl = $"{this.btcPayServerService.SuccessUrl}?orderId={invoice.InvoiceId}",
                     RedirectAutomatically = false,
                     DefaultPaymentMethod = Currency.XMR.ToString(),
+                    ExpirationMinutes = await this.AlignHoldWithInvoiceAsync(rsvId, invoice),
                 },
             };
 
@@ -1511,12 +1512,63 @@ namespace DirectoryManager.Web.Controllers
             return this.Redirect(processorInvoice.InvoiceUrl);
         }
 
+        /// <summary>
+        /// Makes the invoice and the buyer's slot hold end together, and returns how many minutes
+        /// the invoice may stay payable. Without this the hold could run out while its invoice was
+        /// still open: another buyer could then take the slot, and both payments would be honoured.
+        /// The hold is stretched to cover a full payment window, but never past twice its normal
+        /// length from when it was made, so re-posting the confirm page cannot keep a slot forever.
+        /// </summary>
+        private async Task<int> AlignHoldWithInvoiceAsync(Guid? rsvId, SponsoredListingInvoice invoice)
+        {
+            const int window = IntegerConstants.ReservationMinutes;
+            if (rsvId is not Guid id || id == Guid.Empty)
+            {
+                return window; // a renewal of the buyer's own campaign holds no slot
+            }
+
+            var hold = await this.sponsoredListingReservationRepository.GetReservationByGuidAsync(id).ConfigureAwait(false);
+            if (hold == null)
+            {
+                return window;
+            }
+
+            var now = DateTime.UtcNow;
+            var holdEnd = hold.ExpirationDateTime;
+            var latestAllowed = hold.CreateDate.AddMinutes(2 * window);
+            var wanted = now.AddMinutes(window);
+            var target = wanted < latestAllowed ? wanted : latestAllowed;
+
+            // Only stretch when it gains real time (a hold made seconds ago already covers the window).
+            if (target - holdEnd > TimeSpan.FromMinutes(1)
+                && await this.sponsoredListingReservationRepository.ExtendExpirationAsync(id, target).ConfigureAwait(false))
+            {
+                holdEnd = target;
+
+                // A main sponsor also holds a place in its subcategory; keep the two in step.
+                if (invoice.SponsorshipType == SponsorshipType.MainSponsor)
+                {
+                    var entry = await this.directoryEntryRepository.GetByIdAsync(invoice.DirectoryEntryId).ConfigureAwait(false);
+                    var subCategoryId = invoice.SubCategoryId is > 0 ? invoice.SubCategoryId.Value : entry?.SubCategoryId ?? 0;
+                    var shadow = await this.sponsoredListingReservationRepository
+                        .GetActiveReservationGuidForEntryAsync(invoice.DirectoryEntryId, ReservationGroupHelper.BuildMainSponsorSubcategoryGroupName(subCategoryId))
+                        .ConfigureAwait(false);
+                    if (shadow is Guid shadowId && shadowId != id)
+                    {
+                        await this.sponsoredListingReservationRepository.ExtendExpirationAsync(shadowId, target).ConfigureAwait(false);
+                    }
+                }
+            }
+
+            return (int)Math.Clamp(Math.Ceiling((holdEnd - now).TotalMinutes), 1, window);
+        }
+
         private async Task<IActionResult> ExecuteBtcPayCheckoutAsync(
             SponsoredListingInvoice invoice, SponsoredListingOffer offer, Guid? rsvId, string? normalizedEmail)
         {
             var req = new BtcPayInvoiceRequest
             {
-                Amount = invoice.Amount.ToString("0.00"),
+                Amount = invoice.Amount.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture),
                 Currency = this.btcPayServerService.DefaultCurrency,
                 Metadata = new Dictionary<string, object>
                 {
@@ -1528,6 +1580,7 @@ namespace DirectoryManager.Web.Controllers
                     RedirectUrl = $"{this.btcPayServerService.SuccessUrl}?orderId={invoice.InvoiceId}",
                     RedirectAutomatically = true,
                     DefaultPaymentMethod = Currency.XMR.ToString(),
+                    ExpirationMinutes = await this.AlignHoldWithInvoiceAsync(rsvId, invoice),
                 },
             };
 

@@ -1801,6 +1801,9 @@ namespace DirectoryManager.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int?>("Confirmations")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("CreateDate")
                         .HasColumnType("timestamp with time zone");
 
@@ -1854,6 +1857,9 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<string>("PostSignatureHash")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
+
+                    b.Property<int?>("ProcessingMinutes")
+                        .HasColumnType("integer");
 
                     b.Property<byte?>("Rating")
                         .HasColumnType("smallint");

@@ -15,6 +15,10 @@ namespace DirectoryManager.Web.Services.Interfaces
 
         Task<(bool RequireOrderProof, bool RequireDetails)> GetVerificationRequirementsAsync(DirectoryEntry entry, CancellationToken ct = default);
 
+        /// <summary>True when the listing is an exchange, so the review form offers processing time and confirmations.</summary>
+        /// <returns>Whether the two optional swap facts apply to this listing.</returns>
+        Task<bool> AcceptsSwapFactsAsync(DirectoryEntry entry, CancellationToken ct = default);
+
         Task<MemberSaveResult> SaveReviewAsync(ApplicationUser member, DirectoryEntry? entry, MemberReviewInputModel input, CancellationToken ct = default);
 
         Task<MemberSaveResult> SaveReplyAsync(ApplicationUser member, int directoryEntryReviewId, MemberReplyInputModel input, CancellationToken ct = default);

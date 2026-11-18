@@ -117,10 +117,12 @@ namespace DirectoryManager.SubmissionReviewer.Text
                 return Array.Empty<string>();
             }
 
-            MatchCollection matches;
+            // Matches() is lazy: the pattern only runs (and can only time out) while the results
+            // are read, so they are read inside the try.
+            List<Match> matches;
             try
             {
-                matches = HrefRx.Matches(html);
+                matches = HrefRx.Matches(html).ToList();
             }
             catch (RegexMatchTimeoutException)
             {

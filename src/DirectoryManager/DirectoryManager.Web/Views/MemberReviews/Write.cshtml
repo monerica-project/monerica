@@ -80,6 +80,28 @@
         </div>
     }
 
+    @if (Model.ShowSwapFacts)
+    {
+        @* Optional swap facts (exchanges only). Kept low-key: two small boxes, no "required" marks. *@
+        <div class="u-mb-16px">
+            <span class="text-muted">Swap details <i>(optional)</i></span>
+            <div class="u-mt-6px">
+                <label asp-for="Input.ProcessingMinutes" class="text-muted">Processing time</label>
+                <input asp-for="Input.ProcessingMinutes" type="number" min="1" max="43200" step="1" inputmode="numeric" class="form-control u-w-110px" placeholder="minutes" />
+                <label asp-for="Input.Confirmations" class="text-muted u-ml-16px">Confirmations</label>
+                <input asp-for="Input.Confirmations" type="number" min="0" max="1000" step="1" inputmode="numeric" class="form-control u-w-110px" />
+            </div>
+            <span asp-validation-for="Input.ProcessingMinutes" class="text-danger"></span>
+            <span asp-validation-for="Input.Confirmations" class="text-danger"></span>
+            <div class="form-text">
+                Roughly how many minutes the swap took from sending your coins to receiving them, and how many
+                confirmations the exchange waited for. Leave either box empty if you are not sure.
+                <br />
+                <span class="text-muted">Shown with your review.</span>
+            </div>
+        </div>
+    }
+
     <hr class="u-mt-28px" />
     <p class="text-muted u-mt-12px"><i>Every review from a member account is checked by a moderator before it appears.</i></p>
 

@@ -78,7 +78,7 @@ namespace DirectoryManager.Web.Controllers
 
         [HttpPost]
         [Route("account/two-factor/enable")]
-        public async Task<IActionResult> Enable(string? code)
+        public async Task<IActionResult> Enable(string? code, string? currentPassword)
         {
             var user = await this.userManager.GetUserAsync(this.User);
             if (user == null)
@@ -89,6 +89,14 @@ namespace DirectoryManager.Web.Controllers
             if (user.TwoFactorEnabled)
             {
                 return this.RedirectToAction(nameof(this.Index));
+            }
+
+            // Turning it on needs the password too: otherwise anyone holding a stolen session
+            // could attach their own authenticator and lock the real owner out.
+            if (!await this.userManager.CheckPasswordAsync(user, currentPassword ?? string.Empty))
+            {
+                this.ModelState.AddModelError(string.Empty, "The password is not correct.");
+                return this.View(await this.BuildEnableModelAsync(user));
             }
 
             var totp = AdminLoginService.NormalizeTotp(code);

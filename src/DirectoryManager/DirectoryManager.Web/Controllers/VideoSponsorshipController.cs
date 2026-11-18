@@ -699,6 +699,7 @@ namespace DirectoryManager.Web.Controllers
         // =====================================================================
         [HttpPost("btcpay-callback")]
         [IgnoreAntiforgeryToken]
+        [RequestSizeLimit(256 * 1024)] // payment notices are tiny; refuse anything large before reading it
         public async Task<IActionResult> BtcPayCallback(CancellationToken ct)
         {
             var client = this.gateway.Client;

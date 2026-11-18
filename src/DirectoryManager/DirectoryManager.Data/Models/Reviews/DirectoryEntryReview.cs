@@ -89,6 +89,15 @@ namespace DirectoryManager.Data.Models.Reviews
         [MaxLength(2048)]
         public string? OrderProofContext { get; set; }
 
+        // Optional swap facts the reviewer may state on an exchange listing (see ReviewSwapFacts):
+        // how long the swap took, in minutes, and how many confirmations the exchange waited for.
+        // Self-reported and unchecked; shown as one quiet line under the review.
+        [Range(1, 43200)]
+        public int? ProcessingMinutes { get; set; }
+
+        [Range(0, 1000)]
+        public int? Confirmations { get; set; }
+
         // =========================================================
         // Automated moderation audit
         //

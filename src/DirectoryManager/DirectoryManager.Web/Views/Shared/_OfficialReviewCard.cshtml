@@ -74,6 +74,12 @@
         </div>
     }
 
+    @{ var swapFacts = DirectoryManager.Data.Helpers.ReviewSwapFacts.Summary(o.ProcessingMinutes, o.Confirmations); }
+    @if (swapFacts != null)
+    {
+        <div class="u-mt-4px"><small class="text-muted">@swapFacts</small></div>
+    }
+
     @if (!string.IsNullOrWhiteSpace(o.OrderUrl)
          || !string.IsNullOrWhiteSpace(o.SendingTxUrl)
          || !string.IsNullOrWhiteSpace(o.ReceivingTxUrl)

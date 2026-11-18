@@ -113,7 +113,7 @@ namespace DirectoryManager.Web.Services.Implementations
                 return null;
             }
 
-            decimal? amount = decimal.TryParse(invoice.Amount, out var a) && a > 0 ? a : null;
+            decimal? amount = decimal.TryParse(invoice.Amount, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var a) && a > 0 ? a : null;
             var currency = string.IsNullOrWhiteSpace(invoice.Currency) ? null : invoice.Currency;
 
             // The XMR payment method carries the actual received time of each payment and, for
@@ -124,7 +124,7 @@ namespace DirectoryManager.Web.Services.Implementations
                 .Where(p => p.ReceivedDate > 0)
                 .Select(p => (DateTime?)p.ReceivedDateUtc)
                 .Max();
-            if (amount is null && xmr is not null && decimal.TryParse(xmr.TotalPaid, out var xmrPaid) && xmrPaid > 0)
+            if (amount is null && xmr is not null && decimal.TryParse(xmr.TotalPaid, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var xmrPaid) && xmrPaid > 0)
             {
                 amount = xmrPaid;
                 currency = "XMR";

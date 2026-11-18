@@ -39,6 +39,46 @@ namespace DirectoryManager.Web.Tests.Members
         }
 
         [Fact]
+        public async Task SwapFacts_AreKeptForExchanges_DroppedElsewhere_AndClearedOnEdit()
+        {
+            // Owner request 2026-11-18: optional processing time and confirmations on exchange reviews.
+            using var h = new IdentityHarness();
+            var member = await h.CreateMemberAsync("quiet_otter_4821");
+            var exchange = await ReviewTestData.AddEntryAsync(h.Db);
+            (await h.Db.Categories.SingleAsync(c => c.CategoryId == exchange.SubCategoryId)).CategoryKey = "exchanges";
+            var shop = await ReviewTestData.AddEntryAsync(h.Db); // category key "exchanges-<id>": not the Exchanges category
+            await h.Db.SaveChangesAsync();
+            var svc = ReviewTestData.Service(h.Db);
+            Assert.True(await svc.AcceptsSwapFactsAsync(exchange));
+            Assert.False(await svc.AcceptsSwapFactsAsync(shop));
+
+            var input = Input();
+            input.ProcessingMinutes = 25;
+            input.Confirmations = 10;
+            Assert.True((await svc.SaveReviewAsync(member, exchange, input)).Succeeded);
+            var other = Input(ReviewTestData.GoodBody + " Ordered twice now and both were fine.");
+            other.ProcessingMinutes = 25;
+            other.Confirmations = 10;
+            Assert.True((await svc.SaveReviewAsync(member, shop, other)).Succeeded);
+
+            var onExchange = await h.Db.DirectoryEntryReviews.AsNoTracking().SingleAsync(r => r.DirectoryEntryId == exchange.DirectoryEntryId);
+            Assert.Equal(25, onExchange.ProcessingMinutes);
+            Assert.Equal(10, onExchange.Confirmations);
+            var onShop = await h.Db.DirectoryEntryReviews.AsNoTracking().SingleAsync(r => r.DirectoryEntryId == shop.DirectoryEntryId);
+            Assert.Null(onShop.ProcessingMinutes);
+            Assert.Null(onShop.Confirmations);
+
+            // Out-of-range values are dropped, and an edit that leaves a box empty clears it.
+            var edit = Input(ReviewTestData.GoodBody + " Update: a second swap took longer.");
+            edit.ProcessingMinutes = 999999;
+            edit.Confirmations = null;
+            Assert.True((await svc.SaveReviewAsync(member, exchange, edit)).Succeeded);
+            var edited = await h.Db.DirectoryEntryReviews.AsNoTracking().SingleAsync(r => r.DirectoryEntryId == exchange.DirectoryEntryId);
+            Assert.Null(edited.ProcessingMinutes);
+            Assert.Null(edited.Confirmations);
+        }
+
+        [Fact]
         public async Task SecondSave_EditsTheSameReview_AndSendsItBackToModeration()
         {
             using var h = new IdentityHarness();

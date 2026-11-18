@@ -290,6 +290,14 @@ namespace DirectoryManager.Web.Services.Implementations
                 return KeyLinkResult.Fail("password", WrongPasswordMessage);
             }
 
+            // A block follows the person: while this account or its key is blocked from posting,
+            // the key stays linked. Otherwise unlinking would free the key (or the account) to
+            // post again through the other review form.
+            if (await ReviewerBlocks.IsMemberBlockedAsync(this.db, member, ct))
+            {
+                return KeyLinkResult.Fail(string.Empty, "This key cannot be removed while the account is blocked from posting.");
+            }
+
             member.PgpFingerprint = null;
             member.PgpLinkedUtc = null;
             member.UpdateDate = this.NowUtc;

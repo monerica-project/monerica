@@ -174,15 +174,33 @@
                 </div>
             </div>
 
-            @if (!string.IsNullOrWhiteSpace(s.ReviewSummary)) { <p class="u-m-6px-0-0"><b>Summary:</b> @s.ReviewSummary</p> }
+            @{
+                // One line that answers "why is this (not) ready to approve?".
+                var bannedOnly = state == SubmissionReviewState.Flagged && s.ReviewBannedCategory == true && s.ReviewVerdict == "approve_candidate";
+                var reasonLabel = state switch
+                {
+                    SubmissionReviewState.AiApproveCandidate => "Ready:",
+                    SubmissionReviewState.AiRejectCandidate => "Reject because:",
+                    SubmissionReviewState.Flagged => bannedOnly ? "Otherwise fine:" : "Not ready:",
+                    _ => "Summary:",
+                };
+            }
+            @if (bannedOnly) { <p class="u-m-6px-0-0"><b>Not ready:</b> gambling, medical and adult sites always need your look.</p> }
+            @if (!string.IsNullOrWhiteSpace(s.ReviewSummary)) { <p class="u-m-6px-0-0"><b>@reasonLabel</b> @s.ReviewSummary</p> }
             @if (!string.IsNullOrWhiteSpace(s.ReviewPrefilterReason)) { <p class="u-m-6px-0-0 u-fs-085em"><b>Checks:</b> @s.ReviewPrefilterReason</p> }
             @if (!string.IsNullOrWhiteSpace(s.ReviewDuplicateOf)) { <p class="u-m-6px-0-0"><b>Possible duplicate of:</b> @s.ReviewDuplicateOf</p> }
             @if (!string.IsNullOrWhiteSpace(s.ReviewError)) { <p class="u-m-6px-0-0 text-danger"><b>Error:</b> @s.ReviewError</p> }
             @if (issues.Length > 0)
             {
                 <ul class="u-m-6px-0-0">
-                    @foreach (var i in issues) { <li>@i</li> }
+                    @foreach (var i in issues.Take(3)) { <li>@i</li> }
                 </ul>
+                @if (issues.Length > 3)
+                {
+                    <details><summary class="u-fs-085em">@(issues.Length - 3) more</summary>
+                        <ul class="u-m-6px-0-0">@foreach (var i in issues.Skip(3)) { <li>@i</li> }</ul>
+                    </details>
+                }
             }
 
             @if (hasProposal)

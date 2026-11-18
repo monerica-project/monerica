@@ -94,144 +94,169 @@ namespace DirectoryManager.SubmissionReviewer.Review
             int processed = 0;
             foreach (var id in queue)
             {
-                var s = await this.db.Submissions.FirstAsync(x => x.SubmissionId == id, ct);
-                s.OriginalSnapshotJson ??= s.CreateSnapshotJson();
-
-                // Edit-submissions are compared with the listing itself, so they never count as duplicates of it;
-                // other submissions for the same listing are handled by the web form's own checks.
-                var linksForThis = s.DirectoryEntryId == null ? otherLinks : new List<(int, string)>();
-
-                // Cheap checks that need no page fetch first (spam, duplicates, site-checker proposals).
-                var decision = SubmissionPrefilter.Evaluate(s, listings, linksForThis, fetch: null);
-                (FetchResult Main, FetchResult? Second)? pages = null;
-                if (decision.Outcome == PrefilterOutcome.PassToAi)
+                // One submission must never stop the run or block the queue behind it: a page that
+                // makes a pattern time out, a broken answer or any other error marks only that
+                // submission as needing a look, and the run moves on.
+                try
                 {
-                    pages = await this.dossiers.FetchPagesAsync(s.Link, s.ProofLink, ct);
-                    decision = SubmissionPrefilter.Evaluate(s, listings, linksForThis, pages.Value.Main);
-                }
+                    var s = await this.db.Submissions.FirstAsync(x => x.SubmissionId == id, ct);
+                    s.OriginalSnapshotJson ??= s.CreateSnapshotJson();
 
-                s.ReviewPrefilterReason = Truncate(decision.ToString(), 500);
-                s.ReviewError = null;
-                Console.WriteLine($"#{s.SubmissionId} {s.Name}: prefilter {decision}");
+                    // Edit-submissions are compared with the listing itself, so they never count as duplicates of it;
+                    // other submissions for the same listing are handled by the web form's own checks.
+                    var linksForThis = s.DirectoryEntryId == null ? otherLinks : new List<(int, string)>();
 
-                if (decision.Outcome != PrefilterOutcome.PassToAi)
-                {
-                    s.ReviewState = decision.Outcome switch
+                    // Cheap checks that need no page fetch first (spam, duplicates, site-checker proposals).
+                    var decision = SubmissionPrefilter.Evaluate(s, listings, linksForThis, fetch: null);
+                    (FetchResult Main, FetchResult? Second)? pages = null;
+                    if (decision.Outcome == PrefilterOutcome.PassToAi)
                     {
-                        PrefilterOutcome.AutoReject => SubmissionReviewState.AutoRejected,
-                        PrefilterOutcome.Skip => SubmissionReviewState.Skipped,
-                        _ => SubmissionReviewState.Flagged,
-                    };
-                    s.ReviewBannedCategory = decision.Reason.StartsWith("Possible banned", StringComparison.Ordinal) ? true : s.ReviewBannedCategory;
+                        pages = await this.dossiers.FetchPagesAsync(s.Link, s.ProofLink, ct);
+                        decision = SubmissionPrefilter.Evaluate(s, listings, linksForThis, pages.Value.Main);
+                    }
+
+                    s.ReviewPrefilterReason = Truncate(decision.ToString(), 500);
+                    s.ReviewError = null;
+                    Console.WriteLine($"#{s.SubmissionId} {s.Name}: prefilter {decision}");
+
+                    if (decision.Outcome != PrefilterOutcome.PassToAi)
+                    {
+                        s.ReviewState = decision.Outcome switch
+                        {
+                            PrefilterOutcome.AutoReject => SubmissionReviewState.AutoRejected,
+                            PrefilterOutcome.Skip => SubmissionReviewState.Skipped,
+                            _ => SubmissionReviewState.Flagged,
+                        };
+                        s.ReviewBannedCategory = decision.Reason.StartsWith("Possible banned", StringComparison.Ordinal) ? true : s.ReviewBannedCategory;
+                        s.ReviewedUtc = DateTime.UtcNow;
+                        s.AppendReviewLog($"Prefilter → {s.ReviewState}: {decision.Reason}");
+                        await this.db.SaveChangesAsync(ct);
+                        continue;
+                    }
+
+                    if (processed >= budget)
+                    {
+                        // Over the cap: stays Pending for the next run / next day (the admin page shows a notice).
+                        await this.db.SaveChangesAsync(ct);
+                        Console.WriteLine($"#{s.SubmissionId}: AI cap reached; left Pending.");
+                        continue;
+                    }
+
+                    CurrentListing? current = null;
+                    if (s.DirectoryEntryId is int entryId)
+                    {
+                        current = await this.db.DirectoryEntries.AsNoTracking()
+                            .Where(d => d.DirectoryEntryId == entryId)
+                            .Select(d => new CurrentListing(
+                                d.DirectoryEntryId, d.Name, d.Link, d.Description, d.Note,
+                                d.SubCategory != null ? d.SubCategory.Category.Name + " > " + d.SubCategory.Name : string.Empty,
+                                d.DirectoryStatus.ToString(),
+                                d.KycPolicy != null ? d.KycPolicy.ToString() : null,
+                                d.CountryCode))
+                            .FirstOrDefaultAsync(ct);
+                    }
+
+                    var similar = SubmissionDossierBuilder.MostSimilar(s, listings);
+                    var referral = await this.dossiers.FindReferralProgramAsync(pages!.Value.Main, ct);
+                    var socialLinks = await this.dossiers.FindSocialLinksAsync(pages.Value.Main, ct);
+                    var kycStatements = await this.dossiers.FindKycStatementsAsync(s, pages.Value.Main, pages.Value.Second, ct);
+                    var apiLinks = SubmissionDossierBuilder.FindApiLinks(pages.Value.Main);
+                    var moneroLogos = await this.dossiers.FindMoneroLogosAsync(pages.Value.Main, pages.Value.Second, ct);
+                    if (moneroLogos.Count > 0)
+                    {
+                        s.AppendReviewLog($"Monero logo found in the page markup ({moneroLogos.Count}): {Truncate(moneroLogos[0], 300)}");
+                    }
+
+                    // PGP key: suggested only when the submitter gave none and the live listing has none.
+                    // It never replaces a key (keys gate the owner portal), and the admin approves it.
+                    s.ProposedPgpKey = null;
+                    s.ProposedPgpKeySource = null;
+                    var listingHasKey = s.DirectoryEntryId is int keyEntryId && await this.db.DirectoryEntries.AsNoTracking()
+                        .AnyAsync(d => d.DirectoryEntryId == keyEntryId && d.PgpKey != null && d.PgpKey != string.Empty, ct);
+                    // Only for NEW listings: on an edit, the submitter could point Link2/proof pages at a site they
+                    // control and plant their own key on someone else's listing. (Audit 2026-11-11.)
+                    if (s.DirectoryEntryId == null && string.IsNullOrWhiteSpace(s.PgpKey) && !listingHasKey)
+                    {
+                        var pgp = await this.dossiers.FindPgpKeyAsync(pages.Value.Main, pages.Value.Second, ct);
+                        if (pgp != null)
+                        {
+                            s.ProposedPgpKey = pgp.Value.Key;
+                            s.ProposedPgpKeySource = Truncate(pgp.Value.Source, 2000);
+                            s.AppendReviewLog($"PGP key found on the site ({pgp.Value.Source}); suggested for the listing.");
+                        }
+                    }
+                    var dossier = SubmissionDossierBuilder.Build(
+                        s,
+                        s.SubCategoryId is int sc && labelById.TryGetValue(sc, out var lbl) ? lbl : null,
+                        pages!.Value.Main,
+                        pages.Value.Second,
+                        current,
+                        similar,
+                        this.options.DossierMaxChars,
+                        referral,
+                        socialLinks,
+                        kycStatements,
+                        apiLinks,
+                        moneroLogos);
+                    s.ReviewDossier = dossier;
+                    s.ReviewAttempts++;
+                    processed++;
+
+                    var result = await this.claude.ReviewAsync(dossier, context, ct);
+                    s.ReviewModel = result.Model;
+                    s.ReviewTokensIn = result.InputTokens;
+                    s.ReviewTokensOut = result.OutputTokens;
                     s.ReviewedUtc = DateTime.UtcNow;
-                    s.AppendReviewLog($"Prefilter → {s.ReviewState}: {decision.Reason}");
-                    await this.db.SaveChangesAsync(ct);
-                    continue;
-                }
+                    s.ReviewVerdictJson = result.Json;
 
-                if (processed >= budget)
-                {
-                    // Over the cap: stays Pending for the next run / next day (the admin page shows a notice).
-                    await this.db.SaveChangesAsync(ct);
-                    Console.WriteLine($"#{s.SubmissionId}: AI cap reached; left Pending.");
-                    continue;
-                }
-
-                CurrentListing? current = null;
-                if (s.DirectoryEntryId is int entryId)
-                {
-                    current = await this.db.DirectoryEntries.AsNoTracking()
-                        .Where(d => d.DirectoryEntryId == entryId)
-                        .Select(d => new CurrentListing(
-                            d.DirectoryEntryId, d.Name, d.Link, d.Description, d.Note,
-                            d.SubCategory != null ? d.SubCategory.Category.Name + " > " + d.SubCategory.Name : string.Empty,
-                            d.DirectoryStatus.ToString(),
-                            d.KycPolicy != null ? d.KycPolicy.ToString() : null,
-                            d.CountryCode))
-                        .FirstOrDefaultAsync(ct);
-                }
-
-                var similar = SubmissionDossierBuilder.MostSimilar(s, listings);
-                var referral = await this.dossiers.FindReferralProgramAsync(pages!.Value.Main, ct);
-                var socialLinks = await this.dossiers.FindSocialLinksAsync(pages.Value.Main, ct);
-                var kycStatements = await this.dossiers.FindKycStatementsAsync(s, pages.Value.Main, pages.Value.Second, ct);
-                var apiLinks = SubmissionDossierBuilder.FindApiLinks(pages.Value.Main);
-                var moneroLogos = await this.dossiers.FindMoneroLogosAsync(pages.Value.Main, pages.Value.Second, ct);
-                if (moneroLogos.Count > 0)
-                {
-                    s.AppendReviewLog($"Monero logo found in the page markup ({moneroLogos.Count}): {Truncate(moneroLogos[0], 300)}");
-                }
-
-                // PGP key: suggested only when the submitter gave none and the live listing has none.
-                // It never replaces a key (keys gate the owner portal), and the admin approves it.
-                s.ProposedPgpKey = null;
-                s.ProposedPgpKeySource = null;
-                var listingHasKey = s.DirectoryEntryId is int keyEntryId && await this.db.DirectoryEntries.AsNoTracking()
-                    .AnyAsync(d => d.DirectoryEntryId == keyEntryId && d.PgpKey != null && d.PgpKey != string.Empty, ct);
-                // Only for NEW listings: on an edit, the submitter could point Link2/proof pages at a site they
-                // control and plant their own key on someone else's listing. (Audit 2026-11-11.)
-                if (s.DirectoryEntryId == null && string.IsNullOrWhiteSpace(s.PgpKey) && !listingHasKey)
-                {
-                    var pgp = await this.dossiers.FindPgpKeyAsync(pages.Value.Main, pages.Value.Second, ct);
-                    if (pgp != null)
+                    if (result.Error != null)
                     {
-                        s.ProposedPgpKey = pgp.Value.Key;
-                        s.ProposedPgpKeySource = Truncate(pgp.Value.Source, 2000);
-                        s.AppendReviewLog($"PGP key found on the site ({pgp.Value.Source}); suggested for the listing.");
+                        // Persistent failure: Flagged with the error, so nothing is silently dropped.
+                        s.ReviewState = SubmissionReviewState.Flagged;
+                        s.ReviewError = Truncate(result.Error, 2000);
+                        s.AppendReviewLog($"AI review failed → Flagged: {result.Error}");
+                        Console.WriteLine($"#{s.SubmissionId}: AI error: {result.Error}");
+                        this.LogCall(s, result, null, "Submission flagged: AI call failed");
+                        await this.db.SaveChangesAsync(ct);
+                        continue;
+                    }
+
+                    var verdict = VerdictParser.TryParse(result.Json, out var parseError);
+                    if (verdict == null)
+                    {
+                        s.ReviewState = SubmissionReviewState.Flagged;
+                        s.ReviewError = Truncate("Could not use the AI verdict: " + parseError, 2000);
+                        s.AppendReviewLog($"AI verdict unusable → Flagged: {parseError}");
+                        this.LogCall(s, result, null, "Submission flagged: verdict unusable", "Could not use the AI verdict: " + parseError);
+                        await this.db.SaveChangesAsync(ct);
+                        continue;
+                    }
+
+                    ProposalMapper.Apply(s, verdict, idsByName);
+                    s.AppendReviewLog($"AI ({result.Model}, {result.InputTokens}/{result.OutputTokens} tokens): {verdict.Verdict} {verdict.Confidence:0.00} → {s.ReviewState}. {verdict.Summary}");
+                    Console.WriteLine($"#{s.SubmissionId}: {verdict.Verdict} ({verdict.Confidence:0.00}) → {s.ReviewState}");
+                    this.LogCall(s, result, verdict, $"Submission → {s.ReviewState}; suggested edits saved for admin review");
+                    await this.db.SaveChangesAsync(ct);
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"#{id}: review failed: {ex}");
+                    this.db.ChangeTracker.Clear();
+                    var failed = await this.db.Submissions.FirstOrDefaultAsync(x => x.SubmissionId == id, ct);
+                    if (failed != null)
+                    {
+                        failed.ReviewState = SubmissionReviewState.Flagged;
+                        failed.ReviewError = Truncate(ex.GetType().Name + ": " + ex.Message, 500);
+                        failed.ReviewAttempts++;
+                        failed.ReviewedUtc = DateTime.UtcNow;
+                        failed.AppendReviewLog("The automatic review stopped with an error, so this one needs a person: " + Truncate(ex.Message, 300));
+                        await this.db.SaveChangesAsync(ct);
                     }
                 }
-                var dossier = SubmissionDossierBuilder.Build(
-                    s,
-                    s.SubCategoryId is int sc && labelById.TryGetValue(sc, out var lbl) ? lbl : null,
-                    pages!.Value.Main,
-                    pages.Value.Second,
-                    current,
-                    similar,
-                    this.options.DossierMaxChars,
-                    referral,
-                    socialLinks,
-                    kycStatements,
-                    apiLinks,
-                    moneroLogos);
-                s.ReviewDossier = dossier;
-                s.ReviewAttempts++;
-                processed++;
-
-                var result = await this.claude.ReviewAsync(dossier, context, ct);
-                s.ReviewModel = result.Model;
-                s.ReviewTokensIn = result.InputTokens;
-                s.ReviewTokensOut = result.OutputTokens;
-                s.ReviewedUtc = DateTime.UtcNow;
-                s.ReviewVerdictJson = result.Json;
-
-                if (result.Error != null)
-                {
-                    // Persistent failure: Flagged with the error, so nothing is silently dropped.
-                    s.ReviewState = SubmissionReviewState.Flagged;
-                    s.ReviewError = Truncate(result.Error, 2000);
-                    s.AppendReviewLog($"AI review failed → Flagged: {result.Error}");
-                    Console.WriteLine($"#{s.SubmissionId}: AI error: {result.Error}");
-                    this.LogCall(s, result, null, "Submission flagged: AI call failed");
-                    await this.db.SaveChangesAsync(ct);
-                    continue;
-                }
-
-                var verdict = VerdictParser.TryParse(result.Json, out var parseError);
-                if (verdict == null)
-                {
-                    s.ReviewState = SubmissionReviewState.Flagged;
-                    s.ReviewError = Truncate("Could not use the AI verdict: " + parseError, 2000);
-                    s.AppendReviewLog($"AI verdict unusable → Flagged: {parseError}");
-                    this.LogCall(s, result, null, "Submission flagged: verdict unusable", "Could not use the AI verdict: " + parseError);
-                    await this.db.SaveChangesAsync(ct);
-                    continue;
-                }
-
-                ProposalMapper.Apply(s, verdict, idsByName);
-                s.AppendReviewLog($"AI ({result.Model}, {result.InputTokens}/{result.OutputTokens} tokens): {verdict.Verdict} {verdict.Confidence:0.00} → {s.ReviewState}. {verdict.Summary}");
-                Console.WriteLine($"#{s.SubmissionId}: {verdict.Verdict} ({verdict.Confidence:0.00}) → {s.ReviewState}");
-                this.LogCall(s, result, verdict, $"Submission → {s.ReviewState}; suggested edits saved for admin review");
-                await this.db.SaveChangesAsync(ct);
             }
 
             return processed;

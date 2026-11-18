@@ -74,6 +74,10 @@ namespace DirectoryManager.Data.Helpers
 
             public string? OrderProofContext { get; set; }
 
+            public int? ProcessingMinutes { get; set; }
+
+            public int? Confirmations { get; set; }
+
             public bool IsOfficial { get; set; }
 
             public bool IsStruckThrough { get; set; }
@@ -145,6 +149,8 @@ namespace DirectoryManager.Data.Helpers
                 OrderId = review.OrderId,
                 OrderUrl = review.OrderUrl,
                 OrderProofContext = review.OrderProofContext,
+                ProcessingMinutes = review.ProcessingMinutes,
+                Confirmations = review.Confirmations,
                 IsOfficial = review.IsOfficial,
                 IsStruckThrough = review.IsStruckThrough,
                 TestedAt = review.TestedAt,
@@ -296,6 +302,8 @@ namespace DirectoryManager.Data.Helpers
                 OrderId = copy.OrderId,
                 OrderUrl = copy.OrderUrl,
                 OrderProofContext = copy.OrderProofContext,
+                ProcessingMinutes = copy.ProcessingMinutes,
+                Confirmations = copy.Confirmations,
                 IsOfficial = copy.IsOfficial,
                 IsStruckThrough = copy.IsStruckThrough,
                 TestedAt = copy.TestedAt,

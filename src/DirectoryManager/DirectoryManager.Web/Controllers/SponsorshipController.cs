@@ -171,6 +171,7 @@ namespace DirectoryManager.Web.Controllers
         // placements; with one, just that placement (e.g. main-only). showCurrentMarket is ignored
         // (today's price is always shown) and kept only so old image URLs still work.
         [HttpGet("pricing-trends-chart")]
+        [ChartResponseCache]
         public async Task<IActionResult> PricingTrendsChart(SponsorshipType? sponsorshipType = null, bool showCurrentMarket = true)
         {
             var end = DateTime.UtcNow.Date;
@@ -302,6 +303,7 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [HttpGet("pricing-history-chart")]
+        [ChartResponseCache]
         public async Task<IActionResult> PricingHistoryChart(
             int? rangeDays, string? placement, SponsorshipType? sponsorshipType, int? subCategoryId)
         {
