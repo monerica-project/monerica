@@ -8,14 +8,14 @@
     Func<Currency, decimal, string> formatCurrencyTotal = (currency, amount) =>
         currency == Currency.USD
             ? amount.ToString("C")
-            : $"{amount.ToString("0.########")} {currency}";
+            : $"{amount.ToString("0.########")} {currency.ToLabel()}";
 
     // Stable display order: XMR, BTC, USD, then anything else, nonzero only.
     var currencyOrder = new[] { Currency.XMR, Currency.BTC, Currency.USD };
     var orderedCurrencyTotals = Model.CurrencyTotals
         .Where(kvp => kvp.Value != 0m)
         .OrderBy(kvp => Array.IndexOf(currencyOrder, kvp.Key) is var i && i >= 0 ? i : int.MaxValue)
-        .ThenBy(kvp => kvp.Key.ToString())
+        .ThenBy(kvp => kvp.Key.ToLabel())
         .ToList();
 }
 
@@ -113,7 +113,7 @@
                 <td>@c.CommissionDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat)</td>
                 <td>@(c.DirectoryEntry?.Name ?? $"#{c.DirectoryEntryId}")</td>
                 <td class="u-text-right">@c.UsdValue.ToString("C")</td>
-                <td>@c.PaymentCurrency</td>
+                <td>@c.PaymentCurrency.ToLabel()</td>
                 <td class="u-text-right">@c.PaymentCurrencyAmount.ToString("0.########")</td>
                 <td>
                     @if (!string.IsNullOrWhiteSpace(c.TransactionId))

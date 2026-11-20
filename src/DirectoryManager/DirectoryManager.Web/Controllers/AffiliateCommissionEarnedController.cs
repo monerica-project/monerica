@@ -397,7 +397,7 @@ namespace DirectoryManager.Web.Controllers
                 .Select(c => new SelectListItem
                 {
                     Value = ((int)c).ToString(),
-                    Text = c.ToString(),
+                    Text = c.ToLabel(),
                     Selected = selected.HasValue && c == selected.Value
                 })
                 .ToList();
