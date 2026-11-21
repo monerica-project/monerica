@@ -196,7 +196,7 @@ SSH_HOST=your-vps                # or IP / ~/.ssh/config alias
 SSH_USER=                        # blank if the alias handles the user
 
 BUILD_CONFIGURATION=Release
-DOTNET_FRAMEWORK=net10.0
+DOTNET_FRAMEWORK=net11.0
 DOTNET_RUNTIME=linux-x64
 
 # PostgreSQL

@@ -641,7 +641,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
             // subcategory's name/links/description, grouped under that subcategory.
             var extras = await this.LoadAdditionalSubcategoryCopiesAsync(a => a.SubCategory.CategoryId == categoryId, excludeUnknown: false);
 
+            // Scam listings stay out of the browse lists; search and their own page still show them.
             var all = mains.Concat(extras)
+                .Where(e => e.DirectoryStatus != DirectoryStatus.Scam)
                 .OrderBy(e => e.SubCategory?.Name, StringComparer.OrdinalIgnoreCase)
                 .ThenBy(e => e.Name, StringComparer.OrdinalIgnoreCase)
                 .ToList();
@@ -718,7 +720,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
             // Listings shown here through an additional subcategory, with that row's overrides.
             var extras = await this.LoadAdditionalSubcategoryCopiesAsync(a => a.SubCategoryId == subCategoryId, excludeUnknown: false);
 
+            // Scam listings stay out of the browse lists; search and their own page still show them.
             var all = mains.Concat(extras)
+                .Where(e => e.DirectoryStatus != DirectoryStatus.Scam)
                 .OrderBy(e => e.Name, StringComparer.OrdinalIgnoreCase)
                 .ToList();
 

@@ -13,6 +13,15 @@ namespace DirectoryManager.Web.Tests.Validation
         [InlineData("https://sageswap.io/transaction/dfbfd721-6e92-40a0-9be8-3af5e158c81c/guarantee", true)]
         [InlineData("https://moneroswap.net/MSW-6WF3-5KAT#eyJkIjoiODc4d2laYzZaTURq", true)]
         [InlineData("https://exchange.example/order?id=83920174", true)]
+        [InlineData("https://trocador.app/en/checkout/pXvhJrKUaH", true)]
+        [InlineData("https://trocador.app/en/checkout/KuHXXsaeGq", true)]
+        [InlineData("https://exchange.example/order/kqzvbtrm", true)]
+        [InlineData("https://exchange.example/order/12345", true)]
+        [InlineData("https://exchange.example/o/Ab1", true)]
+        [InlineData("https://exchange.example/order?id=77", true)]
+        [InlineData("not a link", false)]
+        [InlineData("https://exchange.example/en/exchange/status", false)]
+        [InlineData("https://trocador.app/en/Checkout/", false)]
         [InlineData("", false)]
         public void Order_link_must_point_at_one_order(string url, bool expected)
         {

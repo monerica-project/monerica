@@ -164,7 +164,7 @@ public class SearchController : Controller
             link3Name);
 
         // Probe-shaped or machine-made terms are answered but not logged (no visitor data used).
-        if (SearchLogFilter.ShouldLog(q))
+        if (SearchLogFilter.ShouldLog(q) && SearchLogRepeatGuard.Allow(q, DateTime.UtcNow))
         {
             await this.searchLogRepository.CreateAsync(new SearchLog
             {

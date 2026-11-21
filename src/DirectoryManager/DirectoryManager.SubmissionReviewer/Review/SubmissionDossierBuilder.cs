@@ -26,30 +26,57 @@ namespace DirectoryManager.SubmissionReviewer.Review
     {
         private readonly IPageFetcher fetcher;
 
-        public SubmissionDossierBuilder(IPageFetcher fetcher) => this.fetcher = fetcher;
+        private readonly IPageRenderer? renderer;
+
+        public SubmissionDossierBuilder(IPageFetcher fetcher, IPageRenderer? renderer = null)
+        {
+            this.fetcher = fetcher;
+            this.renderer = renderer;
+        }
 
         /// <summary>Fetches the submitted page and (if found) one Monero/payment page linked from it.</summary>
         public async Task<(FetchResult Main, FetchResult? Second)> FetchPagesAsync(string link, string? proofLink, CancellationToken ct)
         {
-            var main = await this.fetcher.FetchAsync(link, ct);
+            var main = await this.WithBrowserTextAsync(await this.fetcher.FetchAsync(link, ct), ct);
             FetchResult? second = null;
 
             // The submitter's proof link (their own checkout/payment/FAQ page) beats a guessed one.
             if (!string.IsNullOrWhiteSpace(proofLink) &&
                 UrlNormalizer.Normalize(proofLink) != UrlNormalizer.Normalize(link))
             {
-                second = await this.fetcher.FetchAsync(proofLink, ct);
+                second = await this.WithBrowserTextAsync(await this.fetcher.FetchAsync(proofLink, ct), ct);
             }
             else if (main.Html != null && main.FinalUri != null)
             {
                 var payLink = HtmlText.FindPaymentLink(main.Html, main.FinalUri);
                 if (payLink != null)
                 {
-                    second = await this.fetcher.FetchAsync(payLink, ct);
+                    second = await this.WithBrowserTextAsync(await this.fetcher.FetchAsync(payLink, ct), ct);
                 }
             }
 
             return (main, second);
+        }
+
+        /// <summary>
+        /// A page the plain fetch could not read (empty JavaScript shell, or refused to a script) is
+        /// opened once in a headless browser, and what a visitor would see is added to it.
+        /// </summary>
+        private async Task<FetchResult> WithBrowserTextAsync(FetchResult fetched, CancellationToken ct)
+        {
+            if (this.renderer == null || !PageRenderer.NeedsRender(fetched))
+            {
+                return fetched;
+            }
+
+            var target = fetched.FinalUri ?? (Uri.TryCreate(fetched.Url, UriKind.Absolute, out var u) ? u : null);
+            if (target == null)
+            {
+                return fetched;
+            }
+
+            var rendered = await this.renderer.RenderAsync(target, ct);
+            return rendered == null ? fetched : PageRenderer.Merge(fetched, rendered);
         }
 
         /// <summary>

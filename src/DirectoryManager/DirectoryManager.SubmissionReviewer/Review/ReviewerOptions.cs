@@ -35,5 +35,18 @@ namespace DirectoryManager.SubmissionReviewer.Review
         public string TorHost { get; set; } = "127.0.0.1";
 
         public int TorPort { get; set; } = 9050;
+
+        /// <summary>Open pages the plain fetch could not read (JavaScript-built or refusing scripts) in a headless browser.</summary>
+        public bool RenderEnabled { get; set; } = true;
+
+        /// <summary>Locked-down user the browser runs as; the runner is skipped where it is not installed.</summary>
+        public string RenderRunAsUser { get; set; } = "order-render";
+
+        public string RenderRunnerPath { get; set; } = "/opt/monerica-order-render/run.sh";
+
+        public string SudoPath { get; set; } = "/usr/bin/sudo";
+
+        /// <summary>The runner stops itself after 170 s; wait a little longer than that.</summary>
+        public int RenderTimeoutSeconds { get; set; } = 210;
     }
 }

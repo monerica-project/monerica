@@ -1,7 +1,7 @@
 ﻿@model DirectoryManager.Web.Models.SubmissionPreviewModel
 @using DirectoryManager.Web.Constants;
 @{
-    PageMeta.Title = "Preview (not submitted yet)";
+    PageMeta.Title = "Step 2 of 2: NOT submitted yet";
 }
 
 @{
@@ -15,10 +15,26 @@
     </div>
 <hr />
 <div class="alert-warning" role="alert">
-    <p class="u-m-0"><b>Your listing has NOT been sent yet.</b> This is only a preview (step 2 of 2).</p>
-    <p class="u-m-0">Check the details below, then complete the spam check and press <b>Submit listing</b> at the bottom of this page.</p>
-    <p class="u-m-0"><a href="#submit-listing"><b>Go to the Submit button &darr;</b></a></p>
+    <h2 class="u-m-0">Your listing has NOT been sent yet</h2>
+    <p class="u-m-0">This page is only a preview. <b>Nobody will see or review your listing until you press &ldquo;Submit listing&rdquo; below.</b></p>
+    <p class="u-m-0">If you close this page now, your listing is not submitted.</p>
 </div>
+
+<form class="u-m-0" asp-action="Confirm" method="post" id="submit-listing">
+    @Html.HiddenFor(x => x.SubmissionId)
+
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    <h3>Last step: spam check, then submit</h3>
+    <div class="form-group">
+        @await Html.PartialAsync("_CaptchaBlock", (string)"submission")
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-cta">Submit listing</button>
+    <p><a href="~/submit?submissionid=@Model.SubmissionId">Go back and edit it first</a></p>
+</form>
+<hr />
+<h3>Preview of your listing</h3>
  
 @if (Model.DirectoryEntryViewModel.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Removed)
 {
@@ -126,20 +142,9 @@
 
 <br />
 
-<form class="u-m-0" asp-action="Confirm" method="post" id="submit-listing">
-    @Html.HiddenFor(x => x.SubmissionId)
-
-    <div asp-validation-summary="All" class="text-danger"></div>
-
-    <h3>Spam check</h3>
-    <div class="form-group">
-        @await Html.PartialAsync("_CaptchaBlock", (string)"submission")
-    </div>
-
-    <p><b>Last step:</b> your listing is only sent for review when you press this button.</p>
-    <button type="submit" class="btn btn-primary btn-cta">Submit listing</button>
-</form>
-<br />
-<a href="~/submit?submissionid=@Model.SubmissionId">Edit submission</a>
+<div class="alert-warning" role="alert">
+    <p class="u-m-0"><b>Still not submitted.</b> Your listing is only sent for review when you press &ldquo;Submit listing&rdquo; at the top of this page.</p>
+    <p class="u-m-0"><a href="#submit-listing"><b>&uarr; Go to the Submit button</b></a> &nbsp;&middot;&nbsp; <a href="~/submit?submissionid=@Model.SubmissionId">Edit submission</a></p>
+</div>
 
 }

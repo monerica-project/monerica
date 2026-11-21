@@ -28,7 +28,11 @@ namespace DirectoryManager.SubmissionReviewer.Review
     }
 
     /// <summary>Directory data the instructions need: valid subcategories, tag names, and style examples.</summary>
-    public sealed record ReviewContext(IReadOnlyList<string> SubcategoryNames, IReadOnlyList<string> TagNames, IReadOnlyList<string> StyleExamples);
+    public sealed record ReviewContext(IReadOnlyList<string> SubcategoryNames, IReadOnlyList<string> TagNames, IReadOnlyList<string> StyleExamples)
+    {
+        /// <summary>Payment processor names the directory knows.</summary>
+        public IReadOnlyList<string> ProcessorNames { get; init; } = Array.Empty<string>();
+    }
 
     public interface IClaudeReviewService
     {
@@ -99,6 +103,8 @@ Set a field when you change or confirm it with evidence from the dossier; use nu
 - kyc_policy (one of: {{kyc}}): from the site's OWN words anywhere in the dossier: its home page, proof page, FAQ, terms, and the "KYC / ID statements on the site's own pages" section. A plain statement by the site itself such as "No KYC", "no ID verification", "we never ask for ID" or "no identity checks" IS the evidence for GuaranteedNoKyc; it does not have to be on the terms page, and a terms page that was not fetched is never a reason to downgrade a clear on-site statement. Downgrade only when the site's own text says it may ask for ID or verification: RareKyc = may ask in rare cases (e.g. AML checks on flagged funds); ShotgunKyc = no KYC by default but can freeze funds AND demand ID/verification to release them. Reserving the right to refuse or hold transactions linked to fraud, theft or sanctions, without saying it will ask for ID, does not by itself downgrade GuaranteedNoKyc (mention it in an issue). MandatoryKyc = ID required. NotStated = the site's own pages say nothing about KYC/ID. A submitter's claim alone (submitted fields, Note to admin) is not evidence, and "no account / no registration" alone is not a KYC statement (needing an account is not KYC either). When a terms or KYC/AML page contradicts the home page, follow the terms and say so in an issue.
 - site_javascript (one of: {{js}}): whether the website needs JavaScript, only if the dossier shows it (e.g. the fetched page works without scripts, or says it requires JavaScript); otherwise null.
 - liquidity (one of: {{liq}}) and rate_type (one of: {{rate}}): only for exchanges/swaps, only with evidence; otherwise null (NotApplicable for non-exchanges).
+- note, what it is NOT for: never name or describe the payment processor (that is the processor field), never list payment methods or say that card or bank payments are or are not offered, never restate the KYC stance that kyc_policy already gives, never say what you could not check, did not review or were unable to verify, and never repeat the description. Do not add a note just because the site states a refund policy, plan sizes or prices. Most listings have NO note: when you are not sure a visitor must know it before using the service, use null. Keep a note to one short sentence.
+- processor: the payment processor the site uses to take Monero, as ONE name copied exactly from this list: {{string.Join(", ", context.ProcessorNames)}}. Set it whenever the dossier shows which one: the site names it, links or sends the buyer to it at checkout, loads its script or widget, or the note to admin names it and nothing in the dossier contradicts that. Use "Direct to wallet" only when the site shows its own Monero address or says payments go straight to its own wallet. Otherwise null. If the submitted processor is wrong according to the dossier, add an issue naming the right one.
 - social: the business's OWN main social profile URL (prefer X/Twitter, else another public profile such as Mastodon, Nostr, Reddit, YouTube), taken from "Social and messenger links found on the site" or the page. messenger: the business's OWN chat/contact URL (Telegram, Matrix, SimpleX, Signal, Discord invite) from the same places. Fill them whenever the site shows one, even if the submitter left them blank. Never use the site's own website, the main link, or any URL already in another link field (Link, Link 2/3, proof, video, source code): if the submitted Social or Messenger repeats one of those or is not a social/chat profile, set "" (empty) to clear it, or replace it with the real profile found on the site. null = keep what was submitted (when it is already a profile or nothing better was found). NEVER clear or replace a submitted Social or Messenger only because the site does not show that profile or you cannot confirm it belongs to the business: a submitted profile URL on a real social/chat platform (X/Twitter, Reddit, Mastodon, Nostr, YouTube, Telegram, Matrix, SimpleX, Signal, Discord and similar) stays (null), and if you doubt it is the business's own, say so in issues for the human reviewer instead. Clear it only when it is not a social/chat profile at all or repeats another link field. One URL each.
 - tags: comma-separated, ONLY names from this list that the dossier supports: {{string.Join(", ", context.TagNames)}}.
   API rule: if the site links to API or developer documentation (a menu, footer or page link such as "API", "API docs", "Developers", "/api-docs/", "/developers", "Swagger") or its text offers an API for partners or integrators, always include the "API Available" tag when it is in the list above. Any line in the "API / developer docs check" section is enough evidence.
@@ -125,7 +131,8 @@ summary: ONE plain sentence, at most 25 words, giving the reason for your verdic
 - "approve_candidate": the Monero evidence and the page it is on.
 Do not list what you checked, restate the submission, or add a second point.
 issues: at most 3, most important first, each at most 15 words. Only things the owner must check or fix by hand before publishing. Do not repeat the summary. Leave out anything you already fixed in the suggested version, anything you put in the note, anything that checked out fine, and general observations. An empty list is normal and good.
-Flag only for a concrete reason: a rule above that may not be met, or a fact the rules need that the dossier does not show. If you cannot name one, it is an "approve_candidate". A caveat about how the service works (a third-party payment processor, custodial funds, data retention, the provider's own checks) is not a reason to flag: put it in the note and use "approve_candidate" when the rules are met.
+Flag only for a concrete reason: a rule above that may not be met, or a fact the rules need that the dossier does not show. If you cannot name one, it is an "approve_candidate". A caveat about how the service works (custodial funds, data retention, the provider's own checks) is not a reason to flag: put it in the note and use "approve_candidate" when the rules are met. A third-party payment processor is never a caveat and never a reason to flag: name it in the processor field and leave it out of the note.
+Browser text: when a page's text in the dossier came from opening it in a browser (the plain fetch saw an empty JavaScript page), treat that text exactly like any other page text; it is what a visitor sees.
 """;
         }
 
@@ -168,6 +175,7 @@ Flag only for a concrete reason: a rule above that may not be met, or a fact the
                 ["site_javascript"] = NEnum(System.Enum.GetNames<SiteJavaScript>().Where(n => n != "Unknown")),
                 ["social"] = NStr(),
                 ["messenger"] = NStr(),
+                ["processor"] = NStr(),
                 ["tags"] = NStr(),
                 ["changes"] = new JsonObject
                 {

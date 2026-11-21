@@ -19,6 +19,13 @@ namespace DirectoryManager.Web.Tests.Sponsorship
         [InlineData(999.99, 3, 15, 2999.97, 450.00, 2549.97)]
         public void Compute_PricesOrder(decimal unit, int qty, decimal pct, decimal original, decimal discount, decimal total)
         {
+            // xUnit turns the double literals above into decimals; since .NET 11 that keeps the binary tail.
+            unit = Math.Round(unit, 2);
+            pct = Math.Round(pct, 2);
+            original = Math.Round(original, 2);
+            discount = Math.Round(discount, 2);
+            total = Math.Round(total, 2);
+
             var result = VideoSponsorPricing.Compute(unit, qty, pct);
 
             Assert.Equal(original, result.Original);
@@ -48,6 +55,9 @@ namespace DirectoryManager.Web.Tests.Sponsorship
         [InlineData(900, 1)]
         public void SplitAcrossItems_AlwaysAddsBackToTotal(decimal total, int qty)
         {
+            // xUnit turns the double literals above into decimals; since .NET 11 that keeps the binary tail.
+            total = Math.Round(total, 2);
+
             var parts = VideoSponsorPricing.SplitAcrossItems(total, qty);
 
             Assert.Equal(qty, parts.Count);
@@ -63,6 +73,9 @@ namespace DirectoryManager.Web.Tests.Sponsorship
         [InlineData(" 300 ", 300)]
         public void DemoCost_OverThreshold_IsAccepted(string input, decimal expected)
         {
+            // xUnit turns the double literals above into decimals; since .NET 11 that keeps the binary tail.
+            expected = Math.Round(expected, 2);
+
             Assert.True(VideoSponsorPricing.TryResolveDemoCost(true, input, out var cost, out var error));
             Assert.Equal(expected, cost);
             Assert.Null(error);

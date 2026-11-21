@@ -202,11 +202,13 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .Select(s => (DateTime?)s.CreateDate)
                 .FirstOrDefaultAsync(ct);
 
+        // "Waiting since" counts from when the submission was sent, not when it was first drafted:
+        // one left in Preview for a day and then sent (or auto-sent) only starts waiting at that point.
         public Task<DateTime?> GetNewestPendingUtcAsync(CancellationToken ct = default) =>
             this.context.Submissions.AsNoTracking()
                 .Where(s => s.SubmissionStatus == SubmissionStatus.Pending)
-                .OrderByDescending(s => s.CreateDate)
-                .Select(s => (DateTime?)s.CreateDate)
+                .OrderByDescending(s => s.SubmittedUtc ?? s.CreateDate)
+                .Select(s => (DateTime?)(s.SubmittedUtc ?? s.CreateDate))
                 .FirstOrDefaultAsync(ct);
 
         public Task<List<DirectoryManager.Data.Models.TransferModels.PaidWaitingItem>> ListPaidPendingAsync(CancellationToken ct = default) =>

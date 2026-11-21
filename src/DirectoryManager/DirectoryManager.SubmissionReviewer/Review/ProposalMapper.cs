@@ -20,11 +20,22 @@ namespace DirectoryManager.SubmissionReviewer.Review
             };
 
         /// <param name="subcategoryIdsByName">"Category > Subcategory" (case-insensitive) → id.</param>
-        public static void Apply(Submission s, AiVerdict v, IReadOnlyDictionary<string, int> subcategoryIdsByName)
+        public static void Apply(Submission s, AiVerdict v, IReadOnlyDictionary<string, int> subcategoryIdsByName, IReadOnlyCollection<string>? processorNames = null)
         {
             var p = v.Proposal;
             s.ProposedName = Clean(p.Name, 255) ?? s.Name;
-            s.ProposedDescription = ListingText.CleanListingText(Clean(p.Description, 175) ?? s.Description);
+
+            // Payment processor: only fills an empty field, and only with a name the directory knows
+            // (what the submitter typed is kept in the original snapshot either way).
+            if (string.IsNullOrWhiteSpace(s.Processor) && processorNames != null && Clean(p.Processor, 255) is string processor)
+            {
+                var known = processorNames.FirstOrDefault(n => string.Equals(n.Trim(), processor, StringComparison.OrdinalIgnoreCase));
+                if (known != null)
+                {
+                    s.Processor = known.Trim();
+                }
+            }
+            s.ProposedDescription = ListingText.CleanListingText(Clean(p.Description, 175) ?? Clean(s.Description, 175));
             // The note is always the reviewer's final public note: null means "no note", so a
             // promotional or rule-breaking submitted note is never carried over by default.
             s.ProposedNote = ListingText.CleanListingText(Clean(p.Note, 250));
@@ -65,7 +76,7 @@ namespace DirectoryManager.SubmissionReviewer.Review
 
             s.ProposedChangesJson = p.Changes.Count == 0 ? null : JsonSerializer.Serialize(p.Changes);
             s.ReviewVerdict = v.Verdict;
-            s.ReviewConfidence = (decimal)Math.Round(v.Confidence, 3);
+            s.ReviewConfidence = Math.Round((decimal)v.Confidence, 3);
             s.ReviewMoneroEvidence = v.MoneroEvidence;
             s.ReviewSummary = Clean(v.Summary, 1000);
             s.ReviewIssuesJson = v.Issues.Count == 0 ? null : JsonSerializer.Serialize(v.Issues);

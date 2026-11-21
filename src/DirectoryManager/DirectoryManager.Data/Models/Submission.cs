@@ -143,6 +143,9 @@ namespace DirectoryManager.Data.Models
 
         public DateTime? PaidUtc { get; set; }
 
+        /// <summary>When the submission left Preview and was actually sent for review (pressed Submit, or auto-sent after a day).</summary>
+        public DateTime? SubmittedUtc { get; set; }
+
         public decimal? PaidAmount { get; set; }
 
         [MaxLength(10)]

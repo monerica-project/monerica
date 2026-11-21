@@ -89,7 +89,13 @@ namespace DirectoryManager.SubmissionReviewer.Review
                     .ToListAsync(ct))
                 .Select(x => x.Replace('\n', ' '))
                 .ToList();
-            var context = new ReviewContext(names, tagNames, styleExamples);
+            var processorNames = (await this.db.Processors.AsNoTracking().Select(p => p.Name).ToListAsync(ct))
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .Select(n => n.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            var context = new ReviewContext(names, tagNames, styleExamples) { ProcessorNames = processorNames };
 
             int processed = 0;
             foreach (var id in queue)
@@ -232,7 +238,7 @@ namespace DirectoryManager.SubmissionReviewer.Review
                         continue;
                     }
 
-                    ProposalMapper.Apply(s, verdict, idsByName);
+                    ProposalMapper.Apply(s, verdict, idsByName, processorNames);
                     s.AppendReviewLog($"AI ({result.Model}, {result.InputTokens}/{result.OutputTokens} tokens): {verdict.Verdict} {verdict.Confidence:0.00} → {s.ReviewState}. {verdict.Summary}");
                     Console.WriteLine($"#{s.SubmissionId}: {verdict.Verdict} ({verdict.Confidence:0.00}) → {s.ReviewState}");
                     this.LogCall(s, result, verdict, $"Submission → {s.ReviewState}; suggested edits saved for admin review");
@@ -325,6 +331,7 @@ namespace DirectoryManager.SubmissionReviewer.Review
                 }
 
                 s.SubmissionStatus = SubmissionStatus.Pending;
+                s.SubmittedUtc ??= DateTime.UtcNow;
                 s.ReviewState = SubmissionReviewState.Pending;
                 s.AppendReviewLog($"Auto-submitted: left in Preview for over {this.options.PreviewPromoteAfterHours}h (submitter never pressed Submit).");
                 waiting.Add(new { s.SubmissionId, s.Link, s.DirectoryEntryId });

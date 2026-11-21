@@ -47,6 +47,9 @@ namespace DirectoryManager.SubmissionReviewer.Review
         [JsonPropertyName("messenger")]
         public string? Messenger { get; set; }
 
+        [JsonPropertyName("processor")]
+        public string? Processor { get; set; }
+
         [JsonPropertyName("tags")]
         public string? Tags { get; set; }
 

@@ -1385,6 +1385,7 @@ namespace DirectoryManager.Web.Controllers
             }
 
             submission.SubmissionStatus = SubmissionStatus.Pending;
+            submission.SubmittedUtc ??= DateTime.UtcNow;
 
             await this.submissionRepository.UpdateAsync(submission);
 

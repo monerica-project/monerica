@@ -6,7 +6,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net10.0/DirectoryManager.Web.dll",
+            "program": "${workspaceFolder}/bin/Debug/net11.0/DirectoryManager.Web.dll",
             "args": [],
             "cwd": "${workspaceFolder}",
             "stopAtEntry": false,

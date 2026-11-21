@@ -19,6 +19,15 @@ namespace DirectoryManager.Web.Helpers
             RegexOptions.CultureInvariant,
             Timeout);
 
+        // Scanner input seen in the log up to 2026-11-20: "test" and its variants (5,251 rows, 4,401 of
+        // them on one day), and injection strings such as '"(), ../e, /etc/shells, vpn'||'1, 1 AND 1=1.
+        private static readonly Regex TestProbe = new (@"^test", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase, Timeout);
+
+        private static readonly Regex AttackProbe = new (
+            @"[""<>|\^`]|\(\)|^\)|/etc/|\.\./|%[0-9a-fA-F]{2}|\b(and|or)\s+[0-9]+\s*=|sleep\(|union\s+select|waitfor\s+delay|'\s*\|\||\$\(",
+            RegexOptions.CultureInvariant | RegexOptions.IgnoreCase,
+            Timeout);
+
         private static readonly Regex HexHash = new (@"^[0-9a-fA-F]{32,}$", RegexOptions.CultureInvariant, Timeout);
 
         public static bool ShouldLog(string? term)
@@ -31,7 +40,12 @@ namespace DirectoryManager.Web.Helpers
 
             try
             {
-                return !LoneQuoteProbe.IsMatch(t) && !HexHash.IsMatch(t);
+                if (t.Length <= 40 && TestProbe.IsMatch(t))
+                {
+                    return false;
+                }
+
+                return !LoneQuoteProbe.IsMatch(t) && !HexHash.IsMatch(t) && !AttackProbe.IsMatch(t);
             }
             catch (RegexMatchTimeoutException)
             {
