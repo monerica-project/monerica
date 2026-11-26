@@ -144,10 +144,19 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.TotalPendingSubmissions = totalPendingSubmissions;
 
             // Automated reviewer: how many pending submissions are ready to approve vs need a person.
-            var reviewStates = (await this.submissionRepository.ListPendingForReviewAsync())
+            // The weekly site check's offline findings are ready too: one click removes the listing
+            // (or its dead Tor link), so they count as ready, not as "needs a look".
+            var pendingForReview = await this.submissionRepository.ListPendingForReviewAsync();
+            var offlineReady = pendingForReview
+                .Where(x => Helpers.AutomatedSubmissionRefresh.Classify(x.NoteToAdmin, x.DirectoryStatus, x.Note)
+                    is Helpers.SiteCheckFinding.MainSiteOffline or Helpers.SiteCheckFinding.TorLinkOffline)
+                .ToList();
+            var reviewStates = pendingForReview
+                .Except(offlineReady)
                 .Select(x => x.ReviewState)
                 .ToList();
-            this.ViewBag.AiReadyToApprove = reviewStates.Count(x => x == Data.Enums.SubmissionReviewState.AiApproveCandidate);
+            this.ViewBag.OfflineReady = offlineReady.Count;
+            this.ViewBag.AiReadyToApprove = offlineReady.Count + reviewStates.Count(x => x == Data.Enums.SubmissionReviewState.AiApproveCandidate);
             this.ViewBag.AiNeedsAttention = reviewStates.Count(x => x is Data.Enums.SubmissionReviewState.Flagged
                 or Data.Enums.SubmissionReviewState.AiRejectCandidate
                 or Data.Enums.SubmissionReviewState.AutoRejected

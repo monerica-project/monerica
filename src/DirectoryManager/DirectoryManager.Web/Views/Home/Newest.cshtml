@@ -16,8 +16,9 @@
     PageMeta.SeoTitle = DirectoryManager.Web.Helpers.SeoTitleBuilder.ForSubject($"Newest {seoListings}", null, seoSite, (int)(ViewBag.PageNumber ?? 1));
     PageMeta.MetaDescription = DirectoryManager.Web.Helpers.SeoDescriptionBuilder.Shorten($"The newest websites and services{seoAbout} added to {seoSite}, grouped by the date they were listed.");
 
-    // Only page 1 is indexed and in the sitemap; deeper pages are a rolling window that shifts
-    // with every new listing. They stay crawlable (follow) and are served by the app.
+    // Deeper pages are a rolling window that shifts with every new listing, so they are not
+    // indexed (follow stays on). They are still in the sitemap so the static mirror serves them
+    // and the pagination links stay on the main site.
     if ((int)(ViewBag.PageNumber ?? 1) > 1)
     {
         PageMeta.IsIndexable = false;
@@ -60,13 +61,11 @@
                     // Use /newest for page 1, and /newest/page/2+ for others
                     string rawPath = i == 1 ? "/newest" : $"/newest/page/{i}";
 
-                    // Page 1 is on the static mirror (no-app-link). Pages 2+ are not mirrored
-                    // (kept out of the sitemap, noindex), so they link to the app (app-link).
-                    string href = i == 1
-                    ? UrlResolver.BaseUrl.TrimEnd('/') + rawPath
-                    : UrlResolver.ResolveToApp(rawPath);
+                    // Every page is on the main site (they are all in the sitemap, so the static
+                    // mirror has them): link through the root helper, never to the app.
+                    string href = UrlResolver.ResolveToRoot(rawPath);
 
-                    string linkClass = i == 1 ? "no-app-link" : "app-link";
+                    string linkClass = "no-app-link";
 
                     <li class="page-item @(i == currentPage ? "active" : "")">
                         <a class="page-link @linkClass" href="@href">@i</a>

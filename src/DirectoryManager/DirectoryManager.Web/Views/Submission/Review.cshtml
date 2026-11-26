@@ -109,6 +109,16 @@ else
         <p><i>Differences:</i></p>
         @Html.Raw(ViewBag.Differences)
     }
+    else if (ViewBag.AlreadyListed is DirectoryManager.Data.Models.DirectoryEntry listed)
+    {
+        <div class="alert-warning" role="alert">
+            <b>Already listed.</b> This was sent as a new listing, but the site is already listed as
+            <a href="~/directoryentry/edit/@listed.DirectoryEntryId">@listed.Name (#@listed.DirectoryEntryId)</a>.
+            Approving would overwrite that listing with the values below. Reject it if nothing here is worth keeping.
+        </div>
+        <p><i>Differences from the listing:</i></p>
+        @Html.Raw(ViewBag.Differences)
+    }
  
     @{
         // Every link in the submission, clickable, so nothing has to be copied by hand.

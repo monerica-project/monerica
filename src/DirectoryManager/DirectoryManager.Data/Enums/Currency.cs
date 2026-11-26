@@ -8,7 +8,10 @@
         BTC = 3,
 
         /// <summary>Tether on the Ethereum network. Used for affiliate commission payouts only.</summary>
-        UsdtEth = 4
+        UsdtEth = 4,
+
+        /// <summary>Ether. Used for affiliate commission payouts only.</summary>
+        ETH = 5
     }
 
     public static class CurrencyExtensions

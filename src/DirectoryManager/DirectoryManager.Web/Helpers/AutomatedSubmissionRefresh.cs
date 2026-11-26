@@ -9,6 +9,22 @@ namespace DirectoryManager.Web.Helpers
     /// would silently undo the edits. The review page therefore refreshes the copy from the live
     /// listing; this class decides which submissions qualify and what status/note to propose.
     /// </summary>
+    /// <summary>What a weekly SiteChecker submission is about, as shown on the review page.</summary>
+    public enum SiteCheckFinding
+    {
+        /// <summary>Not a SiteChecker submission.</summary>
+        None = 0,
+
+        /// <summary>The main (clearnet) site did not load. Proposal: remove the listing as offline.</summary>
+        MainSiteOffline = 1,
+
+        /// <summary>Only the Tor address did not load; the main site did.</summary>
+        TorLinkOffline = 2,
+
+        /// <summary>A warning that proposes no change (bad certificate, dead additional-subcategory link).</summary>
+        Warning = 3,
+    }
+
     public static class AutomatedSubmissionRefresh
     {
         /// <summary>NoteToAdmin prefix written by the SiteChecker (and only by it).</summary>
@@ -58,9 +74,44 @@ namespace DirectoryManager.Web.Helpers
                 : (DirectoryStatus.Removed, $"{currentNote} | {reason}");
         }
 
+        /// <summary>Sorts a submission into what the SiteChecker found, from its notes alone.</summary>
+        /// <returns>The finding, or <see cref="SiteCheckFinding.None"/> for anything a person or another job sent.</returns>
+        public static SiteCheckFinding Classify(string? noteToAdmin, DirectoryStatus? proposedStatus, string? proposedNote)
+        {
+            if (noteToAdmin is null || !noteToAdmin.StartsWith(SiteCheckerMarker, StringComparison.Ordinal))
+            {
+                return SiteCheckFinding.None;
+            }
+
+            var reason = OfflineReason(proposedStatus ?? DirectoryStatus.Unknown, proposedNote);
+            if (reason is null)
+            {
+                return SiteCheckFinding.Warning;
+            }
+
+            // "site offline (tor link offline)" is the only reason where the main site was up.
+            return reason.Contains("clearnet", StringComparison.OrdinalIgnoreCase)
+                   || !reason.Contains("tor link", StringComparison.OrdinalIgnoreCase)
+                ? SiteCheckFinding.MainSiteOffline
+                : SiteCheckFinding.TorLinkOffline;
+        }
+
+        /// <summary>The checker's warning text without its "(automated submission)" marker.</summary>
+        /// <returns>The warning, or null when there is none.</returns>
+        public static string? WarningText(string? noteToAdmin)
+        {
+            if (noteToAdmin is null || !noteToAdmin.StartsWith(SiteCheckerMarker, StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            var text = noteToAdmin[SiteCheckerMarker.Length..].Trim();
+            return text.Length == 0 ? null : text;
+        }
+
         // "site offline (clearnet link offline)" etc. — from the last occurrence to the end, since
         // the checker builds the note as "<listing note> | <reason>".
-        private static string? OfflineReason(DirectoryStatus proposedStatus, string? proposedNote)
+        public static string? OfflineReason(DirectoryStatus proposedStatus, string? proposedNote)
         {
             if (proposedStatus != DirectoryStatus.Removed || string.IsNullOrEmpty(proposedNote))
             {

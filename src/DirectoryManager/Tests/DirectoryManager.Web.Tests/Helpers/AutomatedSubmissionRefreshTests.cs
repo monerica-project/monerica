@@ -20,6 +20,29 @@ namespace DirectoryManager.Web.Tests.Helpers
             Assert.Equal(expected, AutomatedSubmissionRefresh.ShouldRefresh(pending, entryId, noteToAdmin));
         }
 
+        [Theory]
+        [InlineData("(automated submission)", DirectoryStatus.Removed, "site offline (clearnet link offline)", SiteCheckFinding.MainSiteOffline)]
+        [InlineData("(automated submission)", DirectoryStatus.Removed, "15% off | site offline (clearnet and tor link offline)", SiteCheckFinding.MainSiteOffline)]
+        [InlineData("(automated submission)", DirectoryStatus.Removed, "site offline", SiteCheckFinding.MainSiteOffline)]
+        [InlineData("(automated submission)", DirectoryStatus.Removed, "old note | site offline (tor link offline)", SiteCheckFinding.TorLinkOffline)]
+        [InlineData("(automated submission) SSL certificate problem: expired.", DirectoryStatus.Verified, "a note", SiteCheckFinding.Warning)]
+        [InlineData("(automated submission) Additional subcategory link offline: Misc: https://x.example.", DirectoryStatus.Verified, null, SiteCheckFinding.Warning)]
+        [InlineData("please mark my site offline", DirectoryStatus.Removed, "site offline (clearnet link offline)", SiteCheckFinding.None)]
+        [InlineData(null, DirectoryStatus.Removed, "site offline (clearnet link offline)", SiteCheckFinding.None)]
+        public void Site_check_findings_are_sorted_by_what_is_down(string? noteToAdmin, DirectoryStatus status, string? note, SiteCheckFinding expected)
+        {
+            Assert.Equal(expected, AutomatedSubmissionRefresh.Classify(noteToAdmin, status, note));
+        }
+
+        [Theory]
+        [InlineData("(automated submission)", null)]
+        [InlineData("(automated submission) SSL certificate problem: expired.", "SSL certificate problem: expired.")]
+        [InlineData("a person's note", null)]
+        public void Warning_text_drops_the_marker(string noteToAdmin, string? expected)
+        {
+            Assert.Equal(expected, AutomatedSubmissionRefresh.WarningText(noteToAdmin));
+        }
+
         [Fact]
         public void Offline_keeps_removed_and_adds_reason_to_the_current_note()
         {

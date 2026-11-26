@@ -33,6 +33,7 @@ namespace DirectoryManager.Web.Controllers
             new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
                 ["open-source"] = "/filter?HasSourceCode=true",
+                ["vps"] = "/web-hosting/vps",
             };
 
         private readonly ITagRepository tagRepo;

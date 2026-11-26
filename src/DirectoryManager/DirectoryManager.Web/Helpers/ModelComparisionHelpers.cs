@@ -10,6 +10,9 @@ namespace DirectoryManager.Web.Helpers
 {
     internal static class ModelComparisonHelpers
     {
+        /// <summary>Shown (inside a paragraph) when a submission changes nothing on its listing.</summary>
+        public const string NoDifferencesText = "No differences found.";
+
         public static string CompareEntries(
             DirectoryEntry entry,
             Submission submission,
@@ -385,7 +388,7 @@ namespace DirectoryManager.Web.Helpers
                 return string.Join(Environment.NewLine, differences);
             }
 
-            return "<p>No differences found.</p>";
+            return $"<p>{NoDifferencesText}</p>";
         }
     }
 }

@@ -1,4 +1,5 @@
 using System.Text;
+using DirectoryManager.Data.Helpers;
 using DirectoryManager.Data.Models;
 using DirectoryManager.SubmissionReviewer.Fetching;
 using DirectoryManager.SubmissionReviewer.Text;
@@ -310,6 +311,15 @@ namespace DirectoryManager.SubmissionReviewer.Review
             IReadOnlyList<string>? moneroLogos = null)
         {
             var sb = new StringBuilder();
+            if (current == null && LinkOnlySubmission.IsLinkOnly(s))
+            {
+                sb.AppendLine("## Link-only submission");
+                sb.AppendLine("The directory's owner pasted only the link. The name below is a placeholder (the site's domain), and the description, category, tags and other fields are empty on purpose.");
+                sb.AppendLine("Draft every field from the site's pages: the real name, a description, the best-fitting subcategory, tags, country, and the rest where the site states them.");
+                sb.AppendLine("Empty submitted fields and a missing proof link are expected here and are not issues. Judge the site itself by the usual rules.");
+                sb.AppendLine();
+            }
+
             sb.AppendLine("## Submission (as submitted)");
             sb.AppendLine(current == null ? "Type: NEW listing" : $"Type: EDIT of existing listing #{current.Id}");
             Field(sb, "Name", s.Name);

@@ -724,7 +724,12 @@ namespace DirectoryManager.Web.Controllers
             // ----------------------------
             // Compare submission vs existing entry (includes tags + related links)
             // ----------------------------
-            if (submission.DirectoryEntryId.HasValue)
+            // A submission sent as NEW whose link is already listed is compared with that listing
+            // too, so the reviewer sees what (if anything) differs from what is on file.
+            var alreadyListed = submission.DirectoryEntryId.HasValue ? null : await this.FindListingForLinkAsync(submission.Link);
+            this.ViewBag.AlreadyListed = alreadyListed;
+
+            if (submission.DirectoryEntryId.HasValue || alreadyListed != null)
             {
                 if (submission.SubCategory == null && submission.SubCategoryId.HasValue)
                 {
@@ -732,8 +737,8 @@ namespace DirectoryManager.Web.Controllers
                         .GetByIdAsync(submission.SubCategoryId.Value);
                 }
 
-                var existing = await this.directoryEntryRepository
-                    .GetByIdAsync(submission.DirectoryEntryId.Value);
+                var existing = alreadyListed ?? await this.directoryEntryRepository
+                    .GetByIdAsync(submission.DirectoryEntryId!.Value);
 
                 if (existing != null)
                 {
@@ -1338,6 +1343,25 @@ namespace DirectoryManager.Web.Controllers
                 return this.View("Preview", previewModel);
             }
 
+            // ---- Listed since this draft was made? Then it is an edit of that listing, not a new
+            // one. With nothing different from the listing (and no note) there is nothing to review. ----
+            if (submission.DirectoryEntryId == null && await this.FindListingForLinkAsync(submission.Link) is DirectoryEntry nowListed)
+            {
+                await this.AssignExistingProperties(submission, nowListed.DirectoryEntryId);
+                submission.DirectoryEntryId = nowListed.DirectoryEntryId;
+                await this.KeepCurrentStatusIfUnsetAsync(submission);
+                await this.ProtectListingFieldsAsync(submission);
+
+                if (string.IsNullOrWhiteSpace(submission.NoteToAdmin) && await this.MatchesListingAsync(submission, nowListed, ct))
+                {
+                    this.ModelState.AddModelError(
+                        string.Empty,
+                        "This site is already listed and your submission is the same as the listing, so nothing was sent. Change something, or add a note to the admin, and submit again.");
+                    var previewModel = await this.GetSubmissionPreviewAsync(submission);
+                    return this.View("Preview", previewModel);
+                }
+            }
+
             // ---- A domain blocked after this draft was made is still refused. ----
             var confirmLinks = new List<string?>
             {
@@ -1530,6 +1554,61 @@ namespace DirectoryManager.Web.Controllers
 
         // Message for the submitter when the same link, or an edit of the same listing, is already
         // waiting for review; null when this submission may go ahead.
+        /// <summary>The live listing with this main link (with or without a trailing slash), if any.</summary>
+        private async Task<DirectoryEntry?> FindListingForLinkAsync(string? link)
+        {
+            var l = (link ?? string.Empty).Trim();
+            if (l.Length == 0)
+            {
+                return null;
+            }
+
+            return await this.directoryEntryRepository.GetByLinkAsync(l)
+                ?? await this.directoryEntryRepository.GetByLinkAsync(l.EndsWith('/') ? l[..^1] : l + "/");
+        }
+
+        /// <summary>True when the submission would change nothing on the listing (same check the review page shows as "Differences").</summary>
+        private async Task<bool> MatchesListingAsync(Submission submission, DirectoryEntry entry, CancellationToken ct)
+        {
+            var entryTags = (await this.entryTagRepo.GetTagsForEntryAsync(entry.DirectoryEntryId))
+                .Select(t => t.Name)
+                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            // No tags picked on the submission means "keep the listing's tags", as on the review page.
+            var pickedIds = ParseCsvIds(submission.SelectedTagIdsCsv).ToHashSet();
+            var pickedTags = pickedIds.Count == 0
+                ? entryTags
+                : (await this.tagRepo.ListAllAsync())
+                    .Where(t => pickedIds.Contains(t.TagId))
+                    .Select(t => t.Name)
+                    .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+            var entryRelated = ((await this.additionalLinkRepo.GetByDirectoryEntryIdAsync(entry.DirectoryEntryId, ct)) ?? new List<AdditionalLink>())
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.AdditionalLinkId)
+                .Select(x => x.Link)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(MaxLinks)
+                .ToList();
+
+            var entryGuarantees = (await this.guaranteeRepo.GetByDirectoryEntryIdAsync(entry.DirectoryEntryId, ct))
+                .Select(g => new GuaranteeItem { Link = g.Link, Amount = g.Amount, Currency = g.Currency })
+                .ToList();
+
+            var differences = ModelComparisonHelpers.CompareEntries(
+                entry,
+                submission,
+                entryTagNames: entryTags,
+                selectedTagNames: pickedTags,
+                entryRelatedLinks: entryRelated,
+                entryGuarantees: entryGuarantees);
+
+            return differences.Contains(ModelComparisonHelpers.NoDifferencesText, StringComparison.Ordinal);
+        }
+
         private async Task<string?> PendingDuplicateMessageAsync(string? link, int? directoryEntryId, int? excludeSubmissionId)
         {
             var existing = await this.submissionRepository.FindPendingDuplicateAsync(link, directoryEntryId, excludeSubmissionId);

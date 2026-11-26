@@ -291,7 +291,7 @@ namespace DirectoryManager.Web.Controllers
             // Currency dropdown
             model.DisplayCurrencyOptions = Enum.GetValues(typeof(Currency))
                 .Cast<Currency>()
-                .Where(c => c != Currency.Unknown && c != Currency.UsdtEth)
+                .Where(c => c != Currency.Unknown && c != Currency.UsdtEth && c != Currency.ETH)
                 .Select(c => new SelectListItem
                 {
                     Value = c.ToString(),
@@ -572,7 +572,7 @@ namespace DirectoryManager.Web.Controllers
             // Currency dropdown.
             model.DisplayCurrencyOptions = Enum.GetValues(typeof(Currency))
                 .Cast<Currency>()
-                .Where(c => c != Currency.Unknown && c != Currency.UsdtEth)
+                .Where(c => c != Currency.Unknown && c != Currency.UsdtEth && c != Currency.ETH)
                 .Select(c => new SelectListItem
                 {
                     Value = c.ToString(),

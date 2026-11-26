@@ -1,0 +1,54 @@
+@model DirectoryManager.Web.Models.Submissions.SubmissionFromLinkModel
+@{
+    PageMeta.Title = "Submit a link";
+    PageMeta.MetaContent = DirectoryManager.Web.Constants.StringConstants.MetaTagNoIndex;
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+<h1>@PageMeta.Title</h1>
+@await Html.PartialAsync("_AdminMenu")
+
+<p>
+    <a href="~/admin/submission-review">AI-reviewed submissions</a> |
+    <a href="~/submission/index">All submissions</a>
+</p>
+<hr />
+
+<p>
+    Paste one link and a submission is created for review. The automated review reads the site and drafts the name,
+    description, category, tags and other details, usually within about 10 minutes. You then approve or edit it on the
+    AI-reviewed submissions page, like any other submission. Nothing is published until you approve it.
+</p>
+
+@if (!string.IsNullOrEmpty(Model.Problem))
+{
+    <p class="text-danger">
+        <strong>@Model.Problem</strong>
+        @if (!string.IsNullOrEmpty(Model.ProblemUrl))
+        {
+            <a href="@Model.ProblemUrl">@Model.ProblemUrlText</a>
+        }
+    </p>
+}
+
+<form method="post" action="~/admin/submission-from-link">
+    @Html.AntiForgeryToken()
+    <p>
+        <label for="Link"><strong>Link</strong></label><br />
+        <input class="form-control u-w-30em" id="Link" name="Link" type="text" maxlength="500" value="@Model.Link"
+               placeholder="https://example.com or a page on the site" required autofocus />
+    </p>
+    <p class="text-muted">
+        <small>
+            If you paste a page inside a site (for example its payment or product page), the site's home address becomes
+            the listing link and the page you pasted is kept as the proof page.
+        </small>
+    </p>
+    <p>
+        <label for="Note">Note for the review (optional)</label><br />
+        <textarea id="Note" name="Note" rows="3" cols="60" maxlength="700">@Model.Note</textarea>
+    </p>
+    <p><button type="submit" class="btn btn-primary">Create submission</button></p>
+</form>
+}

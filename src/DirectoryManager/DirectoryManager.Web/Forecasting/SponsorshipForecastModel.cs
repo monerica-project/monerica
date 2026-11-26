@@ -24,7 +24,29 @@ namespace DirectoryManager.Web.Forecasting
         private const int RenewEarlyToleranceDays = 10;
         private const int RenewLateWindowDays = 45;
         private const int RecentPricesPerBucket = 6;
+
+        // Main is one product with one going price that moves with demand, so the latest sale of a
+        // similar length is the best guide to the next (a median of several lags a moving price:
+        // measured on replays, near-term error 20% with the last six, 14% with the latest).
+        private const int MainRecentPrices = 1;
+
+        // A recent Main price trend carries on for a while but fades: half of the trend is carried
+        // forward and each month keeps 70% of the month before (at most about 13% in total). On
+        // replays this trimmed the error a little and halved how often the result fell outside the range.
+        private const double MomentumScale = 0.5;
+        private const double MomentumKeptPerMonth = 0.7;
+
+        // How much of a price swing is still there a month later (the rest has faded back).
+        private const double PriceLevelKeptPerMonth = 0.8;
         private const double ArrivalDecayDays = 260.0; // ~180-day half-life
+
+        // Extra spread on site-sponsor income per month ahead (in logs), so the stated range holds
+        // about as often as it says on replays.
+        private const double ModelErrorBase = 0.10;
+        private const double ModelErrorPerMonth = 0.05;
+
+        // The spread was sized on replays that look six months ahead, so it stops growing there.
+        private const int ModelErrorGrowsForMonths = 5;
 
         private static readonly SponsorshipType[] Tiers =
         {
@@ -233,6 +255,38 @@ namespace DirectoryManager.Web.Forecasting
             public decimal ExpectedTotal => this.Months.Sum(m => m.Expected);
 
             public List<Backtest> Backtests { get; init; } = new ();
+
+            /// <summary>How each stream's forecast did when replayed from each of the last 12 month starts.</summary>
+            public List<StreamScore> Scorecard { get; init; } = new ();
+        }
+
+        /// <summary>
+        /// One stream's track record on replays: the forecast was re-made from each of the last 12
+        /// month starts with only what was known then, and each month it predicted is compared
+        /// with what came in.
+        /// </summary>
+        public sealed class StreamScore
+        {
+            /// <summary>The stream, or null for all revenue together.</summary>
+            public RevenueSource? Source { get; init; }
+
+            /// <summary>True for months 4 to 6 ahead, false for months 1 to 3.</summary>
+            public bool Far { get; init; }
+
+            public int MonthsScored { get; init; }
+
+            public decimal AverageActual { get; init; }
+
+            /// <summary>Half of the months missed by less than this many dollars.</summary>
+            public decimal TypicalMissUsd { get; init; }
+
+            /// <summary>Typical miss as a share of the stream's average month.</summary>
+            public decimal TypicalMissPct { get; init; }
+
+            /// <summary>Predicted total against actual total: negative means it predicted too little.</summary>
+            public decimal BiasPct { get; init; }
+
+            public decimal InsideRangePct { get; init; }
         }
 
         /// <summary>Under this many months of data a stream isn't projected at all.</summary>
@@ -318,9 +372,14 @@ namespace DirectoryManager.Web.Forecasting
                     h.Add((double)otherKnown.Where(i => i.Source == src && i.PaidUtc >= mFrom && i.PaidUtc < mTo).Sum(i => i.AmountUsd));
                 }
 
-                // Drop leading months from before this stream existed.
+                // Drop leading months from before this stream existed. Its very first month is
+                // usually a partial one (it started mid-month), so that goes too once there are at
+                // least two full months after it.
                 int first = h.FindIndex(v => v > 0);
-                sourceHistory[src] = first < 0 ? new List<double> { 0d } : h.Skip(first).ToList();
+                var own = first < 0 ? new List<double> { 0d } : h.Skip(first).ToList();
+                var firstPaidAt = otherKnown.Where(i => i.Source == src).Select(i => (DateTime?)i.PaidUtc).Min();
+                bool startedInsideWindow = first >= 0 && firstPaidAt >= firstMonth.AddMonths(-o.LookbackMonths) && firstPaidAt.Value.Day > 5;
+                sourceHistory[src] = startedInsideWindow && own.Count >= 3 ? own.Skip(1).ToList() : own;
             }
 
             // A stream that only started recently isn't projected from a few weeks of sales: under
@@ -374,6 +433,8 @@ namespace DirectoryManager.Web.Forecasting
                 contractedByMonth[dayMonth[d]] += contractedDaily[d];
             }
 
+            var sponsorMean = new double[months];
+            var earnedMean = new double[months];
             var rng = new Random(o.Seed);
             var simEarned = new double[days];
             var simCash = new double[days];
@@ -385,6 +446,7 @@ namespace DirectoryManager.Web.Forecasting
 
                 var sponsorMonth = new double[months];
                 var cashMonth = new double[months];
+                var modelShock = SampleNormal(rng);
                 for (int d = 0; d < days; d++)
                 {
                     sponsorMonth[dayMonth[d]] += simEarned[d];
@@ -412,11 +474,20 @@ namespace DirectoryManager.Web.Forecasting
                         other += v;
                     }
 
-                    var sponsor = contractedByMonth[m] + sponsorMonth[m];
+                    // Things the simulation doesn't model (a sponsor pulled early, an unusual deal,
+                    // a price change) move a month by more than luck in renewals and sales explains.
+                    // One shared draw per simulated future, growing with distance, sized on replays.
+                    var modelSigma = ModelErrorBase + (ModelErrorPerMonth * Math.Min(m, ModelErrorGrowsForMonths));
+                    var sponsorPlain = contractedByMonth[m] + sponsorMonth[m];
+                    var sponsor = sponsorPlain * Math.Exp(modelSigma * modelShock);
+
+                    // The shock only widens the range: "expected" is the average without it.
+                    sponsorMean[m] += sponsorPlain / sims;
                     var extra = m == 0 ? actualSoFar : 0d;
                     sponsorSims[m][s] = sponsor;
                     otherSims[m][s] = other;
                     earnedSims[m][s] = sponsor + other + extra;
+                    earnedMean[m] += (sponsorPlain + other + extra) / sims;
                     cashSims[m][s] = cashMonth[m] + other;
                 }
             }
@@ -448,10 +519,10 @@ namespace DirectoryManager.Web.Forecasting
                     MonthStart = monthStarts[m],
                     ActualSoFar = m == 0 ? Money(actualSoFar) : 0m,
                     Contracted = Money(contractedByMonth[m] + (m == 0 ? actualSoFar : 0d)),
-                    Expected = Money(earnedSims[m].Average()),
+                    Expected = Money(earnedMean[m]),
                     Low = Money(Quantile(earnedSims[m], lowQ)),
                     High = Money(Quantile(earnedSims[m], highQ)),
-                    SponsorExpected = Money(sponsorSims[m].Average()),
+                    SponsorExpected = Money(sponsorMean[m]),
                     OtherExpected = Money(otherSims[m].Average()),
                     SponsorLow = Money(Quantile(sponsorSims[m], lowQ)),
                     SponsorSoFar = m == 0 ? Money(sponsorSoFar) : 0m,
@@ -499,6 +570,7 @@ namespace DirectoryManager.Web.Forecasting
 
             return new Result
             {
+                Scorecard = o.RunBacktests ? BuildScorecard(paidInvoices, oneTime, o, realNowUtc) : new List<StreamScore>(),
                 AsOfUtc = asOf,
                 Confidence = o.Confidence,
                 Months = monthsOut,
@@ -509,6 +581,97 @@ namespace DirectoryManager.Web.Forecasting
                 ContractedRemaining = Money(contractedDaily.Sum()),
                 Backtests = backtests,
             };
+        }
+
+        // Replays the forecast from each of the last 12 month starts and scores every stream on the
+        // months it predicted, split into the near months (1 to 3 ahead) and the far ones (4 to 6).
+        private static List<StreamScore> BuildScorecard(
+            IReadOnlyList<SponsoredListingInvoice> paidInvoices,
+            IReadOnlyList<RevenueItem> oneTime,
+            Options o,
+            DateTime realNowUtc)
+        {
+            var currentMonth = new DateTime(realNowUtc.Year, realNowUtc.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+            var samples = new Dictionary<(int Source, bool Far), List<(decimal Pred, decimal Low, decimal High, decimal Act)>>();
+            void Add(int source, bool far, decimal pred, decimal low, decimal high, decimal act)
+            {
+                if (!samples.TryGetValue((source, far), out var list))
+                {
+                    samples[(source, far)] = list = new ();
+                }
+
+                list.Add((pred, low, high, act));
+            }
+
+            for (int back = 12; back >= 1; back--)
+            {
+                var asOf = currentMonth.AddMonths(-back);
+                if (!paidInvoices.Any(i => i.CreateDate < asOf.AddMonths(-9)))
+                {
+                    continue;
+                }
+
+                var horizon = Math.Min(back, 6);
+                var replay = Run(paidInvoices, oneTime, new Options
+                {
+                    AsOfUtc = asOf,
+                    HorizonMonths = horizon,
+                    Simulations = Math.Min(o.Simulations, 300),
+                    Confidence = o.Confidence,
+                    Seed = o.Seed + 100 + back,
+                    UseCurrentStatus = false,
+                    MainSlots = o.MainSlots,
+                    CategorySlots = o.CategorySlots,
+                    SubcategorySlots = o.SubcategorySlots,
+                    RunBacktests = false,
+                    LookbackDays = o.LookbackDays,
+                }, realNowUtc);
+                var actual = RevenueReportBuilder.BuildMonths(paidInvoices, oneTime, asOf, asOf.AddMonths(horizon), RevenueBasis.Earned, realNowUtc);
+                for (int k = 0; k < horizon && k < actual.Count; k++)
+                {
+                    var m = replay.Months[k];
+                    bool far = k >= 3;
+                    Add(0, far, m.Expected, m.Low, m.High, actual[k].Total);
+                    foreach (var src in RevenueReportBuilder.Sources)
+                    {
+                        var (exp, low, high) = StreamMonth(m, src);
+                        var act = actual[k].BySource.TryGetValue(src, out var a) ? a : 0m;
+
+                        // A stream that had not started when the forecast was made is not a test:
+                        // nothing could have predicted it.
+                        if (src != RevenueSource.SiteSponsors && !oneTime.Any(i => i.Source == src && i.PaidUtc < asOf))
+                        {
+                            continue;
+                        }
+
+                        Add((int)src, far, exp, low, high, act);
+                    }
+                }
+            }
+
+            return samples
+                .Where(kv => kv.Value.Count >= 3)
+                .OrderBy(kv => kv.Key.Source).ThenBy(kv => kv.Key.Far)
+                .Select(kv =>
+                {
+                    var xs = kv.Value;
+                    var misses = xs.Select(x => (double)Math.Abs(x.Pred - x.Act)).ToList();
+                    var avgActual = xs.Average(x => x.Act);
+                    var typical = (decimal)Median(misses);
+                    var totalActual = xs.Sum(x => x.Act);
+                    return new StreamScore
+                    {
+                        Source = kv.Key.Source == 0 ? null : (RevenueSource)kv.Key.Source,
+                        Far = kv.Key.Far,
+                        MonthsScored = xs.Count,
+                        AverageActual = Math.Round(avgActual, 2),
+                        TypicalMissUsd = Math.Round(typical, 2),
+                        TypicalMissPct = avgActual <= 0m ? 0m : Math.Round(typical / avgActual * 100m, 1),
+                        BiasPct = totalActual <= 0m ? 0m : Math.Round((xs.Sum(x => x.Pred) - totalActual) / totalActual * 100m, 1),
+                        InsideRangePct = Math.Round(100m * xs.Count(x => x.Act >= x.Low && x.Act <= x.High) / xs.Count, 0),
+                    };
+                })
+                .ToList();
         }
 
         // Replays the model as of the first of the month `monthsBack` ago and compares each full
@@ -603,7 +766,49 @@ namespace DirectoryManager.Web.Forecasting
             // Parameter uncertainty: each simulated future draws its own renewal rate (Beta over the
             // observed renewals) and demand level (Gamma around the observed sales), so the band also
             // reflects how little history some estimates rest on, not just luck.
-            var renewP = Tiers.ToDictionary(t => t, t => SampleBeta(rng, tiers[t].Renewed + 1.0, tiers[t].Ended - tiers[t].Renewed + 1.0));
+            // Renewal depends a lot on tenure (a first campaign renews about half as often as one
+            // that has already renewed twice), so each tenure group draws its own rate, shrunk
+            // toward the tier's overall rate where the group has little history.
+            var renewP = Tiers.ToDictionary(t => t, t =>
+            {
+                var tm = tiers[t];
+                var p = new double[3];
+                for (int g = 0; g < 3; g++)
+                {
+                    const double prior = 4.0;
+                    p[g] = SampleBeta(
+                        rng,
+                        tm.RenewedByStreak[g] + (prior * tm.RenewProbability) + 0.5,
+                        tm.EndedByStreak[g] - tm.RenewedByStreak[g] + (prior * (1 - tm.RenewProbability)) + 0.5);
+                }
+
+                return p;
+            });
+
+            // Price level: each simulated future lets the tier's going price drift (a random walk
+            // with the month-to-month volatility its prices have shown), so the range reflects that
+            // prices move, which is the largest source of error on replays.
+            var priceLevel = Tiers.ToDictionary(t => t, t =>
+            {
+                // The going price wanders but is pulled back toward where it is now (it rises
+                // when slots are scarce and falls when one sits open), so the spread levels off
+                // instead of growing without limit. The level averages 1: volatility widens the
+                // range, it does not lift the expected price.
+                var level = new double[days + 1];
+                double noise = 0, variance = 0, trend = 0;
+                var sigmaDay = tiers[t].PriceVolatilityPerMonth / Math.Sqrt(30.4375);
+                var keep = Math.Pow(PriceLevelKeptPerMonth, 1 / 30.4375);
+                var momentum = o.UseActualPricesAtSaleTime ? 0d : tiers[t].PriceMomentumPerMonth / 30.4375;
+                for (int d = 0; d <= days; d++)
+                {
+                    level[d] = Math.Exp(trend + noise - (variance / 2));
+                    noise = (keep * noise) + (sigmaDay * SampleNormal(rng));
+                    variance = (keep * keep * variance) + (sigmaDay * sigmaDay);
+                    trend += momentum * Math.Pow(MomentumKeptPerMonth, d / 30.4375);
+                }
+
+                return level;
+            });
             var demand = Tiers.ToDictionary(t => t, t => SampleGamma(rng, tiers[t].SalesObserved + 1.0) / (tiers[t].SalesObserved + 1.0));
             var active = new List<SimSlot>();
 
@@ -613,15 +818,15 @@ namespace DirectoryManager.Web.Forecasting
                 var tm = tiers[c.Tier];
                 if (endDay > 0)
                 {
-                    active.Add(new SimSlot(c.Tier, endDay, c.LastDays, c.Live));
+                    active.Add(new SimSlot(c.Tier, endDay, c.LastDays, c.Live, c.LastDailyRate, c.RenewalStreak));
                     occupancy[c.Tier]++;
                 }
                 else if (c.Live && endDay > -30 && rng.NextDouble() < tm.LateRenewProbability)
                 {
                     // Lapsed in the last month: some advertisers renew a little late.
-                    var price = tm.PriceFor(c.LastDays, c.LastDailyRate, 0);
+                    var price = tm.PriceFor(c.LastDays, c.LastDailyRate, 0, rng, renewal: true) * priceLevel[c.Tier][0];
                     AddCampaign(earned, cash, 0, c.LastDays, price, days);
-                    active.Add(new SimSlot(c.Tier, c.LastDays, c.LastDays, true));
+                    active.Add(new SimSlot(c.Tier, c.LastDays, c.LastDays, true, c.LastDailyRate, c.RenewalStreak + 1));
                     occupancy[c.Tier]++;
                 }
             }
@@ -637,11 +842,12 @@ namespace DirectoryManager.Web.Forecasting
                     }
 
                     var tm = tiers[slot.Tier];
-                    if (slot.Live && rng.NextDouble() < renewP[slot.Tier])
+                    if (slot.Live && rng.NextDouble() < renewP[slot.Tier][Math.Min(slot.Streak, 2)])
                     {
-                        var price = tm.PriceFor(slot.Days, tm.RecentDailyRate, d);
+                        var price = tm.PriceFor(slot.Days, slot.OwnDailyRate, d, rng, renewal: true) * priceLevel[slot.Tier][d];
                         AddCampaign(earned, cash, d, slot.Days, price, days);
                         slot.EndDay = d + slot.Days;
+                        slot.Streak++;
                     }
                     else
                     {
@@ -667,9 +873,9 @@ namespace DirectoryManager.Web.Forecasting
                         }
 
                         var len = tm.NewDurations[rng.Next(tm.NewDurations.Count)];
-                        var price = tm.PriceFor(len, tm.RecentDailyRate, d);
+                        var price = tm.PriceFor(len, tm.RecentDailyRate, d, rng, renewal: false) * priceLevel[t][d];
                         AddCampaign(earned, cash, d, len, price, days);
-                        active.Add(new SimSlot(t, d + len, len, true));
+                        active.Add(new SimSlot(t, d + len, len, true, price / len / priceLevel[t][d], 0));
                         occupancy[t]++;
                     }
                 }
@@ -719,6 +925,7 @@ namespace DirectoryManager.Web.Forecasting
                         End = end,
                         LastDays = SponsorAccrual.PaidDays(last),
                         LastDailyRate = (double)SponsorAccrual.DailyRate(last),
+                        RenewalStreak = StreakAt(ordered, ordered.Count - 1),
                         Live = live,
                     };
                 })
@@ -745,6 +952,8 @@ namespace DirectoryManager.Web.Forecasting
             // Renewal: of the campaigns that ended between ~18 and 1.5 months ago, how many were
             // followed by another campaign in the same slot.
             int ended = 0, renewed = 0, renewedLate = 0;
+            var endedByStreak = new int[3];
+            var renewedByStreak = new int[3];
             foreach (var c in tierChains)
             {
                 var inv = c.Invoices;
@@ -757,12 +966,15 @@ namespace DirectoryManager.Web.Forecasting
                     }
 
                     ended++;
+                    var group = Math.Min(StreakAt(inv, k), 2);
+                    endedByStreak[group]++;
                     var next = inv.Skip(k + 1).FirstOrDefault(n =>
                         n.CampaignStartDate.Date >= end.AddDays(-RenewEarlyToleranceDays) &&
                         n.CampaignStartDate.Date <= end.AddDays(RenewLateWindowDays));
                     if (next != null)
                     {
                         renewed++;
+                        renewedByStreak[group]++;
                         if (next.CampaignStartDate.Date > end.AddDays(3))
                         {
                             renewedLate++;
@@ -819,6 +1031,11 @@ namespace DirectoryManager.Web.Forecasting
             {
                 Ended = ended,
                 Renewed = renewed,
+                EndedByStreak = endedByStreak,
+                RenewedByStreak = renewedByStreak,
+                Tier = tier,
+                PriceVolatilityPerMonth = PriceVolatility(tierInvoices, asOf),
+                PriceMomentumPerMonth = tier == SponsorshipType.MainSponsor ? MomentumScale * PriceMomentum(tierInvoices, asOf) : 0d,
 
                 // Laplace-smoothed so a thin history doesn't give 0% or 100%.
                 RenewProbability = (renewed + 1.0) / (ended + 2.0),
@@ -844,6 +1061,62 @@ namespace DirectoryManager.Web.Forecasting
             var start = next.CampaignStartDate.Date;
             return start >= end.AddDays(-RenewEarlyToleranceDays) && start <= end.AddDays(RenewLateWindowDays);
         }
+
+        // Renewals in a row leading up to campaign k of a slot.
+        private static int StreakAt(List<SponsoredListingInvoice> inv, int k)
+        {
+            int streak = 0;
+            for (int j = k; j > 0 && IsRenewalOf(inv[j], inv[j - 1]); j--)
+            {
+                streak++;
+            }
+
+            return streak;
+        }
+
+        // Month-to-month volatility of a tier's going price: the spread of the changes between
+        // consecutive monthly median daily rates over the last 18 months, per month of gap.
+        private static double PriceVolatility(List<SponsoredListingInvoice> tierInvoicesNewestFirst, DateTime asOf)
+        {
+            var monthly = tierInvoicesNewestFirst
+                .Where(i => i.CreateDate >= asOf.AddMonths(-18))
+                .GroupBy(i => (i.CreateDate.Year * 12) + i.CreateDate.Month)
+                .OrderBy(g => g.Key)
+                .Select(g => (Month: g.Key, Rate: Median(g.Select(i => (double)SponsorAccrual.DailyRate(i)).ToList())))
+                .Where(x => x.Rate > 0)
+                .ToList();
+            var changes = new List<double>();
+            for (int k = 1; k < monthly.Count; k++)
+            {
+                changes.Add(Math.Log(monthly[k].Rate / monthly[k - 1].Rate) / Math.Sqrt(monthly[k].Month - monthly[k - 1].Month));
+            }
+
+            if (changes.Count < 3)
+            {
+                return 0.10;
+            }
+
+            var rms = Math.Sqrt(changes.Average(c => c * c));
+            return Math.Clamp(rms, 0.03, 0.20);
+        }
+
+        // Recent price trend per month (in logs): the last 60 days' median daily rate against the
+        // 90 days before that. Zero when either window has fewer than two sales.
+        private static double PriceMomentum(List<SponsoredListingInvoice> tierInvoicesNewestFirst, DateTime asOf)
+        {
+            var recent = tierInvoicesNewestFirst.Where(i => i.CreateDate >= asOf.AddDays(-60)).Select(i => (double)SponsorAccrual.DailyRate(i)).ToList();
+            var before = tierInvoicesNewestFirst.Where(i => i.CreateDate < asOf.AddDays(-60) && i.CreateDate >= asOf.AddDays(-150)).Select(i => (double)SponsorAccrual.DailyRate(i)).ToList();
+            if (recent.Count < 2 || before.Count < 2)
+            {
+                return 0d;
+            }
+
+            var perMonth = Math.Log(Median(recent) / Median(before)) / 2.5;
+            return Math.Clamp(perMonth, -0.10, 0.10);
+        }
+
+        private static double SampleNormal(Random rng) =>
+            Math.Sqrt(-2 * Math.Log(1 - rng.NextDouble())) * Math.Cos(2 * Math.PI * rng.NextDouble());
 
         // Gamma(shape, 1) via Marsaglia–Tsang.
         private static double SampleGamma(Random rng, double shape)
@@ -933,6 +1206,9 @@ namespace DirectoryManager.Web.Forecasting
 
             public double LastDailyRate { get; init; }
 
+            // How many times in a row the slot has been renewed up to its latest campaign.
+            public int RenewalStreak { get; init; }
+
             public bool Live { get; init; }
 
             public int ActiveEndDay(DateTime asOf) => (int)(this.End - asOf).TotalDays;
@@ -943,6 +1219,19 @@ namespace DirectoryManager.Web.Forecasting
             public int Ended { get; init; }
 
             public int Renewed { get; init; }
+
+            // Ended and renewed campaigns by tenure: no renewal yet, one, two or more.
+            public int[] EndedByStreak { get; init; } = new int[3];
+
+            public int[] RenewedByStreak { get; init; } = new int[3];
+
+            public SponsorshipType Tier { get; init; }
+
+            // Standard deviation of the month-to-month change (in logs) of the tier's going price.
+            public double PriceVolatilityPerMonth { get; init; }
+
+            // Recent trend of the going price, per month (in logs).
+            public double PriceMomentumPerMonth { get; init; }
 
             public double RenewProbability { get; init; }
 
@@ -979,7 +1268,7 @@ namespace DirectoryManager.Web.Forecasting
             // daily rate of the latest invoices of a similar length (longer campaigns are cheaper
             // per day), falling back to recent invoices of any length, then to the advertiser's own
             // last rate; then grown by the assumed yearly price change.
-            public double PriceFor(int length, double fallbackDailyRate, int saleDay)
+            public double PriceFor(int length, double ownDailyRate, int saleDay, Random rng, bool renewal)
             {
                 var pool = this.RecentInvoices;
                 if (this.UseActualPricesAtSaleTime)
@@ -988,16 +1277,41 @@ namespace DirectoryManager.Web.Forecasting
                     pool = this.PriceHistory.Where(i => i.CreateDate < saleDate).Take(60).ToList();
                 }
 
-                var similar = pool
-                    .Where(i => Bucket(SponsorAccrual.PaidDays(i)) == Bucket(length))
-                    .Take(RecentPricesPerBucket)
-                    .Select(i => (double)SponsorAccrual.DailyRate(i))
-                    .ToList();
-                var anyLength = pool.Take(RecentPricesPerBucket).Select(i => (double)SponsorAccrual.DailyRate(i)).ToList();
+                double rate;
+                if (this.Tier == SponsorshipType.MainSponsor)
+                {
+                    // One product, one going price: the latest sale of a similar length.
+                    var similar = pool
+                        .Where(i => Bucket(SponsorAccrual.PaidDays(i)) == Bucket(length))
+                        .Take(MainRecentPrices)
+                        .Select(i => (double)SponsorAccrual.DailyRate(i))
+                        .ToList();
+                    var anyLength = pool.Take(MainRecentPrices).Select(i => (double)SponsorAccrual.DailyRate(i)).ToList();
+                    rate = similar.Count > 0 ? Median(similar)
+                        : anyLength.Count > 0 ? Median(anyLength)
+                        : ownDailyRate;
+                }
+                else if (renewal && ownDailyRate > 0)
+                {
+                    // Category and subcategory prices depend on the page, so a renewal pays what
+                    // that advertiser paid last time.
+                    rate = ownDailyRate;
+                }
+                else
+                {
+                    // A new sale lands on some page: draw one of the recent sales of a similar length.
+                    var similar = pool
+                        .Where(i => Bucket(SponsorAccrual.PaidDays(i)) == Bucket(length))
+                        .Take(RecentPricesPerBucket)
+                        .Select(i => (double)SponsorAccrual.DailyRate(i))
+                        .ToList();
+                    if (similar.Count == 0)
+                    {
+                        similar = pool.Take(RecentPricesPerBucket).Select(i => (double)SponsorAccrual.DailyRate(i)).ToList();
+                    }
 
-                var rate = similar.Count > 0 ? Median(similar)
-                    : anyLength.Count > 0 ? Median(anyLength)
-                    : fallbackDailyRate;
+                    rate = similar.Count > 0 ? similar[rng.Next(similar.Count)] : ownDailyRate;
+                }
 
                 if (this.PriceGrowthPerYear != 0 && !this.UseActualPricesAtSaleTime)
                 {
@@ -1019,13 +1333,21 @@ namespace DirectoryManager.Web.Forecasting
 
         private sealed class SimSlot
         {
-            public SimSlot(SponsorshipType tier, int endDay, int days, bool live)
+            public SimSlot(SponsorshipType tier, int endDay, int days, bool live, double ownDailyRate, int streak)
             {
                 this.Tier = tier;
                 this.EndDay = endDay;
                 this.Days = Math.Max(1, days);
                 this.Live = live;
+                this.OwnDailyRate = ownDailyRate;
+                this.Streak = streak;
             }
+
+            // What this advertiser last paid per day (category and subcategory prices differ by page).
+            public double OwnDailyRate { get; }
+
+            // Renewals in a row so far.
+            public int Streak { get; set; }
 
             public SponsorshipType Tier { get; }
 

@@ -54,6 +54,35 @@ namespace DirectoryManager.Web.Controllers
                 }
             }
 
+            // The weekly site check's own submissions: say plainly what it found.
+            var checkRepo = this.HttpContext.RequestServices.GetService<DirectoryManager.Data.Repositories.Interfaces.ISiteCheckStatusRepository>();
+            foreach (var s in subs)
+            {
+                var finding = AutomatedSubmissionRefresh.Classify(s.NoteToAdmin, s.DirectoryStatus, s.Note);
+                if (finding == SiteCheckFinding.None || s.DirectoryEntryId is not int checkedId)
+                {
+                    continue;
+                }
+
+                var entry = await this.directoryEntryRepository.GetByIdAsync(checkedId);
+                var check = checkRepo == null ? null : await checkRepo.GetByDirectoryEntryIdAsync(checkedId, ct);
+                model.SiteChecks[s.SubmissionId] = new SiteCheckRow
+                {
+                    Finding = finding,
+                    CurrentStatus = entry?.DirectoryStatus,
+                    OnionLink = finding == SiteCheckFinding.TorLinkOffline ? OnionLinkOf(entry) : null,
+                    FailStreak = finding switch
+                    {
+                        SiteCheckFinding.MainSiteOffline => check?.ClearnetFailStreak ?? 0,
+                        SiteCheckFinding.TorLinkOffline => check?.OnionFailStreak ?? 0,
+                        _ => 0,
+                    },
+                    LastCheckedUtc = check?.LastCheckedUtc,
+                    Reason = AutomatedSubmissionRefresh.OfflineReason(s.DirectoryStatus ?? DirectoryStatus.Unknown, s.Note),
+                    Warning = AutomatedSubmissionRefresh.WarningText(s.NoteToAdmin),
+                };
+            }
+
             return this.View("AiReview", model);
         }
 
@@ -101,6 +130,74 @@ namespace DirectoryManager.Web.Controllers
 
             this.TempData["AiReviewMessage"] = $"Approved {ok} of {subs.Count}." +
                 (failed.Count == 0 ? string.Empty : " Not approved: " + string.Join("; ", failed));
+            return this.Redirect("~/" + ReviewPagePath + "#result");
+        }
+
+        /// <summary>Accepts the site check's finding: the listing is marked Removed with the offline reason in its note.</summary>
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
+        [HttpPost(ReviewPagePath + "/{id:int}/remove-offline")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AiReviewRemoveOffline(int id, CancellationToken ct)
+        {
+            var submission = await this.submissionRepository.GetByIdAsync(id);
+            if (submission == null)
+            {
+                return this.NotFound();
+            }
+
+            var error = await this.ApplySiteCheckAsync(submission, removeListing: true, ct);
+            this.TempData["AiReviewMessage"] = error == null
+                ? $"Removed \"{submission.Name}\" as offline."
+                : $"Could not remove #{id}: {error}";
+            return this.Redirect("~/" + ReviewPagePath + "#result");
+        }
+
+        /// <summary>Removes every listing whose MAIN site the weekly check found offline.</summary>
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
+        [HttpPost(ReviewPagePath + "/remove-offline-all")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AiReviewRemoveOfflineAll(CancellationToken ct)
+        {
+            var subs = (await this.submissionRepository.ListPendingForReviewAsync(ct))
+                .Where(s => AutomatedSubmissionRefresh.Classify(s.NoteToAdmin, s.DirectoryStatus, s.Note) == SiteCheckFinding.MainSiteOffline)
+                .ToList();
+
+            int ok = 0;
+            var failed = new List<string>();
+            foreach (var s in subs)
+            {
+                var error = await this.ApplySiteCheckAsync(s, removeListing: true, ct);
+                if (error == null)
+                {
+                    ok++;
+                }
+                else
+                {
+                    failed.Add($"#{s.SubmissionId} {s.Name}: {error}");
+                }
+            }
+
+            this.TempData["AiReviewMessage"] = $"Removed {ok} of {subs.Count} offline listing(s)." +
+                (failed.Count == 0 ? string.Empty : " Could not remove: " + string.Join("; ", failed));
+            return this.Redirect("~/" + ReviewPagePath + "#result");
+        }
+
+        /// <summary>Only the Tor address is down: take that address off the listing and keep the listing.</summary>
+        [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
+        [HttpPost(ReviewPagePath + "/{id:int}/remove-tor-link")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AiReviewRemoveTorLink(int id, CancellationToken ct)
+        {
+            var submission = await this.submissionRepository.GetByIdAsync(id);
+            if (submission == null)
+            {
+                return this.NotFound();
+            }
+
+            var error = await this.ApplySiteCheckAsync(submission, removeListing: false, ct);
+            this.TempData["AiReviewMessage"] = error == null
+                ? $"Removed the Tor link from \"{submission.Name}\". The listing stays."
+                : $"Could not change #{id}: {error}";
             return this.Redirect("~/" + ReviewPagePath + "#result");
         }
 
@@ -270,6 +367,91 @@ namespace DirectoryManager.Web.Controllers
             submission.SubmissionStatus = SubmissionStatus.Approved;
             submission.ReviewState = SubmissionReviewState.Approved;
             submission.AppendReviewLog($"Admin {this.User?.Identity?.Name}: approved the suggested version → listing #{submission.DirectoryEntryId}.");
+            await this.submissionRepository.UpdateAsync(submission);
+            return null;
+        }
+
+        /// <summary>The listing's Tor address (.onion) from link 2 or link 3, if it has one.</summary>
+        internal static string? OnionLinkOf(DirectoryEntry? entry) =>
+            new[] { entry?.Link2, entry?.Link3 }.FirstOrDefault(l => UrlHelper.IsOnion(l));
+
+        /// <summary>
+        /// Applies a weekly site-check finding to the listing as it is NOW (the submission's copy is
+        /// refreshed from the live listing first, so edits made since the check are kept).
+        /// removeListing: status becomes Removed with the offline reason in the note.
+        /// Otherwise only the dead Tor address is taken off and status and note stay as they are.
+        /// Returns null on success, else why it couldn't.
+        /// </summary>
+        private async Task<string?> ApplySiteCheckAsync(Submission submission, bool removeListing, CancellationToken ct)
+        {
+            if (submission.SubmissionStatus != SubmissionStatus.Pending)
+            {
+                return $"it is {submission.SubmissionStatus}, not Pending";
+            }
+
+            var finding = AutomatedSubmissionRefresh.Classify(submission.NoteToAdmin, submission.DirectoryStatus, submission.Note);
+            if (finding is not (SiteCheckFinding.MainSiteOffline or SiteCheckFinding.TorLinkOffline))
+            {
+                return "it is not an offline finding from the weekly site check";
+            }
+
+            if (!removeListing && finding != SiteCheckFinding.TorLinkOffline)
+            {
+                return "the main site is down, not just the Tor link";
+            }
+
+            if (submission.DirectoryEntryId is not int entryId || await this.directoryEntryRepository.GetByIdAsync(entryId) is not DirectoryEntry entry)
+            {
+                return "the listing no longer exists";
+            }
+
+            submission.OriginalSnapshotJson ??= submission.CreateSnapshotJson();
+            await this.RefreshAutomatedSnapshotAsync(submission, ct);
+
+            string what;
+            if (removeListing)
+            {
+                submission.DirectoryStatus = DirectoryStatus.Removed;
+                what = "removed the listing as offline";
+            }
+            else
+            {
+                var onion = OnionLinkOf(entry);
+                if (onion == null)
+                {
+                    return "the listing has no Tor link any more";
+                }
+
+                if (UrlHelper.IsOnion(submission.Link2))
+                {
+                    submission.Link2 = null;
+                }
+
+                if (UrlHelper.IsOnion(submission.Link3))
+                {
+                    submission.Link3 = null;
+                }
+
+                submission.DirectoryStatus = entry.DirectoryStatus;
+                submission.Note = entry.Note;
+                what = $"removed the dead Tor link {onion} and kept the listing";
+            }
+
+            var posted = submission.ShallowCopy();
+            posted.SubmissionStatus = SubmissionStatus.Approved;
+            var tags = ParseCsvIds(submission.SelectedTagIdsCsv).ToArray();
+            try
+            {
+                await this.ApproveIfNeededAsync(submission, posted, tags, submission.RelatedLinks, ct);
+            }
+            catch (Exception ex)
+            {
+                return ex.GetBaseException().Message;
+            }
+
+            submission.SubmissionStatus = SubmissionStatus.Approved;
+            submission.ReviewState = SubmissionReviewState.Approved;
+            submission.AppendReviewLog($"Admin {this.User?.Identity?.Name}: weekly site check accepted, {what} (listing #{entryId}).");
             await this.submissionRepository.UpdateAsync(submission);
             return null;
         }

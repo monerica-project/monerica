@@ -33,7 +33,15 @@ namespace DirectoryManager.Web.Middleware
                 {
                     using var reader = new StreamReader(buffer, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, 1024, leaveOpen: true);
                     var html = await reader.ReadToEndAsync().ConfigureAwait(false);
-                    var bytes = Encoding.UTF8.GetBytes(HtmlWhitespace.Collapse(html));
+                    html = HtmlWhitespace.Collapse(html);
+
+                    // On the Tor version of the site, links to our other sites go to their onion addresses.
+                    if (context.Request.Host.Host.EndsWith(".onion", StringComparison.OrdinalIgnoreCase))
+                    {
+                        html = await RewriteOnionLinksAsync(context, html).ConfigureAwait(false);
+                    }
+
+                    var bytes = Encoding.UTF8.GetBytes(html);
 
                     context.Response.Body = originalBody;
                     context.Response.ContentLength = bytes.Length;
@@ -48,6 +56,26 @@ namespace DirectoryManager.Web.Middleware
             finally
             {
                 context.Response.Body = originalBody;
+            }
+        }
+
+        private static async Task<string> RewriteOnionLinksAsync(HttpContext context, string html)
+        {
+            try
+            {
+                var cache = context.RequestServices.GetService<DirectoryManager.Web.Services.Interfaces.ICacheService>();
+                if (cache == null)
+                {
+                    return html;
+                }
+
+                var setting = await cache.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.OnionLinkMap).ConfigureAwait(false);
+                return OnionLinkMap.Rewrite(html, OnionLinkMap.Parse(setting));
+            }
+            catch (Exception)
+            {
+                // Never let link rewriting break a page: serve it as it was.
+                return html;
             }
         }
     }

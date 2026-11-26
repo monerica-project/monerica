@@ -16,7 +16,7 @@ partial class ApplicationDbContextModelSnapshot : ModelSnapshot
     // If you encounter a merge conflict in the line below, it means you need to
     // discard one of the migration branches and recreate its migrations on top of
     // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20261121193109_SubmissionSubmittedUtc";
+    public override string LastMigrationId => "20261124220121_AffiliateCommissionAmountPrecision";
 
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
@@ -99,7 +99,7 @@ partial class ApplicationDbContextModelSnapshot : ModelSnapshot
                     .HasColumnType("integer");
 
                 b.Property<decimal>("PaymentCurrencyAmount")
-                    .HasColumnType("decimal(18,8)");
+                    .HasColumnType("decimal(28,18)");
 
                 b.Property<string>("TransactionId")
                     .HasMaxLength(255)

@@ -35,10 +35,10 @@ namespace DirectoryManager.Data.Models
         public Currency PaymentCurrency { get; set; }
 
         /// <summary>
-        /// Amount in the payment currency.
+        /// Amount in the payment currency. 18 decimal places, so a full ETH amount (wei precision) fits.
         /// </summary>
         [Required]
-        [Column(TypeName = "decimal(18,8)")]
+        [Column(TypeName = "decimal(28,18)")]
         public decimal PaymentCurrencyAmount { get; set; }
 
         [MaxLength(255)]

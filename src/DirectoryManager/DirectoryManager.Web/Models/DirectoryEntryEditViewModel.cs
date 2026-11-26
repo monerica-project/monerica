@@ -130,6 +130,18 @@ namespace DirectoryManager.Web.Models
         {
             var results = new List<ValidationResult>(InputHtmlGuard.Validate(this));
 
+            // Every link field must be a real web address (http or https with a domain),
+            // the same rule the public submit form applies.
+            foreach (var (member, label, value) in this.LinkFields())
+            {
+                if (!string.IsNullOrWhiteSpace(value) && !IsWebAddress(value))
+                {
+                    results.Add(new ValidationResult(
+                        $"{label} is not a valid link. Enter a full address that starts with http:// or https://.",
+                        new[] { member }));
+                }
+            }
+
             // Description / Note length: no hard HTML maxlength on these fields (so a long value
             // is never silently truncated) — surface a clear over-length error instead, at the
             // same limits the public submit enforces. Keeps admin edit and submit in lockstep.
@@ -167,6 +179,30 @@ namespace DirectoryManager.Web.Models
             }
 
             return results;
+        }
+
+        private static bool IsWebAddress(string value)
+        {
+            var v = value.Trim();
+            return !v.Any(char.IsWhiteSpace)
+                && UrlHelper.IsValidUrl(v)
+                && Uri.TryCreate(v, UriKind.Absolute, out var uri)
+                && uri.Host.Contains('.')
+                && !uri.Host.StartsWith('.')
+                && !uri.Host.EndsWith('.');
+        }
+
+        private IEnumerable<(string Member, string Label, string? Value)> LinkFields()
+        {
+            yield return (nameof(this.Link), "Link", this.Link);
+            yield return (nameof(this.LinkA), "Link affiliate", this.LinkA);
+            yield return (nameof(this.Link2), "Link 2", this.Link2);
+            yield return (nameof(this.Link2A), "Link 2 affiliate", this.Link2A);
+            yield return (nameof(this.Link3), "Link 3", this.Link3);
+            yield return (nameof(this.Link3A), "Link 3 affiliate", this.Link3A);
+            yield return (nameof(this.ProofLink), "The proof link", this.ProofLink);
+            yield return (nameof(this.VideoLink), "The video link", this.VideoLink);
+            yield return (nameof(this.SourceCodeLink), "The source code link", this.SourceCodeLink);
         }
     }
 }

@@ -282,6 +282,10 @@
                         <a href="~/admin/submission-review">Submissions</a>
                         @* One count per line: the fixed-width column can't fit them side by side. *@
                         <br /><span class="u-fs-085em">@(ViewBag.AiReadyToApprove ?? 0) AI-ready</span>
+                        @if ((ViewBag.OfflineReady ?? 0) > 0)
+                        {
+                            <br /><span class="u-fs-085em">(@ViewBag.OfflineReady of them offline)</span>
+                        }
                         @if ((ViewBag.AiNeedsAttention ?? 0) > 0)
                         {
                             <br /><span class="u-fs-085em">@ViewBag.AiNeedsAttention needs a look</span>
@@ -373,6 +377,7 @@
             <ul>
                 <li><a href="~/admin/terms-watch"><b>Terms watch</b></a> (monthly check of listed sites' terms: KYC, countries, VPN/Tor, fees)</li>
                 <li><a href="~/admin/ai-log"><b>AI activity log</b></a> (every AI call: what it was sent, what it answered, what it did)</li>
+                <li><a href="~/admin/submission-from-link"><b>Submit a link</b></a> (paste one link; the review drafts the rest)</li>
                 <li><a href="~/admin/submission-review"><b>AI-reviewed submissions</b></a> (@(ViewBag.AiReadyToApprove ?? 0) ready to approve, @(ViewBag.AiNeedsAttention ?? 0) need attention, @(ViewBag.AiNotReviewedYet ?? 0) not reviewed yet)</li>
                 <li><a href="~/submission/index">Pending submissions (@ViewBag.TotalPendingSubmissions)</a></li>
             </ul>

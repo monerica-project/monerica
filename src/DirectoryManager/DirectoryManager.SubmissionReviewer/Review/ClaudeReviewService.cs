@@ -175,8 +175,10 @@ Browser text: when a page's text in the dossier came from opening it in a browse
                 ["site_javascript"] = NEnum(System.Enum.GetNames<SiteJavaScript>().Where(n => n != "Unknown")),
                 ["social"] = NStr(),
                 ["messenger"] = NStr(),
-                ["processor"] = NStr(),
-                ["tags"] = NStr(),
+                // Plain strings (empty when there is none), not nullable: the API allows at most
+                // 16 union-typed parameters in one schema and every nullable field counts as one.
+                ["processor"] = new JsonObject { ["type"] = "string", ["description"] = "Empty string when there is none." },
+                ["tags"] = new JsonObject { ["type"] = "string", ["description"] = "Empty string when there are none." },
                 ["changes"] = new JsonObject
                 {
                     ["type"] = "array",

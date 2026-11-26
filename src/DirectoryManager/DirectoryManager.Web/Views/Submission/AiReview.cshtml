@@ -12,7 +12,7 @@
         (SubmissionReviewState.AiRejectCandidate, "Reviewer suggests rejecting", "Check the issues before rejecting."),
         (SubmissionReviewState.AutoRejected, "Auto-rejected (confirm)", "Dead URL, duplicate or spam, found by code checks. Nothing is rejected until you confirm."),
         (SubmissionReviewState.Pending, "Not reviewed yet", "Waiting for the reviewer (runs every 10 minutes, within the daily cap)."),
-        (SubmissionReviewState.Skipped, "Not handled by the reviewer", "Site-checker status proposals: review them as before."),
+        (SubmissionReviewState.Skipped, "Not handled by the reviewer", "Automated proposals that are not from the weekly site check: review them as before."),
     };
 
     string[] ListFromJson(string? json)
@@ -97,6 +97,14 @@
 
     static string Spaced(string fp) => string.Join(" ", Enumerable.Range(0, (fp.Length + 3) / 4).Select(i => fp.Substring(i * 4, Math.Min(4, fp.Length - i * 4))));
 
+    // The weekly site check's findings get their own plain sections (below), not the AI groups.
+    var mainDown = Model.Submissions.Where(x => Model.SiteChecks.TryGetValue(x.SubmissionId, out var c) && c.Finding == DirectoryManager.Web.Helpers.SiteCheckFinding.MainSiteOffline).ToList();
+    var torDown = Model.Submissions.Where(x => Model.SiteChecks.TryGetValue(x.SubmissionId, out var c) && c.Finding == DirectoryManager.Web.Helpers.SiteCheckFinding.TorLinkOffline).ToList();
+    var checkWarnings = Model.Submissions.Where(x => Model.SiteChecks.TryGetValue(x.SubmissionId, out var c) && c.Finding == DirectoryManager.Web.Helpers.SiteCheckFinding.Warning).ToList();
+
+    string Streak(int n) => n <= 1 ? "this week's check" : $"{n} weekly checks in a row";
+    string Checked(DateTime? d) => d is DateTime v ? v.ToString("MMM d") : "date not recorded";
+
     var readyCount = Model.Submissions.Count(s => s.ReviewState == SubmissionReviewState.AiApproveCandidate);
     var autoRejectedCount = Model.Submissions.Count(s => s.ReviewState == SubmissionReviewState.AutoRejected);
     var waitingCount = Model.Submissions.Count(s => s.ReviewState == SubmissionReviewState.Pending);
@@ -110,8 +118,16 @@
 <p class="u-fs-085em">
     Pending submissions, sorted by what the automated reviewer found. Approving publishes the <b>suggested</b> version;
     the submitted version is always kept on the submission. AI reviews today: <b>@Model.AiReviewsToday / @Model.DailyCap</b>.
-    <a href="~/submission/pending">Old pending list</a>
 </p>
+
+<div class="u-flex-gap-8px-flexwrap-wrap u-mb-16px">
+    <a class="btn btn-sm" href="~/admin/submission-from-link">Submit a link</a>
+    <a class="btn btn-sm" href="~/submission/index">All submissions (full list)</a>
+    <a class="btn btn-sm" href="~/submission/pending">Pending only</a>
+    @if (mainDown.Count > 0) { <a class="btn btn-sm" href="#offline">AI-ready: offline (@mainDown.Count)</a> }
+    @if (torDown.Count > 0) { <a class="btn btn-sm" href="#tor-offline">AI-ready: Tor link down (@torDown.Count)</a> }
+    @if (checkWarnings.Count > 0) { <a class="btn btn-sm" href="#check-warnings">Site check warnings (@checkWarnings.Count)</a> }
+</div>
 
 @if (Model.AiReviewsToday >= Model.DailyCap && waitingCount > 0)
 {
@@ -144,7 +160,7 @@
 
 @foreach (var (state, title, help) in order)
 {
-    var group = Model.Submissions.Where(s => s.ReviewState == state).ToList();
+    var group = Model.Submissions.Where(s => s.ReviewState == state && !Model.SiteChecks.ContainsKey(s.SubmissionId)).ToList();
     if (group.Count == 0) { continue; }
 
     <h2 id="@state">@title (@group.Count)</h2>
@@ -296,6 +312,111 @@
             </div>
         </div>
     }
+}
+
+@if (mainDown.Count > 0)
+{
+    <h2 id="offline">AI-ready: remove as offline, main site down (@mainDown.Count)</h2>
+    <p class="u-fs-085em u-op-08">The weekly link check could not load the main site. <b>Approve</b> sets the listing to Removed and adds the reason to its note. <b>Keep listing</b> drops the finding and changes nothing.</p>
+    <form method="post" action="~/admin/submission-review/remove-offline-all" class="u-mb-16px">
+        @Html.AntiForgeryToken()
+        <button type="submit" class="btn btn-primary">Remove all @mainDown.Count as offline</button>
+    </form>
+    @foreach (var s in mainDown)
+    {
+        var c = Model.SiteChecks[s.SubmissionId];
+        <div class="u-callout" id="sub-@s.SubmissionId">
+            <b>@s.Name</b> <a class="u-fs-085em" href="~/directoryentry/edit/@s.DirectoryEntryId">listing #@s.DirectoryEntryId</a>
+            &middot; <a href="@s.Link" target="_blank" rel="noopener nofollow">@s.Link</a>
+            <p class="u-m-6px-0-0"><b>Found:</b> main site did not load in @Streak(c.FailStreak) (checked @Checked(c.LastCheckedUtc)).</p>
+            <p class="u-m-6px-0-0"><b>Change:</b> status <mark>@c.CurrentStatus &rarr; Removed</mark>; note adds <mark>@(c.Reason ?? "site offline")</mark>. Nothing else changes.</p>
+            <div class="u-flex-gap-8px-flexwrap-wrap u-mt-05rem">
+                <form method="post" action="~/admin/submission-review/@s.SubmissionId/remove-offline" class="u-m-0">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-primary btn-sm">Approve: remove as offline</button>
+                </form>
+                <form method="post" action="~/admin/submission-review/@s.SubmissionId/reject" class="u-m-0">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-sm">Keep listing</button>
+                </form>
+                <a class="btn btn-sm" href="~/submission/@s.SubmissionId?from=ai-review">Open review form</a>
+            </div>
+        </div>
+    }
+}
+
+@if (torDown.Count > 0)
+{
+    <h2 id="tor-offline">AI-ready: remove dead Tor link, main site up (@torDown.Count)</h2>
+    <p class="u-fs-085em u-op-08">Only the Tor address failed; the main site loaded. <b>Approve</b> takes the dead address off and keeps the listing. <b>Keep as is</b> drops the finding and changes nothing.</p>
+    @foreach (var s in torDown)
+    {
+        var c = Model.SiteChecks[s.SubmissionId];
+        <div class="u-callout" id="sub-@s.SubmissionId">
+            <b>@s.Name</b> <a class="u-fs-085em" href="~/directoryentry/edit/@s.DirectoryEntryId">listing #@s.DirectoryEntryId</a>
+            &middot; <a href="@s.Link" target="_blank" rel="noopener nofollow">@s.Link</a>
+            <p class="u-m-6px-0-0"><b>Found:</b> Tor link did not load in @Streak(c.FailStreak) (checked @Checked(c.LastCheckedUtc)). Main site is up.</p>
+            @if (c.OnionLink != null)
+            {
+                <p class="u-m-6px-0-0 u-prewrap-break"><b>Change:</b> Tor link <mark>@c.OnionLink &rarr; (removed)</mark>. Status stays @c.CurrentStatus; nothing else changes.</p>
+            }
+            else
+            {
+                <p class="u-m-6px-0-0"><b>Change:</b> none. The listing no longer has a Tor link.</p>
+            }
+            <div class="u-flex-gap-8px-flexwrap-wrap u-mt-05rem">
+                @if (c.OnionLink != null)
+                {
+                    <form method="post" action="~/admin/submission-review/@s.SubmissionId/remove-tor-link" class="u-m-0">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-primary btn-sm">Approve: remove Tor link</button>
+                    </form>
+                }
+                <form method="post" action="~/admin/submission-review/@s.SubmissionId/reject" class="u-m-0">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-sm">Keep as is</button>
+                </form>
+                <form method="post" action="~/admin/submission-review/@s.SubmissionId/remove-offline" class="u-m-0">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-sm" title="Sets the whole listing to Removed">Remove whole listing</button>
+                </form>
+                <a class="btn btn-sm" href="~/submission/@s.SubmissionId?from=ai-review">Open review form</a>
+            </div>
+        </div>
+    }
+}
+
+@if (checkWarnings.Count > 0)
+{
+    <h2 id="check-warnings">Site check warnings (@checkWarnings.Count)</h2>
+    <p class="u-fs-085em u-op-08">The listing itself is online. These propose no change: fix the listing by hand if needed, then dismiss.</p>
+    <div class="table-wrapper">
+    <table class="table">
+        <thead><tr><th>Listing</th><th>What the check found</th><th>Decide</th></tr></thead>
+        <tbody>
+        @foreach (var s in checkWarnings)
+        {
+            var c = Model.SiteChecks[s.SubmissionId];
+            <tr id="sub-@s.SubmissionId">
+                <td>
+                    <b>@s.Name</b>
+                    <br /><a href="@s.Link" target="_blank" rel="noopener nofollow">@s.Link</a>
+                </td>
+                <td class="u-prewrap-break">@(c.Warning ?? "No detail recorded.")</td>
+                <td>
+                    <div class="u-flex-gap-8px-flexwrap-wrap">
+                        <a class="btn btn-sm" href="~/directoryentry/edit/@s.DirectoryEntryId">Edit listing</a>
+                        <form method="post" action="~/admin/submission-review/@s.SubmissionId/reject" class="u-m-0">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm">Dismiss</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+    </div>
 }
 
 @if (Model.Submissions.Count == 0)

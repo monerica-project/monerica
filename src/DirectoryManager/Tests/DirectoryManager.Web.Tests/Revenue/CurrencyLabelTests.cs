@@ -15,6 +15,7 @@ namespace DirectoryManager.Web.Tests.Revenue
         [InlineData(Currency.XMR, "XMR")]
         [InlineData(Currency.USD, "USD")]
         [InlineData(Currency.BTC, "BTC")]
+        [InlineData(Currency.ETH, "ETH")]
         public void OtherCurrencies_KeepTheirCode(Currency currency, string expected)
         {
             Assert.Equal(expected, currency.ToLabel());
@@ -27,6 +28,7 @@ namespace DirectoryManager.Web.Tests.Revenue
             Assert.Equal(1, (int)Currency.XMR);
             Assert.Equal(2, (int)Currency.USD);
             Assert.Equal(3, (int)Currency.BTC);
+            Assert.Equal(5, (int)Currency.ETH);
         }
     }
 }

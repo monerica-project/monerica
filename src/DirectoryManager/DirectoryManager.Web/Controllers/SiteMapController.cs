@@ -193,7 +193,7 @@ namespace DirectoryManager.Web.Controllers
                 ChangeFrequency.Daily,
                 1.0);
 
-            this.AddNewestPage(listingsLastMod, siteMapHelper, domain);
+            await this.AddNewestPagesAsync(listingsLastMod, siteMapHelper, domain);
             await this.AddPagesAsync(snippetsLastMod, listingsLastMod, mostRecentUpdateDate, siteMapHelper);
 
             // Trust pages: the verification explainer is a template (changes with a deploy); the
@@ -572,12 +572,20 @@ namespace DirectoryManager.Web.Controllers
         // ==========================================================
         // NEWEST
         // ==========================================================
-        // Only page 1. Deeper /newest/page/N pages are a rolling window whose contents shift with
-        // every new listing (thin, duplicate content), so they are noindexed and kept out of the
-        // sitemap; their pagination links point at the app, which still serves them.
-        private void AddNewestPage(DateTime date, SiteMapHelper siteMapHelper, string domain)
+        // Every page of the list. Deeper /newest/page/N pages are a rolling window whose contents
+        // shift with every new listing, so they are noindexed, but they are listed here because
+        // the static mirror only carries pages that are in the sitemap, and the pagination links
+        // on the main site must not lead to missing pages.
+        private async Task AddNewestPagesAsync(DateTime date, SiteMapHelper siteMapHelper, string domain)
         {
             siteMapHelper.AddUrl($"{domain}/newest", date, ChangeFrequency.Daily, 0.4);
+
+            int totalEntries = await this.directoryEntryRepository.TotalActive();
+            int totalPages = PagingHelper.TotalPages(totalEntries, IntegerConstants.MaxPageSize);
+            for (int page = 2; page <= totalPages; page++)
+            {
+                siteMapHelper.AddUrl($"{domain}/newest/page/{page}", date, ChangeFrequency.Daily, 0.1);
+            }
         }
 
         // ==========================================================

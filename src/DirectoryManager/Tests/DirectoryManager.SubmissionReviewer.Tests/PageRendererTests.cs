@@ -99,5 +99,14 @@ namespace DirectoryManager.SubmissionReviewer.Tests
             Assert.Contains("never name or describe the payment processor", p);
             Assert.Contains("\"processor\"", ClaudeReviewService.Schema().ToJsonString());
         }
+
+        [Fact]
+        public void Schema_StaysWithinTheApiLimitOnUnionTypedFields()
+        {
+            // The API rejects a schema with more than 16 parameters typed as an array or anyOf.
+            var json = ClaudeReviewService.Schema().ToJsonString();
+            var unions = System.Text.RegularExpressions.Regex.Matches(json, "\"type\":\\[|\"anyOf\":").Count;
+            Assert.InRange(unions, 0, 16);
+        }
     }
 }

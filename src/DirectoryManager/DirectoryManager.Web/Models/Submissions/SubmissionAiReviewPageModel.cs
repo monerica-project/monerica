@@ -22,6 +22,9 @@ namespace DirectoryManager.Web.Models.Submissions
         // Such an edit can only be approved on the full review form.
         public Dictionary<int, List<string>> SensitiveChanges { get; set; } = new ();
 
+        // SubmissionId → what the weekly site check found (only for the checker's own submissions).
+        public Dictionary<int, SiteCheckRow> SiteChecks { get; set; } = new ();
+
         public List<string> Sensitive(int submissionId) =>
             this.SensitiveChanges.TryGetValue(submissionId, out var l) ? l : new List<string>();
 

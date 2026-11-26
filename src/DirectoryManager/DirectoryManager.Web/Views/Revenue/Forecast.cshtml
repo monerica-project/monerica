@@ -91,7 +91,8 @@
     <ul class="text-muted">
         <li><strong>Already paid for:</strong> every running or prepaid campaign keeps earning its daily rate until it ends.</li>
         <li><strong>Renewals:</strong> when a live advertiser's campaign ends, it renews as often as that tier has historically
-            (shown below), for the same length, at <em>recent</em> prices@(Model.PriceGrowthPercent != 0m ? $", changing {Model.PriceGrowthPercent.ToString("0.#", CultureInfo.InvariantCulture)}% per year" : " (prices are assumed to stay where they are)"). Pulled advertisers never renew.</li>
+            (shown below; an advertiser that has already renewed is more likely to renew again, and the model uses that), for the same length, at <em>recent</em> prices@(Model.PriceGrowthPercent != 0m ? $", changing {Model.PriceGrowthPercent.ToString("0.#", CultureInfo.InvariantCulture)}% per year" : " (prices are assumed to stay where they are)"). Pulled advertisers never renew.</li>
+        <li><strong>Prices:</strong> Main is priced at its latest sale of a similar length, because its price moves with demand. A category or subcategory renewal pays what that advertiser paid last time, since those prices differ by page. Each simulated future also lets prices drift up or down as much as they have month to month, which is what makes the range widen further out.</li>
         <li><strong>New sponsors</strong> arrive at the rate they have recently (the last six months count most), but only into free slots. A tier that is always sold out, like Main, refills an open slot as fast as it has in the past.</li>
         <li><strong>Every other stream</strong> (video sponsorships, affiliate commissions, submission review, verification and problem report payments) is forecast on its own, each month drawn from that stream's own last 12 months, and added to the total.</li>
     </ul>
@@ -102,6 +103,30 @@
     <p class="text-muted">
         Each month is simulated @Model.ConfidencePercent% of the time inside the range shown; "Expected" is the average of
         several thousand simulated futures.
+    </p>
+
+    <p>
+        <strong>Look at one stream:</strong>
+        @if (all)
+        {
+            <strong>All revenue</strong>
+        }
+        else
+        {
+            <a href="~/admin/revenue/forecast?@q">All revenue</a>
+        }
+        @foreach (var src in allSources)
+        {
+            <text> | </text>
+            if (Model.Stream == src)
+            {
+                <strong>@Label(src)</strong>
+            }
+            else
+            {
+                <a href="~/admin/revenue/forecast?@q&stream=@src">@Label(src)</a>
+            }
+        }
     </p>
 
     <form method="get" action="~/admin/revenue/forecast">
@@ -393,6 +418,79 @@
     </table>
     </div>
     <p class="text-muted">Renewal rate: of the campaigns that ended between 18 and 1.5 months ago, how many were followed by another campaign in the same slot.</p>
+    }
+
+    <h2>Track record by stream</h2>
+    @{
+        var cards = r.Scorecard.Where(c => all || c.Source == Model.Stream).ToList();
+        var scoredSources = cards.Where(c => c.Source != null).Select(c => c.Source!.Value).Distinct().ToList();
+        var unscored = allSources.Where(src => (all || Model.Stream == src) && !scoredSources.Contains(src)).ToList();
+    }
+    @if (cards.Count == 0)
+    {
+        <p class="text-muted">Not enough history yet to test @(all ? "the forecast" : "this stream") against the past.</p>
+    }
+    else
+    {
+        <p class="text-muted">
+            The forecast was re-made from the start of each of the last 12 months, using only what was known on that day, and
+            every month it predicted was compared with what came in. "Typical miss" is the middle case: half of the months
+            were closer than this, half were further off. "Too high or low" compares the predicted total with the actual total
+            (a minus means it predicted too little). "Inside range" should be near @Model.ConfidencePercent%.
+        </p>
+        <div class="u-overflowx-auto">
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>Stream</th>
+                    <th>Looking ahead</th>
+                    <th class="text-right">Months tested</th>
+                    <th class="text-right">Average actual month</th>
+                    <th class="text-right">Typical miss</th>
+                    <th class="text-right">Too high or low</th>
+                    <th class="text-right">Inside range</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var c in cards)
+                {
+                    <tr>
+                        <td>
+                            @if (c.Source == null)
+                            {
+                                <strong>All revenue</strong>
+                            }
+                            else if (all)
+                            {
+                                <a href="~/admin/revenue/forecast?@q&stream=@c.Source">@Label(c.Source.Value)</a>
+                            }
+                            else
+                            {
+                                @Label(c.Source.Value)
+                            }
+                        </td>
+                        <td>@(c.Far ? "4 to 6 months" : "1 to 3 months")</td>
+                        <td class="text-right">@c.MonthsScored</td>
+                        <td class="text-right">@c.AverageActual.ToString("C0", usd)</td>
+                        <td class="text-right">@c.TypicalMissUsd.ToString("C0", usd) (@c.TypicalMissPct.ToString("0", CultureInfo.InvariantCulture)%)</td>
+                        <td class="text-right">@(c.BiasPct > 0 ? "+" : "")@c.BiasPct.ToString("0", CultureInfo.InvariantCulture)%</td>
+                        <td class="text-right">@c.InsideRangePct.ToString("0", CultureInfo.InvariantCulture)%</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        </div>
+        <p class="text-muted"><small>
+            Replays use the prices known on the day of each forecast, so every price rise made afterwards counts as a miss.
+            That is why the forecast has run low further out: Main prices roughly tripled over the period tested.
+        </small></p>
+    }
+    @if (unscored.Count > 0)
+    {
+        <p class="text-muted"><small>
+            Not tested yet, because @(unscored.Count == 1 ? "it is" : "they are") too new to have a past forecast to check:
+            @string.Join(", ", unscored.Select(Label)).
+        </small></p>
     }
 
     @if (all)

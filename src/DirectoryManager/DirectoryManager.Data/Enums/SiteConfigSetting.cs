@@ -70,6 +70,11 @@ namespace DirectoryManager.Data.Enums
 
         // Our blog, where each sponsored video also gets its own article. Shown on the video
         // sponsorship pages. Empty = not shown.
-        VideoSponsorshipBlogUrl = 54
+        VideoSponsorshipBlogUrl = 54,
+
+        // For visitors on the Tor (.onion) version of the site: our other sites that have their own
+        // onion address. One pair per line, "blog.example.com = abcdef.onion". Links to those hosts
+        // are pointed at the onion address on every page served over Tor. Empty = no rewriting.
+        OnionLinkMap = 55
     }
 }
